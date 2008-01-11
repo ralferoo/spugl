@@ -9,22 +9,72 @@
 #include <spu_mfcio.h>
 #include "3d.h"
 
+SPU_CONTROL control __CACHE_ALIGNED__;
+
 /* I'm deliberately going to ignore the arguments passed in as early versions
  * of libspe2 have the upper and lower 32 bits swapped.
  */
 int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned long long env) {
 //	SPU_DATA_RECEPTACLE data __SPU_ALIGNED__;
 
-	printf("spumain running\n");
+	printf("spumain running on spe %lx\n", spe_id);
 
-	for (;;) {
+	int running = 1;
+	control.counter = 0;
+	u32 last_counter = control.counter;
+	while (running) {
+		while (spu_stat_in_mbox() == 0) {
+			control.counter2 ++;
+			if (control.counter != last_counter) {
+				last_counter = control.counter;
+				printf("counter changed to %ld on %lx\n", 
+					last_counter, spe_id);
+			}
+		}
 		unsigned long msg = spu_read_in_mbox();
 		printf("received message %ld\n", msg);
-		break;
+		switch (msg) {
+			case SPU_MBOX_3D_TERMINATE:
+				running = 0;
+				continue;
+			case SPU_MBOX_3D_FLUSH:
+				spu_write_out_mbox(0);
+				break; 
+			case SPU_MBOX_3D_INITIALISE:
+				spu_write_out_mbox((u32)&control);
+				break;
+		}
 	}
 
 	printf("spumain exiting\n");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifdef __ignore_junk
 typedef unsigned int u32;

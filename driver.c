@@ -17,10 +17,12 @@ spe_program_handle_t* spu_3d_program = &spu_3d_handle;
 
 typedef struct {
         speid_t spe_id;
+	void* local_store;
+	SPU_CONTROL* control;
 } __DRIVER_CONTEXT;
 
 typedef __DRIVER_CONTEXT* DriverContext;
-static int spe_read(speid_t spe_id);
+static u32 spe_read(speid_t spe_id);
 
 // initialise
 DriverContext _init_3d_driver(void)
@@ -29,14 +31,23 @@ DriverContext _init_3d_driver(void)
 	if (context == NULL)
 		return NULL;
 
-	speid_t spe_id = spe_create_thread(0, spu_3d_program, NULL, NULL, -1, 0);
+	context->spe_id = spe_create_thread(0, spu_3d_program, NULL, NULL, -1, 0);
 
-	if (spe_id==0) {
+	if (context->spe_id==0) {
 		free(context);
 		return NULL;
 	}
 
-	context->spe_id = spe_id;
+	context->local_store = spe_get_ls(context->spe_id);
+	printf("Allocated spe %lx, local store at %lx\n",
+		context->spe_id, context->local_store);
+
+	spe_write_in_mbox(context->spe_id, SPU_MBOX_3D_INITIALISE); 
+	u32 addr = spe_read(context->spe_id);
+	context->control = addr + context->local_store;
+	context->control->counter = 43;
+	printf("Control structure at %lx\n", context->control);
+
 	return context;
 }
 
@@ -54,7 +65,7 @@ int _exit_3d_driver(DriverContext context)
 	return status;
 }
 
-static int spe_read(speid_t spe_id) {
+static u32 spe_read(speid_t spe_id) {
 	while(!spe_stat_out_mbox(spe_id))
 		; //usleep(10);
 	return spe_read_out_mbox(spe_id);
@@ -63,8 +74,28 @@ static int spe_read(speid_t spe_id) {
 int main(int argc, char* argv[]) {
 	printf("main entered\n");
 	DriverContext ctx = _init_3d_driver();
+	DriverContext ctx2 = _init_3d_driver();
 	printf("context = %lx\n", ctx);
+	printf("context2 = %lx\n", ctx2);
+
+	sleep(1);
+	ctx->control->counter++;
+	printf("counter2 values: %d %d\n",
+		ctx->control->counter2,
+		ctx2->control->counter2);
+	sleep(1);
+	ctx2->control->counter++;
+	printf("counter2 values: %d %d\n",
+		ctx->control->counter2,
+		ctx2->control->counter2);
+	sleep(1);
+	ctx->control->counter++;
+	printf("counter2 values: %d %d\n",
+		ctx->control->counter2,
+		ctx2->control->counter2);
+
 	_exit_3d_driver(ctx);
+	_exit_3d_driver(ctx2);
 	printf("main end\n");
 	exit(0);
 }
