@@ -24,14 +24,6 @@ typedef struct {
 
 static u32 spe_read(speid_t spe_id);
 
-#if defined(USERLAND_32_BITS)
-#define _MAKE_EA(x) ( (u64) ((u32)((void*)x)) )
-#elif defined(USERLAND_64_BITS)
-#define _MAKE_EA(x) ((u64)((void*)x))
-#else
-#error Must define USERLAND_32_BITS or USERLAND_64_BITS
-#endif
-
 // initialise
 DriverContext _init_3d_driver(int master)
 {
@@ -47,16 +39,19 @@ DriverContext _init_3d_driver(int master)
 		return NULL;
 	}
 
-	context->local_store = spe_get_ls(context->spe_id);
-	printf("Allocated spe %lx, local store at %lx\n",
-		context->spe_id, context->local_store);
+	void* ls = spe_get_ls(context->spe_id);
+	context->local_store = ls;
+//	printf("Allocated spe %lx, local store at %lx\n",
+//		context->spe_id, context->local_store);
+
+	u32 addr = spe_read(context->spe_id);
+	context->control = addr + ls;
+	context->control->my_local_address = _MAKE_EA(ls);
 
 	spe_write_in_mbox(context->spe_id, 
 		 master ? SPU_MBOX_3D_INITIALISE_MASTER
 			: SPU_MBOX_3D_INITIALISE_NORMAL); 
-	u32 addr = spe_read(context->spe_id);
-	context->control = addr + context->local_store;
-	context->control->my_local_address = _MAKE_EA(context->local_store);
+	spe_read(context->spe_id);
 
 	return (DriverContext) context;
 }
@@ -92,14 +87,14 @@ u32 _3d_idle_count(DriverContext _context)
 u32* _begin_fifo(DriverContext _context)
 {
 	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;
-	return (u32*)(context->control->fifo_written + context->local_store);
+	return (u32*)_FROM_EA(context->control->fifo_written);
 }
 
 void _end_fifo(DriverContext _context, u32* fifo)
 {
 	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;
 	SPU_CONTROL* control = context->control;
-	control->fifo_written = ((void*)fifo) - context->local_store;
+	control->fifo_written = _MAKE_EA(fifo);
 
 	if (control->fifo_written - control->fifo_start
 			> control->fifo_size - SPU_MIN_FIFO) {

@@ -12,6 +12,9 @@
 SPU_CONTROL control __CACHE_ALIGNED__;
 
 int init_fifo(int fifo_size) {
+	u64 ls = control.my_local_address;
+//	printf("init_fifo local address %llx\n", ls);
+
 	if (control.fifo_start)
 		free(control.fifo_start);
 
@@ -22,47 +25,46 @@ int init_fifo(int fifo_size) {
 //	printf("Allocated FIFO of %d bytes at %lx ctrl %lx\n",
 //		fifo_size, control.fifo_start, &control);
 
-	control.fifo_size = fifo_size;
-	control.fifo_written = control.fifo_start;
-	control.fifo_read = control.fifo_start;
+	u64 ea = fifo_size > 0 ? ls + ((u64)control.fifo_start) : 0;
 
-	control.last_count = 0;
-	control.idle_count = 0;
+//	printf("FIFO ea = %llx\n", ea);
 
+	control.fifo_read = ea;
+	control.fifo_written = ea;
 	return 0;
 }
 
 /* Process commands on the FIFO */
-u32* process_fifo(u32* from, u32* to) {
+void process_fifo(u32* from, u32* to) {
 	while (from != to) {
 		u32* addr = from;
+		u64 ea;
+
 		u32 command = *from++;
-		u32 eah, eal;
 		switch (command) {
 			case SPU_COMMAND_NOP:
 				printf("%06lx: NOP\n", addr);
 				break;
 			case SPU_COMMAND_JMP:
-				from = (u32*) *from;
-				printf("%06lx: JMP %06lx\n", addr, from);
+				__READ_EA(from)
+				printf("%06lx: JMP %llx\n", addr, ea);
+				control.fifo_read = ea;
+				return;
 				break;
 			case SPU_COMMAND_DEL_CHILD:
-				eah = *from++;
-				eal = *from++;
-				printf("%06lx: DEL CHILD %lx%08lx\n",
-					addr, eah, eal);
+				__READ_EA(from)
+				printf("%06lx: DEL CHILD %llx\n", addr, ea);
 				break;
 			case SPU_COMMAND_ADD_CHILD:
-				eah = *from++;
-				eal = *from++;
-				printf("%06lx: ADD CHILD %lx%08lx\n",
-					addr, eah, eal);
+				__READ_EA(from)
+				printf("%06lx: ADD CHILD %llx\n", addr, ea);
 				break;
 			default:
 				printf("%06lx: command %lx\n", addr, command);
 		}
 	}
-	return from;
+	u64 ls = control.my_local_address;
+	control.fifo_read = ls+((u64)((u32)from));
 }
 
 /* I'm deliberately going to ignore the arguments passed in as early versions
@@ -71,30 +73,35 @@ u32* process_fifo(u32* from, u32* to) {
 int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned long long env) {
 //	printf("spumain running on spe %lx\n", spe_id);
 
-	if (init_fifo(0)) {
-		printf("couldn't allocate FIFO buffer...\n");
-		exit(1);
-	}
+	control.fifo_start = 0;
+	control.fifo_size = 0;
+	control.fifo_written = 0;
+	control.fifo_read = 0;
+
+	control.last_count = 0;
+	control.idle_count = 0;
+	spu_write_out_mbox((u32)&control);
 
 	int running = 1;
 	while (running) {
 		while (spu_stat_in_mbox() == 0) {
 			control.idle_count ++;
 			// check to see if there's any data waiting on FIFO
-			u32 read = control.fifo_read;
-			u32 written = control.fifo_written;
-			if ((read-written)&0x3ffff) {
-				u32* to = (u32*) written;
-				u32* from = (u32*) read;
-				u32* end = process_fifo(from, to);
-//				printf("Processed FIFO from %lx to %lx "
-//					"(ends %lx)\n", from, end, to);
-				control.fifo_read = (u32) end;
+			u64 read = control.fifo_read;
+			u64 written = control.fifo_written;
+			u64 ls = control.my_local_address;
+			if (read!=written) {
+				u32* to = (u32*) ((u32)(written-ls));
+				u32* from = (u32*) ((u32)(read-ls));
+				process_fifo(from, to);
+				u64 new_read = control.fifo_read;
+//				printf("Processed FIFO from %llx to %llx "
+//					"(ends %llx)\n", read,new_read,written);
 			}
 		}
 
 		unsigned long msg = spu_read_in_mbox();
-		printf("received message %ld\n", msg);
+//		printf("received message %ld\n", msg);
 		switch (msg) {
 			case SPU_MBOX_3D_TERMINATE:
 				running = 0;
@@ -123,7 +130,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 		}
 	}
 
-	printf("spumain exiting\n");
+//	printf("spumain exiting\n");
 }
 
 

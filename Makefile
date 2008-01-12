@@ -17,7 +17,7 @@ USERLAND = 32
 PPUCC = gcc
 PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS
 
-SPUCC = spu-gcc
+SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS
 SPUCCFLAGS = -O6
 
 SPU_OBJS = spufifo.spe.o
@@ -36,6 +36,7 @@ run:	test
 	./test
 
 ppufifo.o: Makefile
+spufifo.spe.o: Makefile
 
 ###############################################################################
 #

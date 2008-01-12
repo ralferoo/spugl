@@ -21,33 +21,49 @@ int main(int argc, char* argv[]) {
 //	printf("context2 = %lx\n", ctx2);
 
 	sleep(1);
+
 	u32* fifo = _begin_fifo(ctx);
 	*fifo++ = SPU_COMMAND_NOP;
 	*fifo++ = SPU_COMMAND_JMP;
-	*fifo++ = _3d_spu_address(ctx, fifo+4);
-	*fifo++ = SPU_COMMAND_NOP;
-	*fifo++ = SPU_COMMAND_NOP;
+	_OUT_EA(fifo, &fifo[5]);
+	_OUTu(fifo, 42);
+	_OUTu(fifo, 43);
+	_OUTu(fifo, 44);
+	_OUTu(fifo, 45);
+	_OUTu(fifo, 46);
+	_OUTu(fifo, 47);
+	_OUTu(fifo, 48);
+	_OUTf(fifo, 1.0);
+	_OUTf(fifo, 2.0);
+	_OUTf(fifo, 3.14);
+	_OUTf(fifo, -3.14);
 	*fifo++ = SPU_COMMAND_NOP;
 	*fifo++ = SPU_COMMAND_NOP;
 	_end_fifo(ctx,fifo);
 	printf("idle_count values: %d %d\n",
 		_3d_idle_count(ctx), _3d_idle_count(ctx2));
+
 	sleep(1);
+
 	fifo = _begin_fifo(ctx2);
 	*fifo++ = SPU_COMMAND_NOP;
 	*fifo++ = SPU_COMMAND_NOP;
 	_end_fifo(ctx2,fifo);
 	printf("idle_count values: %d %d\n",
 		_3d_idle_count(ctx), _3d_idle_count(ctx2));
+
 	sleep(1);
+
 	fifo = _begin_fifo(ctx2);
 	*fifo++ = SPU_COMMAND_NOP;
 	_end_fifo(ctx2,fifo);
 	printf("idle_count values: %d %d\n",
 		_3d_idle_count(ctx), _3d_idle_count(ctx2));
+
 	sleep(1);
 
 	_bind_child(ctx, ctx2, 0);
+
 	sleep(1);
 
 	_exit_3d_driver(ctx);
