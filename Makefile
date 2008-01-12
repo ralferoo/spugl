@@ -20,9 +20,10 @@ PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I.
 SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS
 SPUCCFLAGS = -O6
 
-SPU_OBJS = spufifo.spe.o
+SPU_OBJS = spufifo.spe.o decode.spe.o
+PPU_OBJS = ppufifo.o glfifo.o
+
 SPU_HNDL = spu_3d.handle.o
-PPU_OBJS = ppufifo.o glimp.o
 PPU_TEST_OBJS = $(PPU_OBJS) test.o
 
 PPU_SRCS := $(patsubst %.o,%.c,$(PPU_TEST_OBJS))
@@ -99,22 +100,23 @@ ppufifo.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 ppufifo.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
 ppufifo.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
 ppufifo.o: /usr/include/libspe.h 3d.h
-glimp.o: /usr/include/stdlib.h /usr/include/features.h
-glimp.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
-glimp.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
-glimp.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h /usr/include/sys/types.h
-glimp.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
-glimp.o: /usr/include/time.h /usr/include/endian.h /usr/include/bits/endian.h
-glimp.o: /usr/include/sys/select.h /usr/include/bits/select.h
-glimp.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
-glimp.o: /usr/include/sys/sysmacros.h /usr/include/bits/pthreadtypes.h
-glimp.o: /usr/include/alloca.h /usr/include/bits/stdlib-ldbl.h
-glimp.o: /usr/include/stdio.h /usr/include/libio.h /usr/include/_G_config.h
-glimp.o: /usr/include/wchar.h /usr/include/bits/wchar.h /usr/include/gconv.h
-glimp.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
-glimp.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
-glimp.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h 3d.h
-glimp.o: ./GLES/gl.h ./GLES/glplatform.h
+glfifo.o: /usr/include/stdlib.h /usr/include/features.h
+glfifo.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+glfifo.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+glfifo.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h /usr/include/sys/types.h
+glfifo.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+glfifo.o: /usr/include/time.h /usr/include/endian.h
+glfifo.o: /usr/include/bits/endian.h /usr/include/sys/select.h
+glfifo.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
+glfifo.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
+glfifo.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+glfifo.o: /usr/include/bits/stdlib-ldbl.h /usr/include/stdio.h
+glfifo.o: /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h
+glfifo.o: /usr/include/bits/wchar.h /usr/include/gconv.h
+glfifo.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+glfifo.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
+glfifo.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h 3d.h
+glfifo.o: ./GLES/gl.h ./GLES/glplatform.h
 test.o: /usr/include/stdlib.h /usr/include/features.h
 test.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 test.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -135,3 +137,6 @@ test.o: ./GLES/gl.h ./GLES/glplatform.h ./GLES/glspu.h
 spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h 3d.h
+decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
+decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h 3d.h

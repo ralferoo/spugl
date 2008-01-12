@@ -116,7 +116,6 @@ extern void _bind_child(DriverContext _parent, DriverContext _child, int assign)
 extern u32 _3d_idle_count(DriverContext _context);
 extern u32 _3d_spu_address(DriverContext _context, u32* address);
 
-
-
+typedef void* SPU_COMMAND(void* data);
 
 #endif // __3d_h

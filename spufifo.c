@@ -34,51 +34,41 @@ int init_fifo(int fifo_size) {
 	return 0;
 }
 
+extern SPU_COMMAND impNOP;
+extern SPU_COMMAND impJMP;
+extern SPU_COMMAND impDeleteChild;
+extern SPU_COMMAND impAddChild;
+extern SPU_COMMAND imp_glBegin;
+extern SPU_COMMAND imp_glEnd;
+extern SPU_COMMAND imp_glVertex3f;
+
+SPU_COMMAND* spu_commands[] = {
+	[SPU_COMMAND_NOP] = (SPU_COMMAND*) &impNOP,
+	[SPU_COMMAND_JMP] = (SPU_COMMAND*) &impJMP,
+	[SPU_COMMAND_DEL_CHILD] = &impAddChild,
+	[SPU_COMMAND_ADD_CHILD] = &impDeleteChild,
+	[SPU_COMMAND_BEGIN] = &imp_glBegin,
+	[SPU_COMMAND_END] = &imp_glEnd,
+	[SPU_COMMAND_VERTEX3f] = &imp_glVertex3f,
+};
+
 /* Process commands on the FIFO */
 void process_fifo(u32* from, u32* to) {
 	while (from != to) {
 		u32* addr = from;
-		u64 ea;
-		union __f2i temp;
 
 		u32 command = *from++;
-		switch (command) {
-			case SPU_COMMAND_NOP:
-				printf("%06lx: NOP\n", addr);
-				break;
-			case SPU_COMMAND_JMP:
-				__READ_EA(from)
-				printf("%06lx: JMP %llx\n", addr, ea);
-				control.fifo_read = ea;
-				return;
-				break;
-			case SPU_COMMAND_DEL_CHILD:
-				__READ_EA(from)
-				printf("%06lx: DEL CHILD %llx\n", addr, ea);
-				break;
-			case SPU_COMMAND_ADD_CHILD:
-				__READ_EA(from)
-				printf("%06lx: ADD CHILD %llx\n", addr, ea);
-				break;
-			case SPU_COMMAND_BEGIN:
-				printf("%06lx: glBegin(%d)\n", addr, *from++);
-				break;
-			case SPU_COMMAND_END:
-				printf("%06lx: glEnd()\n", addr);
-				break;
-			case SPU_COMMAND_VERTEX3f:
-				{
-				float x,y,z;
-				temp.i = *from++; x=temp.f;
-				temp.i = *from++; y=temp.f;
-				temp.i = *from++; z=temp.f;
-				printf("%06lx: glVertex3f(%f,%f,%f)\n", 
-					addr, x,y,z);
-				}
-				break;
+		SPU_COMMAND* func = command < sizeof(spu_commands)
+					? spu_commands[command] : 0;
 
-			default:
-				printf("%06lx: command %lx\n", addr, command);
+		if (func) {
+			from = (*func)(from);
+			if (!from)
+				return;
+		} else {
+			printf("%06lx: command %lx\n", addr, command);
+			from++;
+			printf("from %lx to %lx\n", from, to);
 		}
 	}
 	u64 ls = control.my_local_address;
