@@ -10,27 +10,29 @@
 #include "fifo.h"
 #include "struct.h"
 
-static void debug(float4 v)
+static void debug(vertex_state v)
 {
-	printf("(%f,%f,%f,%f)", v.x,v.y,v.z,v.w);
+	printf("v=(%.2f,%.2f,%.2f,%.2f)", v.v.x, v.v.y, v.v.z, v.v.w);
+	printf(" c=(%.2f,%.2f,%.2f,%.2f)",
+		v.colour.x, v.colour.y, v.colour.z, v.colour.w);
 }
 
-void imp_point(float4 a)
+void imp_point(vertex_state a)
 {
-	printf("point ");
-	debug(a);printf("\n");
+	printf("point\t");
+	debug(a);printf("\n\n");
 }
 
-void imp_line(float4 a, float4 b)
+void imp_line(vertex_state a, vertex_state b)
 {
-	printf("line ");
-	debug(a);printf(",");debug(b);printf("\n");
+	printf("line\t");
+	debug(a);printf(",\n\t");debug(b);printf("\n\n");
 }
 
-void imp_triangle(float4 a, float4 b, float4 c)
+void imp_triangle(vertex_state a, vertex_state b, vertex_state c)
 {
-	printf("tri ");
-	debug(a);printf(",");debug(b);printf(",");debug(c);printf("\n");
+	printf("tri\t");
+	debug(a);printf(",\n\t");debug(b);printf(",\n\t");debug(c);printf("\n\n");
 }
 
 

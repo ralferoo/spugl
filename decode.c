@@ -57,8 +57,12 @@ static u32 vertex_count = 0;
 	return from;
 }
 
-static float4 previous[4];
-static void imp_vertex(float4 v)
+static vertex_state current_state = {
+	.colour = {.x=1.0,.y=1.0,.z=1.0,.w=1.0}
+};
+static vertex_state previous[4];
+
+static void imp_vertex_state(vertex_state v)
 {
 	switch(begin_end_state) {
 		case GL_POINTS:
@@ -144,11 +148,24 @@ static void imp_vertex(float4 v)
 			break;
 		case GL_POLYGON:
 		case GL_LINE_LOOP:
-			imp_vertex(previous[0]);
+			imp_vertex_state(previous[0]);
 			break;
 	}
 	begin_end_state = STATE_NONE;
 	return from;
+}
+static void imp_vertex(float4 in)
+{
+	// just for testing, have hard-coded persective and screen
+	// transformations here. they'll probably live here anyway, just
+	// done with matrices.
+	float4 p = {.x=in.x - 360, .y = in.y - 280, .z = in.z, .w = 200/(in.z-200)};
+	float recip = 1.0/p.w;
+	float4 s = {.x=p.x*recip, .y = p.y*recip, .z = p.z*recip, .w = recip};
+
+	vertex_state v = current_state;
+	v.v = s;
+	imp_vertex_state(v);
 }
 	
 /*7*/void* imp_glVertex2(float* from) {

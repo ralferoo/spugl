@@ -12,8 +12,13 @@ typedef struct {
 	float x, y, z, w;
 } float4;
 
-extern void imp_point(float4 a);
-extern void imp_line(float4 a, float4 b);
-extern void imp_triangle(float4 a, float4 b, float4 c);
+typedef struct {
+	float4 v;
+	float4 colour;
+} vertex_state;
+
+extern void imp_point(vertex_state a);
+extern void imp_line(vertex_state a, vertex_state b);
+extern void imp_triangle(vertex_state a, vertex_state b, vertex_state c);
 
 #endif // __struct_h
