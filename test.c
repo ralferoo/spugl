@@ -22,6 +22,6 @@ int main(int argc, char* argv[]) {
 	glspuDestroy();
 
 	// quick hack so that SPU debugging messages have a chance to come out
-	usleep(100);
+	usleep(250);
 	exit(0);
 }
