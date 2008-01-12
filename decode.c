@@ -7,7 +7,7 @@
  ****************************************************************************/
 
 #include <spu_mfcio.h>
-#include "3d.h"
+#include "fifo.h"
 
 extern SPU_CONTROL control;
 

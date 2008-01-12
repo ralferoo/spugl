@@ -7,7 +7,7 @@
  ****************************************************************************/
 
 #include <spu_mfcio.h>
-#include "3d.h"
+#include "fifo.h"
 
 SPU_CONTROL control __CACHE_ALIGNED__;
 

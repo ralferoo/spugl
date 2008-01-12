@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "3d.h"
+#include "fifo.h"
 #include <GLES/gl.h>
 
 static DriverContext ctx;

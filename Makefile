@@ -107,7 +107,7 @@ ppufifo.o: /usr/include/bits/wchar.h /usr/include/gconv.h
 ppufifo.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 ppufifo.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
 ppufifo.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
-ppufifo.o: /usr/include/libspe.h 3d.h gen_spu_command_defs.h
+ppufifo.o: /usr/include/libspe.h fifo.h gen_spu_command_defs.h
 glfifo.o: /usr/include/stdlib.h /usr/include/features.h
 glfifo.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 glfifo.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -123,8 +123,8 @@ glfifo.o: /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h
 glfifo.o: /usr/include/bits/wchar.h /usr/include/gconv.h
 glfifo.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 glfifo.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
-glfifo.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h 3d.h
-glfifo.o: gen_spu_command_defs.h ./GLES/gl.h ./GLES/glplatform.h
+glfifo.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
+glfifo.o: fifo.h gen_spu_command_defs.h ./GLES/gl.h ./GLES/glplatform.h
 test.o: /usr/include/stdlib.h /usr/include/features.h
 test.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 test.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -145,10 +145,10 @@ test.o: ./GL/glspu.h
 
 spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
-spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h 3d.h
+spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h
 spufifo.spe.o: gen_spu_command_defs.h gen_spu_command_exts.h
 spufifo.spe.o: gen_spu_command_table.h
 decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
-decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h 3d.h
+decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h
 decode.spe.o: gen_spu_command_defs.h

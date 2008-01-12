@@ -10,7 +10,7 @@
 #include <stdio.h>
 
 #include <libspe.h>
-#include "3d.h"
+#include "fifo.h"
 
 extern spe_program_handle_t spu_3d_handle;
 spe_program_handle_t* spu_3d_program = &spu_3d_handle;
