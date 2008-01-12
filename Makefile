@@ -18,10 +18,10 @@ PPUCC = gcc
 PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I.
 
 SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS
-SPUCCFLAGS = -O6
+SPUCCFLAGS = -O6 -I.
 
 GENSOURCES = decode.c
-SPU_OBJS = spufifo.spe.o decode.spe.o
+SPU_OBJS = spufifo.spe.o decode.spe.o primitives.spe.o
 PPU_OBJS = ppufifo.o glfifo.o
 
 SPU_HNDL = spu_3d.handle.o
@@ -54,7 +54,7 @@ gen_spu_command_table.h: .gen
 
 depend:
 	makedepend -I/usr/include/python2.4/ -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(PPU_SRCS) -DUSERLAND_$(USERLAND)_BITS
-	makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/ -o.spe.o $(SPU_SRCS) -DUSERLAND_$(USERLAND)_BITS
+	makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.spe.o $(SPU_SRCS) -DUSERLAND_$(USERLAND)_BITS
 
 clean:
 	rm -f *.o
@@ -151,4 +151,13 @@ spufifo.spe.o: gen_spu_command_table.h
 decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h
-decode.spe.o: gen_spu_command_defs.h
+decode.spe.o: gen_spu_command_defs.h struct.h ./GL/gl.h ./GL/glext.h
+decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h /usr/include/inttypes.h
+decode.spe.o: /usr/include/features.h /usr/include/sys/cdefs.h
+decode.spe.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
+decode.spe.o: /usr/include/gnu/stubs-32.h /usr/include/stdint.h
+decode.spe.o: /usr/include/bits/wchar.h
+primitives.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
+primitives.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+primitives.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h
+primitives.spe.o: gen_spu_command_defs.h struct.h

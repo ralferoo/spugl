@@ -14,10 +14,11 @@
 
 int main(int argc, char* argv[]) {
 	glspuSetup();
-	glBegin(GL_TRIANGLES);
-	glVertex3f(   0.0f, 100.0f,   0.0f);
+	glBegin(GL_QUADS);
+	glVertex3f(-100.0f, 100.0f,   0.0f);
 	glVertex3f(-100.0f,-100.0f,   0.0f);
 	glVertex3f( 100.0f,-100.0f,   0.0f);
+	glVertex3f( 100.0f, 100.0f,   0.0f);
 	glEnd();	
 	usleep(250000);
 	glspuDestroy();
