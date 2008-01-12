@@ -103,7 +103,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 				spu_write_out_mbox(0);
 				break; 
 			case SPU_MBOX_3D_INITIALISE_MASTER:
-				if (init_fifo(65536)) {
+				if (init_fifo(4096)) {
 					printf("couldn't allocate FIFO\n");
 					spu_write_out_mbox(0);
 					running = 0;
@@ -112,7 +112,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 				}
 				break;
 			case SPU_MBOX_3D_INITIALISE_NORMAL:
-				if (init_fifo(1024)) {
+				if (init_fifo(512)) {
 					printf("couldn't allocate FIFO\n");
 					spu_write_out_mbox(0);
 					running = 0;
