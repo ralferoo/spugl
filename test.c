@@ -21,31 +21,30 @@ int main(int argc, char* argv[]) {
 //	printf("context2 = %lx\n", ctx2);
 
 	sleep(1);
-
-	u32* fifo = _begin_fifo(ctx);
-	*fifo++ = SPU_COMMAND_NOP;
-	*fifo++ = SPU_COMMAND_JMP;
-	_OUT_EA(fifo, &fifo[5]);
-	_OUTu(fifo, 42);
-	_OUTu(fifo, 43);
-	_OUTu(fifo, 44);
-	_OUTu(fifo, 45);
-	_OUTu(fifo, 46);
-	_OUTu(fifo, 47);
-	_OUTu(fifo, 48);
-	_OUTf(fifo, 1.0);
-	_OUTf(fifo, 2.0);
-	_OUTf(fifo, 3.14);
-	_OUTf(fifo, -3.14);
-	*fifo++ = SPU_COMMAND_NOP;
-	*fifo++ = SPU_COMMAND_NOP;
-	_end_fifo(ctx,fifo);
+	FIFO_PROLOGUE(ctx,100);
+	BEGIN_RING(SPU_COMMAND_NOP,1);
+	BEGIN_RING(SPU_COMMAND_JMP,3);
+	OUT_RINGea(&__fifo_ptr[5]);
+	OUT_RING(42);
+	OUT_RING(43);
+	OUT_RING(44);
+	OUT_RING(45);
+	OUT_RING(46);
+	OUT_RING(47);
+	OUT_RING(48);
+	OUT_RINGf(1.0);
+	OUT_RINGf(2.0);
+	OUT_RINGf(3.14);
+	OUT_RINGf(-3.14);
+	BEGIN_RING(SPU_COMMAND_NOP,1);
+	BEGIN_RING(SPU_COMMAND_NOP,1);
+	FIFO_EPILOGUE();
 	printf("idle_count values: %d %d\n",
 		_3d_idle_count(ctx), _3d_idle_count(ctx2));
 
 	sleep(1);
 
-	fifo = _begin_fifo(ctx2);
+	u32* fifo = _begin_fifo(ctx2);
 	*fifo++ = SPU_COMMAND_NOP;
 	*fifo++ = SPU_COMMAND_NOP;
 	_end_fifo(ctx2,fifo);

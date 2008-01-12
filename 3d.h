@@ -25,21 +25,32 @@ typedef void* DriverContext;
 #define SPU_COMMAND_ADD_CHILD 2
 #define SPU_COMMAND_DEL_CHILD 3
 
+//////////////////////////////////////////////////////////////////////////////
+
+#define FIFO_PROLOGUE(fifo,minsize) \
+DriverContext __fifo = (fifo); \
+u32* __fifo_head = _begin_fifo(__fifo); \
+u32* __fifo_ptr = __fifo_head;
+
+#define FIFO_EPILOGUE(fifo) _end_fifo(__fifo, __fifo_ptr); \
+__fifo_ptr = 0UL;
+
+#define OUT_RING(v) { *(__fifo_ptr)++ = (u32)v; }
+#define OUT_RINGf(v) { union __f2i temp; temp.f = v;  *(__fifo_ptr)++ = temp.i; }
+#define BEGIN_RING(c,s) OUT_RING(c)
+
 union __f2i
 {
   float f;
   u32 i;
 };
 
-#define _OUTu(fifo,v) { *(fifo)++ = (u32)v; }
-#define _OUTf(fifo,v) { union __f2i temp; temp.f = v;  *(fifo)++ = temp.i; }
-
 #if defined(USERLAND_32_BITS)
 #define _MAKE_EA(x) ( (u64) ((u32)((void*)x)) )
 #define _FROM_EA(x) ((void*)((u32)((u64)x)))
-#define _OUT_EA(fifo,addr) \
+#define OUT_RINGea(addr) \
 { u64 ea = _MAKE_EA(addr); \
-  *fifo++ = (u32)(ea&0xffffffffUL); \
+  *__fifo_ptr++ = (u32)(ea&0xffffffffUL); \
 } 
 #define __READ_EA(from) \
 { u32 eal; \
@@ -50,10 +61,10 @@ union __f2i
 #elif defined(USERLAND_64_BITS)
 #define _MAKE_EA(x) ((u64)((void*)x))
 #define _FROM_EA(x) ((void*)((u64)x))
-#define _OUT_EA(fifo,addr) \
+#define OUT_RINGea(addr) \
 { u64 ea = _MAKE_EA(addr); \
-  *fifo++ = (u32)(ea>>32); \
-  *fifo++ = (u32)(ea&0xffffffffUL); \
+  *__fifo_ptr++ = (u32)(ea>>32); \
+  *__fifo_ptr++ = (u32)(ea&0xffffffffUL); \
 } 
 #define __READ_EA(from) \
 { u32 eah, eal; \
@@ -65,6 +76,8 @@ union __f2i
 #else
 #error Must define USERLAND_32_BITS or USERLAND_64_BITS
 #endif
+
+//////////////////////////////////////////////////////////////////////////////
 
 #define SPU_MIN_FIFO 128
 
