@@ -10,6 +10,7 @@
 
 typedef unsigned int u32;
 typedef unsigned long long u64;
+typedef void* DriverContext;
 
 #define SPU_MBOX_3D_TERMINATE 0
 #define SPU_MBOX_3D_FLUSH 1
@@ -49,5 +50,16 @@ typedef struct {
 	volatile u32 last_count;	// last value of counter we saw
 	volatile u32 pad2[32-5];
 } SPU_CONTROL;
+
+extern DriverContext _init_3d_driver(int master);
+extern int _exit_3d_driver(DriverContext _context);
+extern u32* _begin_fifo(DriverContext _context);
+extern void _end_fifo(DriverContext _context, u32* fifo);
+extern void _bind_child(DriverContext _parent, DriverContext _child, int assign);
+extern u32 _3d_idle_count(DriverContext _context);
+extern u32 _3d_spu_address(DriverContext _context, u32* address);
+
+
+
 
 #endif // __3d_h
