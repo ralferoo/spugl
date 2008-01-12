@@ -19,6 +19,9 @@ int init_fifo(int fifo_size) {
 	if (fifo_size>0 && control.fifo_start == 0UL)
 		return 1;
 
+//	printf("Allocated FIFO of %d bytes at %lx ctrl %lx\n",
+//		fifo_size, control.fifo_start, &control);
+
 	control.fifo_size = fifo_size;
 	control.fifo_written = control.fifo_start;
 	control.fifo_read = control.fifo_start;
@@ -34,6 +37,7 @@ u32* process_fifo(u32* from, u32* to) {
 	while (from != to) {
 		u32* addr = from;
 		u32 command = *from++;
+		u32 eah, eal;
 		switch (command) {
 			case SPU_COMMAND_NOP:
 				printf("%06lx: NOP\n", addr);
@@ -41,6 +45,18 @@ u32* process_fifo(u32* from, u32* to) {
 			case SPU_COMMAND_JMP:
 				from = (u32*) *from++;
 				printf("%06lx: JMP %06lx\n", addr, from);
+				break;
+			case SPU_COMMAND_DEL_CHILD:
+				eah = *from++;
+				eal = *from++;
+				printf("%06lx: DEL CHILD %lx%08lx\n",
+					addr, eah, eal);
+				break;
+			case SPU_COMMAND_ADD_CHILD:
+				eah = *from++;
+				eal = *from++;
+				printf("%06lx: ADD CHILD %lx%08lx\n",
+					addr, eah, eal);
 				break;
 			default:
 				printf("%06lx: command %lx\n", addr, command);
@@ -86,8 +102,17 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 			case SPU_MBOX_3D_FLUSH:
 				spu_write_out_mbox(0);
 				break; 
-			case SPU_MBOX_3D_INITIALISE:
+			case SPU_MBOX_3D_INITIALISE_MASTER:
 				if (init_fifo(65536)) {
+					printf("couldn't allocate FIFO\n");
+					spu_write_out_mbox(0);
+					running = 0;
+				} else {
+					spu_write_out_mbox((u32)&control);
+				}
+				break;
+			case SPU_MBOX_3D_INITIALISE_NORMAL:
+				if (init_fifo(1024)) {
 					printf("couldn't allocate FIFO\n");
 					spu_write_out_mbox(0);
 					running = 0;

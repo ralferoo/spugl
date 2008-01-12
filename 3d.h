@@ -9,16 +9,20 @@
 #ifndef __3d_h
 
 typedef unsigned int u32;
+typedef unsigned long long u64;
 
 #define SPU_MBOX_3D_TERMINATE 0
 #define SPU_MBOX_3D_FLUSH 1
-#define SPU_MBOX_3D_INITIALISE 2
+#define SPU_MBOX_3D_INITIALISE_MASTER 2
+#define SPU_MBOX_3D_INITIALISE_NORMAL 3
 
 #define __SPUMEM_ALIGNED__ __attribute__((aligned(16)))
 #define __CACHE_ALIGNED__ __attribute__((aligned(128)))
 
 #define SPU_COMMAND_NOP 0
 #define SPU_COMMAND_JMP 1
+#define SPU_COMMAND_ADD_CHILD 2
+#define SPU_COMMAND_DEL_CHILD 3
 
 #define SPU_MIN_FIFO 128
 
@@ -32,7 +36,9 @@ typedef unsigned int u32;
 typedef struct {
 	// the first 128 bytes are writable by the PPU-side driver
 	volatile u32 fifo_written;	// the address the driver has written
-	volatile u32 pad1[32-1];
+	volatile u32 pad0;
+	volatile u64 my_local_address;	// the address this SPU lives at
+	volatile u32 pad1[32-4];
 
 	// the next 128 bytes are writable by the SPU-side driver
 	volatile u32 fifo_start;	// the start of the FIFO area

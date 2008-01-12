@@ -19,19 +19,21 @@ typedef struct {
         speid_t spe_id;
 	void* local_store;
 	SPU_CONTROL* control;
+	int master;
 } __DRIVER_CONTEXT;
 
 typedef __DRIVER_CONTEXT* DriverContext;
 static u32 spe_read(speid_t spe_id);
 
 // initialise
-DriverContext _init_3d_driver(void)
+DriverContext _init_3d_driver(int master)
 {
 	DriverContext context = (DriverContext) malloc(sizeof(__DRIVER_CONTEXT));
 	if (context == NULL)
 		return NULL;
 
 	context->spe_id = spe_create_thread(0, spu_3d_program, NULL, NULL, -1, 0);
+	context->master = master;
 
 	if (context->spe_id==0) {
 		free(context);
@@ -39,12 +41,15 @@ DriverContext _init_3d_driver(void)
 	}
 
 	context->local_store = spe_get_ls(context->spe_id);
-//	printf("Allocated spe %lx, local store at %lx\n",
-//		context->spe_id, context->local_store);
+	printf("Allocated spe %lx, local store at %lx\n",
+		context->spe_id, context->local_store);
 
-	spe_write_in_mbox(context->spe_id, SPU_MBOX_3D_INITIALISE); 
+	spe_write_in_mbox(context->spe_id, 
+		 master ? SPU_MBOX_3D_INITIALISE_MASTER
+			: SPU_MBOX_3D_INITIALISE_NORMAL); 
 	u32 addr = spe_read(context->spe_id);
 	context->control = addr + context->local_store;
+	context->control->my_local_address = (u64) context->local_store;
 //	printf("Control structure at %lx\n", context->control);
 
 //	context->fifo_write = context->local_store + context->control->fifo_start;
@@ -101,6 +106,21 @@ void _end_fifo(DriverContext context, u32* fifo)
 */
 }
 
+void _bind_child(DriverContext parent, DriverContext child, int assign)
+{
+	if (parent->master && !child->master) {
+		u32* fifo = _begin_fifo(parent);
+		*fifo++ = assign ?
+			SPU_COMMAND_ADD_CHILD :
+			SPU_COMMAND_DEL_CHILD;
+		u64 ea = (u64) child->control;
+		*fifo++ = (u32)(ea>>32);
+		*fifo++ = (u32)(ea&0xffffffffUL);
+		*fifo++ = SPU_COMMAND_NOP;
+		_end_fifo(parent,fifo);
+	}
+}
+
 static u32 spe_read(speid_t spe_id) {
 	while(!spe_stat_out_mbox(spe_id))
 		; //usleep(10);
@@ -109,8 +129,9 @@ static u32 spe_read(speid_t spe_id) {
 
 int main(int argc, char* argv[]) {
 //	printf("main entered\n");
-	DriverContext ctx = _init_3d_driver();
-	DriverContext ctx2 = _init_3d_driver();
+	DriverContext ctx = _init_3d_driver(1);
+	DriverContext ctx2 = _init_3d_driver(0);
+	_bind_child(ctx, ctx2, 1);
 //	printf("context = %lx\n", ctx);
 //	printf("context2 = %lx\n", ctx2);
 
@@ -142,6 +163,9 @@ int main(int argc, char* argv[]) {
 	printf("idle_count values: %d %d\n",
 		ctx->control->idle_count,
 		ctx2->control->idle_count);
+	sleep(1);
+
+	_bind_child(ctx, ctx2, 0);
 	sleep(1);
 
 	_exit_3d_driver(ctx);
