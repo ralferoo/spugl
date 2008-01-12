@@ -7,9 +7,10 @@
  ****************************************************************************/
 
 #ifndef __3d_h
+#define __3d_h
 
-typedef unsigned int u32;
-typedef unsigned long long u64;
+#include "types.h"
+
 typedef void* DriverContext;
 
 #define SPU_MBOX_3D_TERMINATE 0

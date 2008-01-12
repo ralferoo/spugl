@@ -22,7 +22,7 @@ SPUCCFLAGS = -O6 -I.
 
 GENSOURCES = decode.c
 SPU_OBJS = spufifo.spe.o decode.spe.o primitives.spe.o
-PPU_OBJS = ppufifo.o glfifo.o
+PPU_OBJS = ppufifo.o glfifo.o framebuffer.o
 
 SPU_HNDL = spu_3d.handle.o
 PPU_TEST_OBJS = $(PPU_OBJS) test.o
@@ -107,7 +107,7 @@ ppufifo.o: /usr/include/bits/wchar.h /usr/include/gconv.h
 ppufifo.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 ppufifo.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
 ppufifo.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
-ppufifo.o: /usr/include/libspe.h fifo.h gen_spu_command_defs.h
+ppufifo.o: /usr/include/libspe.h fifo.h types.h gen_spu_command_defs.h
 glfifo.o: /usr/include/stdlib.h /usr/include/features.h
 glfifo.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 glfifo.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -124,7 +124,47 @@ glfifo.o: /usr/include/bits/wchar.h /usr/include/gconv.h
 glfifo.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 glfifo.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
 glfifo.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
-glfifo.o: fifo.h gen_spu_command_defs.h ./GLES/gl.h ./GLES/glplatform.h
+glfifo.o: fifo.h types.h gen_spu_command_defs.h ./GLES/gl.h
+glfifo.o: ./GLES/glplatform.h
+framebuffer.o: /usr/include/fcntl.h /usr/include/features.h
+framebuffer.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+framebuffer.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+framebuffer.o: /usr/include/bits/fcntl.h /usr/include/sys/types.h
+framebuffer.o: /usr/include/bits/types.h
+framebuffer.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+framebuffer.o: /usr/include/bits/typesizes.h /usr/include/time.h
+framebuffer.o: /usr/include/endian.h /usr/include/bits/endian.h
+framebuffer.o: /usr/include/sys/select.h /usr/include/bits/select.h
+framebuffer.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
+framebuffer.o: /usr/include/sys/sysmacros.h /usr/include/bits/pthreadtypes.h
+framebuffer.o: /usr/include/stdint.h /usr/include/bits/wchar.h
+framebuffer.o: /usr/include/sys/ioctl.h /usr/include/bits/ioctls.h
+framebuffer.o: /usr/include/asm/ioctls.h /usr/include/asm/ioctl.h
+framebuffer.o: /usr/include/bits/ioctl-types.h /usr/include/termios.h
+framebuffer.o: /usr/include/bits/termios.h /usr/include/sys/ttydefaults.h
+framebuffer.o: /usr/include/sys/mman.h /usr/include/bits/mman.h
+framebuffer.o: /usr/include/linux/kd.h /usr/include/linux/types.h
+framebuffer.o: /usr/include/linux/posix_types.h /usr/include/linux/stddef.h
+framebuffer.o: /usr/include/linux/compiler.h /usr/include/asm/posix_types.h
+framebuffer.o: /usr/include/asm/types.h /usr/include/linux/tiocl.h
+framebuffer.o: /usr/include/sys/time.h /usr/include/linux/fb.h
+framebuffer.o: /usr/include/linux/i2c.h /usr/include/asm/ps3fb.h
+framebuffer.o: /usr/include/linux/ioctl.h /usr/include/stdlib.h
+framebuffer.o: /usr/include/alloca.h /usr/include/bits/stdlib-ldbl.h
+framebuffer.o: /usr/include/stdio.h /usr/include/libio.h
+framebuffer.o: /usr/include/_G_config.h /usr/include/wchar.h
+framebuffer.o: /usr/include/gconv.h /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+framebuffer.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
+framebuffer.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
+framebuffer.o: /usr/include/string.h /usr/include/net/if.h
+framebuffer.o: /usr/include/sys/socket.h /usr/include/sys/uio.h
+framebuffer.o: /usr/include/bits/uio.h /usr/include/bits/socket.h
+framebuffer.o: /usr/lib/gcc/spu/4.0.2/include/limits.h
+framebuffer.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
+framebuffer.o: /usr/include/asm/sockios.h /usr/include/arpa/inet.h
+framebuffer.o: /usr/include/netinet/in.h /usr/include/bits/in.h
+framebuffer.o: /usr/include/bits/byteswap.h fifo.h types.h
+framebuffer.o: gen_spu_command_defs.h struct.h
 test.o: /usr/include/stdlib.h /usr/include/features.h
 test.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 test.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -145,12 +185,12 @@ test.o: ./GL/glspu.h
 
 spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
-spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h
+spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
 spufifo.spe.o: gen_spu_command_defs.h gen_spu_command_exts.h
 spufifo.spe.o: gen_spu_command_table.h
 decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
-decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h
+decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
 decode.spe.o: gen_spu_command_defs.h struct.h ./GL/gl.h ./GL/glext.h
 decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h /usr/include/inttypes.h
 decode.spe.o: /usr/include/features.h /usr/include/sys/cdefs.h
@@ -160,4 +200,4 @@ decode.spe.o: /usr/include/bits/wchar.h
 primitives.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 primitives.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 primitives.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h
-primitives.spe.o: gen_spu_command_defs.h struct.h
+primitives.spe.o: types.h gen_spu_command_defs.h struct.h

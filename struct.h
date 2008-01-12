@@ -7,6 +7,17 @@
  ****************************************************************************/
 
 #ifndef __struct_h
+#define __struct_h
+
+#include "types.h"
+
+typedef struct {
+	u64 address;
+	u32 width;
+	u32 height;
+	u32 bytes_per_line;
+} _bitmap_image;
+typedef _bitmap_image* BitmapImage;
 
 typedef struct {
 	float x, y, z, w;

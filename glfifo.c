@@ -10,18 +10,41 @@
 #include <stdio.h>
 
 #include "fifo.h"
+#include "struct.h"
 #include <GLES/gl.h>
 
-static DriverContext ctx;
+extern BitmapImage _getScreen(void);
+extern void _closeScreen(void);
+extern BitmapImage _flipScreen(void);
+
+static DriverContext ctx = NULL;
+static BitmapImage screen = NULL;
 
 GL_API void GL_APIENTRY glspuSetup(void)
 {
 	ctx = _init_3d_driver(1);
+	screen = _getScreen();
+
+	FIFO_PROLOGUE(ctx,10);
+	BEGIN_RING(SPU_COMMAND_SCREEN_INFO,1);
+	OUT_RINGea(screen->address);
+	OUT_RING(screen->width);
+	OUT_RING(screen->height);
+	OUT_RING(screen->bytes_per_line);
+	FIFO_EPILOGUE();
 }
 
 GL_API void GL_APIENTRY glspuDestroy(void)
 {
 	_exit_3d_driver(ctx);
+	_closeScreen();
+	ctx = NULL;
+	screen = NULL;
+}
+
+GL_API void GL_APIENTRY glspuFlip(void)
+{
+	screen = _flipScreen();
 }
 
 GL_API void GL_APIENTRY glFlush()

@@ -14,12 +14,12 @@
 
 extern SPU_CONTROL control;
 
-/*1*/void* imp_nop(void* p) {
+/*0*/void* imp_nop(void* p) {
 	printf("NOP\n");
 	return p;
 }
 
-/*2*/void* imp_jump(u32* from) {
+/*1*/void* imp_jump(u32* from) {
 	u64 ea;
 	__READ_EA(from)
 	printf("JMP %llx\n", ea);
@@ -27,17 +27,31 @@ extern SPU_CONTROL control;
 	return 0;
 }
 
-/*3*/void* impAddChild(u32* from) {
+/*2*/void* impAddChild(u32* from) {
 	u64 ea;
 	__READ_EA(from)
 	printf("add child %llx\n", ea);
 	return from;
 }
 
-/*4*/void* impDeleteChild(u32* from) {
+/*3*/void* impDeleteChild(u32* from) {
 	u64 ea;
 	__READ_EA(from)
 	printf("delete child %llx\n", ea);
+	return from;
+}
+	
+static _bitmap_image screen = { .address = 0};
+
+/*4*/void* impScreenInfo(u32* from) {
+	u64 ea;
+	__READ_EA(from)
+	screen.address = ea;
+	screen.width = *from++;
+	screen.height = *from++;
+	screen.bytes_per_line = *from++;
+	printf("screen at %llx, width %d, height %d, bpl %d\n",
+		screen.address, screen.width, screen.height, screen.bytes_per_line);
 	return from;
 }
 	
@@ -45,7 +59,7 @@ extern SPU_CONTROL control;
 static u32 begin_end_state = STATE_NONE;
 static u32 vertex_count = 0;
 
-/*5*/void* imp_glBegin(u32* from) {
+/*15*/void* imp_glBegin(u32* from) {
 	u32 state = *from++;
 	if (begin_end_state == STATE_NONE) {
 		begin_end_state = state;
@@ -141,7 +155,7 @@ static void imp_vertex_state(vertex_state v)
 	}
 }
 	
-/*6*/void* imp_glEnd(u32* from) {
+/*16*/void* imp_glEnd(u32* from) {
 	switch(begin_end_state) {
 		case STATE_NONE:
 			printf("ERROR: glEnd() without glBegin()\n");
@@ -159,7 +173,7 @@ static void imp_vertex(float4 in)
 	// just for testing, have hard-coded persective and screen
 	// transformations here. they'll probably live here anyway, just
 	// done with matrices.
-	float4 p = {.x=in.x - 360, .y = in.y - 280, .z = in.z, .w = 200/(in.z-200)};
+	float4 p = {.x=in.x - screen.width/2, .y = in.y - screen.height/2, .z = in.z, .w = 200/(in.z-200)};
 	float recip = 1.0/p.w;
 	float4 s = {.x=p.x*recip, .y = p.y*recip, .z = p.z*recip, .w = recip};
 
@@ -168,31 +182,31 @@ static void imp_vertex(float4 in)
 	imp_vertex_state(v);
 }
 	
-/*7*/void* imp_glVertex2(float* from) {
+/*17*/void* imp_glVertex2(float* from) {
 	float4 a = {.x=from[0],.y=from[1],.z=0.0,.w=1.0};
 	imp_vertex(a);
 	return &from[2];
 }
 	
-/*8*/void* imp_glVertex3(float* from) {
+/*18*/void* imp_glVertex3(float* from) {
 	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=1.0};
 	imp_vertex(a);
 	return &from[3];
 }
 	
-/*9*/void* imp_glVertex4(float* from) {
+/*19*/void* imp_glVertex4(float* from) {
 	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=from[3]};
 	imp_vertex(a);
 	return &from[4];
 }
 
-/*10*/void* imp_glColor3(float* col) {
+/*20*/void* imp_glColor3(float* col) {
 	float4 a = {.x=col[0],.y=col[1],.z=col[2],.w=1.0};
 	current_state.colour = a;
 	return &col[3];
 }
 	
-/*11*/void* imp_glColor4(float* col) {
+/*21*/void* imp_glColor4(float* col) {
 	float4 a = {.x=col[0],.y=col[1],.z=col[2],.w=col[3]};
 	current_state.colour = a;
 	return &col[4];

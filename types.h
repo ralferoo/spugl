@@ -6,12 +6,10 @@
  *
  ****************************************************************************/
 
-#ifndef __3d_setup_h
+#ifndef __types_h
+#define __types_h
 
-#include <GL/gl.h>
+typedef unsigned int u32;
+typedef unsigned long long u64;
 
-GLAPI void GLAPIENTRY glspuSetup(void);
-GLAPI void GLAPIENTRY glspuDestroy(void);
-GLAPI void GLAPIENTRY glspuFlip(void);
-
-#endif // __3d_setup_h
+#endif // __types_h
