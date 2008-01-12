@@ -43,7 +43,7 @@ u32* process_fifo(u32* from, u32* to) {
 				printf("%06lx: NOP\n", addr);
 				break;
 			case SPU_COMMAND_JMP:
-				from = (u32*) *from++;
+				from = (u32*) *from;
 				printf("%06lx: JMP %06lx\n", addr, from);
 				break;
 			case SPU_COMMAND_DEL_CHILD:

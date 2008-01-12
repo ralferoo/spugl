@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
 	u32* fifo = _begin_fifo(ctx);
 	*fifo++ = SPU_COMMAND_NOP;
 	*fifo++ = SPU_COMMAND_JMP;
-	*fifo++ = _3d_spu_address(ctx, fifo+2);
+	*fifo++ = _3d_spu_address(ctx, fifo+4);
 	*fifo++ = SPU_COMMAND_NOP;
 	*fifo++ = SPU_COMMAND_NOP;
 	*fifo++ = SPU_COMMAND_NOP;
