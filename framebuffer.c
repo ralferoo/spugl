@@ -233,6 +233,11 @@ BitmapImage _flipScreen(void)
 	return &(_screen.image);
 }
 
+void _waitScreen(void)
+{
+	Screen_wait(&_screen);
+}
+
 void _closeScreen(void)
 {
 	Screen_closeResources(&_screen);

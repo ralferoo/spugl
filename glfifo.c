@@ -47,6 +47,11 @@ GL_API void GL_APIENTRY glspuFlip(void)
 	screen = _flipScreen();
 }
 
+GL_API void GL_APIENTRY glspuWait(void)
+{
+	screen = _waitScreen();
+}
+
 GL_API void GL_APIENTRY glFlush()
 {
 	_flush_3d_driver(ctx);
