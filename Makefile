@@ -38,8 +38,8 @@ test:	$(PPU_TEST_OBJS) $(SPU_HNDL)
 run:	test
 	./test
 
-ppufifo.o: Makefile
-spufifo.spe.o: Makefile
+ppufifo.o: Makefile .gen
+spufifo.spe.o: Makefile .gen
 
 gen_spu_command_defs.h: .gen
 gen_spu_command_exts.h: .gen

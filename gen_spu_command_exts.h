@@ -5,3 +5,4 @@ extern SPU_COMMAND impDeleteChild;
 extern SPU_COMMAND imp_glBegin;
 extern SPU_COMMAND imp_glEnd;
 extern SPU_COMMAND imp_glVertex3;
+extern SPU_COMMAND imp_glVertex2;

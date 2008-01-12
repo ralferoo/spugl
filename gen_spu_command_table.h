@@ -5,3 +5,4 @@
 [SPU_COMMAND_GL_BEGIN] = (SPU_COMMAND*) &imp_glBegin,
 [SPU_COMMAND_GL_END] = (SPU_COMMAND*) &imp_glEnd,
 [SPU_COMMAND_GL_VERTEX3] = (SPU_COMMAND*) &imp_glVertex3,
+[SPU_COMMAND_GL_VERTEX2] = (SPU_COMMAND*) &imp_glVertex2,

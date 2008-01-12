@@ -57,3 +57,12 @@ extern SPU_CONTROL control;
 	printf("glVertex3(%f,%f,%f)\n", x,y,z);
 	return from;
 }
+	
+/*8*/void* imp_glVertex2(u32* from) {
+	float x,y;
+	union __f2i temp;
+	temp.i = *from++; x=temp.f;
+	temp.i = *from++; y=temp.f;
+	printf("glVertex2(%f,%f)\n", x,y);
+	return from;
+}
