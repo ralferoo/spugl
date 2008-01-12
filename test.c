@@ -15,13 +15,14 @@
 int main(int argc, char* argv[]) {
 	glspuSetup();
 	glBegin(GL_TRIANGLES);
-	glVertex3f( 000.0f, 100.0f, 000.0f);
-	glVertex3f(-100.0f,-100.0f, 000.0f);
-	glVertex3f( 100.0f,-100.0f, 000.0f);
+	glVertex3f(   0.0f, 100.0f,   0.0f);
+	glVertex3f(-100.0f,-100.0f,   0.0f);
+	glVertex3f( 100.0f,-100.0f,   0.0f);
 	glEnd();	
+	usleep(250000);
 	glspuDestroy();
 
 	// quick hack so that SPU debugging messages have a chance to come out
-	usleep(250);
+	usleep(150000);
 	exit(0);
 }

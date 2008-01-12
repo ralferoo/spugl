@@ -38,31 +38,51 @@ extern SPU_CONTROL control;
 	return from;
 }
 	
+#define STATE_NONE 0x16375923
+static u32 begin_end_state = STATE_NONE;
+static u32 vertex_count = 0;
+void imp_vertex(float x, float y, float z, float w);
+
 /*5*/void* imp_glBegin(u32* from) {
-	printf("glBegin(%d)\n", *from++);
+	u32 state = *from++;
+	if (begin_end_state == STATE_NONE) {
+		begin_end_state = state;
+		vertex_count = 0;
+		//printf("glBegin(%d)\n", state);
+	} else {
+		printf("ERROR: nested glBegin()\n");
+	}
 	return from;
 }
 	
 /*6*/void* imp_glEnd(u32* from) {
-	printf("glEnd()\n");
+	if (begin_end_state != STATE_NONE) {
+		begin_end_state = STATE_NONE;
+		//printf("glEnd()\n");
+	} else {
+		printf("ERROR: glEnd() without glBegin()\n");
+	}
 	return from;
 }
 	
-/*7*/void* imp_glVertex3(u32* from) {
-	float x,y,z;
-	union __f2i temp;
-	temp.i = *from++; x=temp.f;
-	temp.i = *from++; y=temp.f;
-	temp.i = *from++; z=temp.f;
-	printf("glVertex3(%f,%f,%f)\n", x,y,z);
+/*7*/void* imp_glVertex2(float* from) {
+	imp_vertex(*from++,*from++,0.0,1.0);
 	return from;
 }
 	
-/*8*/void* imp_glVertex2(u32* from) {
-	float x,y;
-	union __f2i temp;
-	temp.i = *from++; x=temp.f;
-	temp.i = *from++; y=temp.f;
-	printf("glVertex2(%f,%f)\n", x,y);
+/*8*/void* imp_glVertex3(float* from) {
+	imp_vertex(*from++,*from++,*from++,1.0);
 	return from;
 }
+	
+/*9*/void* imp_glVertex4(float* from) {
+	imp_vertex(*from++,*from++,*from++,*from++);
+	return from;
+}
+
+void imp_vertex(float x, float y, float z, float w)
+{
+	vertex_count++;
+	printf("vertex %d (%f,%f,%f,%f)\n", vertex_count, x,y,z,w);
+}
+
