@@ -25,6 +25,10 @@ typedef void* DriverContext;
 #define SPU_COMMAND_ADD_CHILD 2
 #define SPU_COMMAND_DEL_CHILD 3
 
+#define SPU_COMMAND_BEGIN 0x10
+#define SPU_COMMAND_END 0x11
+#define SPU_COMMAND_VERTEX3f 0x12
+
 //////////////////////////////////////////////////////////////////////////////
 
 #define FIFO_PROLOGUE(fifo,minsize) \

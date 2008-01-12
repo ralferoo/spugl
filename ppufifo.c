@@ -56,6 +56,14 @@ DriverContext _init_3d_driver(int master)
 	return (DriverContext) context;
 }
 
+int _flush_3d_driver(DriverContext _context)
+{
+	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;
+
+	while (context->control->fifo_written != context->control->fifo_read)
+		; //usleep(10);
+}
+
 int _exit_3d_driver(DriverContext _context)
 {
 	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;

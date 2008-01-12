@@ -39,6 +39,7 @@ void process_fifo(u32* from, u32* to) {
 	while (from != to) {
 		u32* addr = from;
 		u64 ea;
+		union __f2i temp;
 
 		u32 command = *from++;
 		switch (command) {
@@ -59,6 +60,23 @@ void process_fifo(u32* from, u32* to) {
 				__READ_EA(from)
 				printf("%06lx: ADD CHILD %llx\n", addr, ea);
 				break;
+			case SPU_COMMAND_BEGIN:
+				printf("%06lx: glBegin(%d)\n", addr, *from++);
+				break;
+			case SPU_COMMAND_END:
+				printf("%06lx: glEnd()\n", addr);
+				break;
+			case SPU_COMMAND_VERTEX3f:
+				{
+				float x,y,z;
+				temp.i = *from++; x=temp.f;
+				temp.i = *from++; y=temp.f;
+				temp.i = *from++; z=temp.f;
+				printf("%06lx: glVertex3f(%f,%f,%f)\n", 
+					addr, x,y,z);
+				}
+				break;
+
 			default:
 				printf("%06lx: command %lx\n", addr, command);
 		}
