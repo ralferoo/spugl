@@ -11,26 +11,72 @@
 
 SPU_CONTROL control __CACHE_ALIGNED__;
 
+int init_fifo(int fifo_size) {
+	if (control.fifo_start)
+		free(control.fifo_start);
+
+	control.fifo_start = (u32) (fifo_size ? malloc(fifo_size) : 0UL);
+	if (fifo_size>0 && control.fifo_start == 0UL)
+		return 1;
+
+	control.fifo_size = fifo_size;
+	control.fifo_written = control.fifo_start;
+	control.fifo_read = control.fifo_start;
+
+	control.last_count = 0;
+	control.idle_count = 0;
+
+	return 0;
+}
+
+/* Process commands on the FIFO */
+u32* process_fifo(u32* from, u32* to) {
+	while (from != to) {
+		u32* addr = from;
+		u32 command = *from++;
+		switch (command) {
+			case SPU_COMMAND_NOP:
+				printf("%06lx: NOP\n", addr);
+				break;
+			case SPU_COMMAND_JMP:
+				from = (u32*) *from++;
+				printf("%06lx: JMP %06lx\n", addr, from);
+				break;
+			default:
+				printf("%06lx: command %lx\n", addr, command);
+		}
+	}
+	return from;
+}
+
 /* I'm deliberately going to ignore the arguments passed in as early versions
  * of libspe2 have the upper and lower 32 bits swapped.
  */
 int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned long long env) {
-//	SPU_DATA_RECEPTACLE data __SPU_ALIGNED__;
+//	printf("spumain running on spe %lx\n", spe_id);
 
-	printf("spumain running on spe %lx\n", spe_id);
+	if (init_fifo(0)) {
+		printf("couldn't allocate FIFO buffer...\n");
+		exit(1);
+	}
 
 	int running = 1;
-	control.counter = 0;
-	u32 last_counter = control.counter;
 	while (running) {
 		while (spu_stat_in_mbox() == 0) {
-			control.counter2 ++;
-			if (control.counter != last_counter) {
-				last_counter = control.counter;
-				printf("counter changed to %ld on %lx\n", 
-					last_counter, spe_id);
+			control.idle_count ++;
+			// check to see if there's any data waiting on FIFO
+			u32 read = control.fifo_read;
+			u32 written = control.fifo_written;
+			if ((read-written)&0x3ffff) {
+				u32* to = (u32*) written;
+				u32* from = (u32*) read;
+				u32* end = process_fifo(from, to);
+//				printf("Processed FIFO from %lx to %lx "
+//					"(ends %lx)\n", from, end, to);
+				control.fifo_read = (u32) end;
 			}
 		}
+
 		unsigned long msg = spu_read_in_mbox();
 		printf("received message %ld\n", msg);
 		switch (msg) {
@@ -41,7 +87,13 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 				spu_write_out_mbox(0);
 				break; 
 			case SPU_MBOX_3D_INITIALISE:
-				spu_write_out_mbox((u32)&control);
+				if (init_fifo(65536)) {
+					printf("couldn't allocate FIFO\n");
+					spu_write_out_mbox(0);
+					running = 0;
+				} else {
+					spu_write_out_mbox((u32)&control);
+				}
 				break;
 		}
 	}

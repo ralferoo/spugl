@@ -39,14 +39,16 @@ DriverContext _init_3d_driver(void)
 	}
 
 	context->local_store = spe_get_ls(context->spe_id);
-	printf("Allocated spe %lx, local store at %lx\n",
-		context->spe_id, context->local_store);
+//	printf("Allocated spe %lx, local store at %lx\n",
+//		context->spe_id, context->local_store);
 
 	spe_write_in_mbox(context->spe_id, SPU_MBOX_3D_INITIALISE); 
 	u32 addr = spe_read(context->spe_id);
 	context->control = addr + context->local_store;
-	context->control->counter = 43;
-	printf("Control structure at %lx\n", context->control);
+//	printf("Control structure at %lx\n", context->control);
+
+//	context->fifo_write = context->local_store + context->control->fifo_start;
+//	context->fifo_left = context->control->fifo_size;
 
 	return context;
 }
@@ -65,6 +67,40 @@ int _exit_3d_driver(DriverContext context)
 	return status;
 }
 
+u32* _begin_fifo(DriverContext context)
+{
+	return (u32*)(context->control->fifo_written + context->local_store);
+}
+
+void _end_fifo(DriverContext context, u32* fifo)
+{
+	SPU_CONTROL* control = context->control;
+	control->fifo_written = ((void*)fifo) - context->local_store;
+
+	if (control->fifo_written - control->fifo_start
+			> control->fifo_size - SPU_MIN_FIFO) {
+		*fifo++ = SPU_COMMAND_JMP;
+		*fifo++ = control->fifo_start;
+		control->fifo_written = ((void*)fifo) - context->local_store;
+	}
+/*
+	int written = ((u32*)fifo) - ((u32*)context->fifo_write);
+	context->fifo_left -= written;
+	
+	if (context->fifo_left < SPU_MIN_FIFO) {
+		printf("Only %d bytes remaining; causing jump to %lx\n",
+			context->fifo_left, control->fifo_start);
+		*fifo++ = SPU_COMMAND_JMP;
+		*fifo++ = control->fifo_start;
+
+		control->fifo_written = control->fifo_start;
+		context->fifo_left = control->fifo_size;
+
+		control->fifo_written = context->fifo_write;
+	}
+*/
+}
+
 static u32 spe_read(speid_t spe_id) {
 	while(!spe_stat_out_mbox(spe_id))
 		; //usleep(10);
@@ -72,31 +108,45 @@ static u32 spe_read(speid_t spe_id) {
 }
 
 int main(int argc, char* argv[]) {
-	printf("main entered\n");
+//	printf("main entered\n");
 	DriverContext ctx = _init_3d_driver();
 	DriverContext ctx2 = _init_3d_driver();
-	printf("context = %lx\n", ctx);
-	printf("context2 = %lx\n", ctx2);
+//	printf("context = %lx\n", ctx);
+//	printf("context2 = %lx\n", ctx2);
 
 	sleep(1);
-	ctx->control->counter++;
-	printf("counter2 values: %d %d\n",
-		ctx->control->counter2,
-		ctx2->control->counter2);
+	u32* fifo = _begin_fifo(ctx);
+	*fifo++ = SPU_COMMAND_NOP;
+	*fifo++ = SPU_COMMAND_JMP;
+	*fifo++ = (u32)((void*)(fifo+2) - ctx->local_store);
+	*fifo++ = SPU_COMMAND_NOP;
+	*fifo++ = SPU_COMMAND_NOP;
+	*fifo++ = SPU_COMMAND_NOP;
+	*fifo++ = SPU_COMMAND_NOP;
+	_end_fifo(ctx,fifo);
+	printf("idle_count values: %d %d\n",
+		ctx->control->idle_count,
+		ctx2->control->idle_count);
 	sleep(1);
-	ctx2->control->counter++;
-	printf("counter2 values: %d %d\n",
-		ctx->control->counter2,
-		ctx2->control->counter2);
+	fifo = _begin_fifo(ctx2);
+	*fifo++ = SPU_COMMAND_NOP;
+	*fifo++ = SPU_COMMAND_NOP;
+	_end_fifo(ctx2,fifo);
+	printf("idle_count values: %d %d\n",
+		ctx->control->idle_count,
+		ctx2->control->idle_count);
 	sleep(1);
-	ctx->control->counter++;
-	printf("counter2 values: %d %d\n",
-		ctx->control->counter2,
-		ctx2->control->counter2);
+	fifo = _begin_fifo(ctx2);
+	*fifo++ = SPU_COMMAND_NOP;
+	_end_fifo(ctx2,fifo);
+	printf("idle_count values: %d %d\n",
+		ctx->control->idle_count,
+		ctx2->control->idle_count);
+	sleep(1);
 
 	_exit_3d_driver(ctx);
 	_exit_3d_driver(ctx2);
-	printf("main end\n");
+//	printf("main end\n");
 	exit(0);
 }
 
