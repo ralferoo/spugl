@@ -7,3 +7,5 @@ extern SPU_COMMAND imp_glEnd;
 extern SPU_COMMAND imp_glVertex2;
 extern SPU_COMMAND imp_glVertex3;
 extern SPU_COMMAND imp_glVertex4;
+extern SPU_COMMAND imp_glColor3;
+extern SPU_COMMAND imp_glColor4;

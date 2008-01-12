@@ -53,3 +53,45 @@ GL_API void GL_APIENTRY glVertex3f (GLfloat x, GLfloat y, GLfloat z)
 	OUT_RINGf(z);
 	FIFO_EPILOGUE();
 }
+
+GL_API void GL_APIENTRY glColor3f (GLfloat r, GLfloat g, GLfloat b)
+{
+	FIFO_PROLOGUE(ctx,10);
+	BEGIN_RING(SPU_COMMAND_GL_COLOR3,3);
+	OUT_RINGf(r);
+	OUT_RINGf(g);
+	OUT_RINGf(b);
+	FIFO_EPILOGUE();
+}
+
+GL_API void GL_APIENTRY glColor4f (GLfloat r, GLfloat g, GLfloat b, GLfloat a)
+{
+	FIFO_PROLOGUE(ctx,10);
+	BEGIN_RING(SPU_COMMAND_GL_COLOR4,3);
+	OUT_RINGf(r);
+	OUT_RINGf(g);
+	OUT_RINGf(b);
+	OUT_RINGf(a);
+	FIFO_EPILOGUE();
+}
+
+GL_API void GL_APIENTRY glColor3ub (GLubyte r, GLubyte g, GLubyte b)
+{
+	FIFO_PROLOGUE(ctx,10);
+	BEGIN_RING(SPU_COMMAND_GL_COLOR3,3);
+	OUT_RINGf(r/255.0);
+	OUT_RINGf(g/255.0);
+	OUT_RINGf(b/255.0);
+	FIFO_EPILOGUE();
+}
+
+GL_API void GL_APIENTRY glColor4ub (GLubyte r, GLubyte g, GLubyte b, GLubyte a)
+{
+	FIFO_PROLOGUE(ctx,10);
+	BEGIN_RING(SPU_COMMAND_GL_COLOR4,3);
+	OUT_RINGf(r/255.0);
+	OUT_RINGf(g/255.0);
+	OUT_RINGf(b/255.0);
+	OUT_RINGf(a/255.0);
+	FIFO_EPILOGUE();
+}

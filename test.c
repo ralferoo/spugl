@@ -15,9 +15,12 @@
 int main(int argc, char* argv[]) {
 	glspuSetup();
 	glBegin(GL_QUADS);
+	glColor3f(1.0, 0.5, 0.25);
 	glVertex3f(-100.0f, 100.0f,   0.0f);
+	glColor3f(0.5, 1.0, 0.25);
 	glVertex3f(-100.0f,-100.0f,   0.0f);
 	glVertex3f( 100.0f,-100.0f,   0.0f);
+	glColor3ub(127, 15, 192);
 	glVertex3f( 100.0f, 100.0f,   0.0f);
 	glEnd();	
 	usleep(250000);

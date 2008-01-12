@@ -186,4 +186,16 @@ static void imp_vertex(float4 in)
 	return &from[4];
 }
 
+/*10*/void* imp_glColor3(float* col) {
+	float4 a = {.x=col[0],.y=col[1],.z=col[2],.w=1.0};
+	current_state.colour = a;
+	return &col[3];
+}
+	
+/*11*/void* imp_glColor4(float* col) {
+	float4 a = {.x=col[0],.y=col[1],.z=col[2],.w=col[3]};
+	current_state.colour = a;
+	return &col[4];
+}
+
 
