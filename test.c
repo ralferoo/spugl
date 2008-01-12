@@ -15,9 +15,9 @@
 int main(int argc, char* argv[]) {
 	glspuSetup();
 	glBegin(GL_TRIANGLES);
-	glVertex3f( 0.0f, 1.0f, 0.0f);
-	glVertex3f(-1.0f,-1.0f, 0.0f);
-	glVertex3f( 1.0f,-1.0f, 0.0f);
+	glVertex3f( 000.0f, 100.0f, 000.0f);
+	glVertex3f(-100.0f,-100.0f, 000.0f);
+	glVertex3f( 100.0f,-100.0f, 000.0f);
 	glEnd();	
 	glspuDestroy();
 

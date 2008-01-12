@@ -20,14 +20,7 @@ typedef void* DriverContext;
 #define __SPUMEM_ALIGNED__ __attribute__((aligned(16)))
 #define __CACHE_ALIGNED__ __attribute__((aligned(128)))
 
-#define SPU_COMMAND_NOP 0
-#define SPU_COMMAND_JMP 1
-#define SPU_COMMAND_ADD_CHILD 2
-#define SPU_COMMAND_DEL_CHILD 3
-
-#define SPU_COMMAND_BEGIN 0x10
-#define SPU_COMMAND_END 0x11
-#define SPU_COMMAND_VERTEX3f 0x12
+#include "gen_spu_command_defs.h"
 
 //////////////////////////////////////////////////////////////////////////////
 

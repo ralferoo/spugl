@@ -106,7 +106,7 @@ void _end_fifo(DriverContext _context, u32* fifo)
 
 	if (control->fifo_written - control->fifo_start
 			> control->fifo_size - SPU_MIN_FIFO) {
-		*fifo++ = SPU_COMMAND_JMP;
+		*fifo++ = SPU_COMMAND_JUMP;
 		*fifo++ = control->fifo_start;
 		control->fifo_written = ((void*)fifo) - context->local_store;
 	}
@@ -117,7 +117,7 @@ void _end_fifo(DriverContext _context, u32* fifo)
 	if (context->fifo_left < SPU_MIN_FIFO) {
 		printf("Only %d bytes remaining; causing jump to %lx\n",
 			context->fifo_left, control->fifo_start);
-		*fifo++ = SPU_COMMAND_JMP;
+		*fifo++ = SPU_COMMAND_JUMP;
 		*fifo++ = control->fifo_start;
 
 		control->fifo_written = control->fifo_start;
@@ -136,7 +136,7 @@ void _bind_child(DriverContext _parent, DriverContext _child, int assign)
 		u32* fifo = _begin_fifo(parent);
 		*fifo++ = assign ?
 			SPU_COMMAND_ADD_CHILD :
-			SPU_COMMAND_DEL_CHILD;
+			SPU_COMMAND_DELETE_CHILD;
 		u64 ea = _MAKE_EA(child->control);
 		*fifo++ = (u32)(ea>>32);
 		*fifo++ = (u32)(ea&0xffffffffUL);

@@ -34,22 +34,10 @@ int init_fifo(int fifo_size) {
 	return 0;
 }
 
-extern SPU_COMMAND impNOP;
-extern SPU_COMMAND impJMP;
-extern SPU_COMMAND impDeleteChild;
-extern SPU_COMMAND impAddChild;
-extern SPU_COMMAND imp_glBegin;
-extern SPU_COMMAND imp_glEnd;
-extern SPU_COMMAND imp_glVertex3f;
+#include "gen_spu_command_exts.h"
 
 SPU_COMMAND* spu_commands[] = {
-	[SPU_COMMAND_NOP] = (SPU_COMMAND*) &impNOP,
-	[SPU_COMMAND_JMP] = (SPU_COMMAND*) &impJMP,
-	[SPU_COMMAND_DEL_CHILD] = &impAddChild,
-	[SPU_COMMAND_ADD_CHILD] = &impDeleteChild,
-	[SPU_COMMAND_BEGIN] = &imp_glBegin,
-	[SPU_COMMAND_END] = &imp_glEnd,
-	[SPU_COMMAND_VERTEX3f] = &imp_glVertex3f,
+#include "gen_spu_command_table.h"
 };
 
 /* Process commands on the FIFO */
