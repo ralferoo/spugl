@@ -9,8 +9,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <GLES/gl.h>
-#include <GLES/glspu.h>
+#include <GL/gl.h>
+#include <GL/glspu.h>
 
 int main(int argc, char* argv[]) {
 	glspuSetup();
@@ -20,5 +20,8 @@ int main(int argc, char* argv[]) {
 	glVertex3f( 1.0f,-1.0f, 0.0f);
 	glEnd();	
 	glspuDestroy();
+
+	// quick hack so that SPU debugging messages have a chance to come out
+	usleep(100);
 	exit(0);
 }

@@ -132,7 +132,8 @@ test.o: /usr/include/wchar.h /usr/include/bits/wchar.h /usr/include/gconv.h
 test.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 test.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
 test.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
-test.o: ./GLES/gl.h ./GLES/glplatform.h ./GLES/glspu.h
+test.o: ./GL/gl.h ./GL/glext.h /usr/include/inttypes.h /usr/include/stdint.h
+test.o: ./GLES/glspu.h
 
 spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h

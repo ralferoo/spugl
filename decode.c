@@ -51,7 +51,6 @@ void* imp_glEnd(u32* from) {
 void* imp_glVertex3f(u32* from) {
 	float x,y,z;
 	union __f2i temp;
-	
 	temp.i = *from++; x=temp.f;
 	temp.i = *from++; y=temp.f;
 	temp.i = *from++; z=temp.f;
