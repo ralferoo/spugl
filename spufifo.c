@@ -6,8 +6,10 @@
  *
  ****************************************************************************/
 
+#include "spuregs.h" // all SPU files must include spuregs.h
 #include <spu_mfcio.h>
 #include "fifo.h"
+
 
 SPU_CONTROL control __CACHE_ALIGNED__;
 

@@ -9,6 +9,7 @@
 #include <spu_mfcio.h>
 #include "fifo.h"
 #include "struct.h"
+#include "primitives.h"
 
 #include <GL/gl.h>
 
@@ -233,4 +234,12 @@ static void imp_vertex(float4 in)
 	return &col[4];
 }
 
+
+// just testing some stuff with gcc...
+// this is really cool, you have have global registers ;)
+
+u32 getNext(void)
+{
+return ___foo++;
+}
 

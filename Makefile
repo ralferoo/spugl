@@ -18,7 +18,7 @@ PPUCC = gcc
 PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I.
 
 SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS
-SPUCCFLAGS = -O6 -I.
+SPUCCFLAGS = -O6 -I. -DSPU_REGS
 
 GENSOURCES = decode.c
 SPU_OBJS = spufifo.spe.o decode.spe.o primitives.spe.o triangleColourSpan.spe.o
@@ -56,8 +56,9 @@ gen_spu_command_table.h: .gen
 # useful targets
 
 depend:
-	makedepend -I/usr/include/python2.4/ -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(PPU_SRCS) -DUSERLAND_$(USERLAND)_BITS
-	makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.spe.o $(SPU_SRCS) -DUSERLAND_$(USERLAND)_BITS
+	@makedepend -I/usr/include/python2.4/ -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(PPU_SRCS) -DUSERLAND_$(USERLAND)_BITS
+	@makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.spe.o $(SPU_SRCS) -DUSERLAND_$(USERLAND)_BITS
+	@for i in $(SPU_OBJS) ; do grep $$i:.*spuregs.h Makefile >/dev/null || (echo ERROR: $$i does not refer to spuregs.h && false) ; done
 
 clean:
 	rm -f *.o
@@ -127,7 +128,7 @@ glfifo.o: /usr/include/bits/wchar.h /usr/include/gconv.h
 glfifo.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 glfifo.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
 glfifo.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
-glfifo.o: fifo.h types.h gen_spu_command_defs.h struct.h ./GL/gl.h
+glfifo.o: fifo.h types.h gen_spu_command_defs.h struct.h spuregs.h ./GL/gl.h
 glfifo.o: ./GL/glext.h /usr/include/inttypes.h /usr/include/stdint.h
 framebuffer.o: /usr/include/fcntl.h /usr/include/features.h
 framebuffer.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
@@ -167,7 +168,7 @@ framebuffer.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
 framebuffer.o: /usr/include/asm/sockios.h /usr/include/arpa/inet.h
 framebuffer.o: /usr/include/netinet/in.h /usr/include/bits/in.h
 framebuffer.o: /usr/include/bits/byteswap.h fifo.h types.h
-framebuffer.o: gen_spu_command_defs.h struct.h
+framebuffer.o: gen_spu_command_defs.h struct.h spuregs.h
 test.o: /usr/include/stdlib.h /usr/include/features.h
 test.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 test.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -186,25 +187,26 @@ test.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
 test.o: ./GL/gl.h ./GL/glext.h /usr/include/inttypes.h /usr/include/stdint.h
 test.o: ./GL/glspu.h
 
+spufifo.spe.o: spuregs.h struct.h types.h
 spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
-spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
+spufifo.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h
 spufifo.spe.o: gen_spu_command_defs.h gen_spu_command_exts.h
 spufifo.spe.o: gen_spu_command_table.h
 decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
-decode.spe.o: gen_spu_command_defs.h struct.h ./GL/gl.h ./GL/glext.h
-decode.spe.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h /usr/include/inttypes.h
-decode.spe.o: /usr/include/features.h /usr/include/sys/cdefs.h
-decode.spe.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
-decode.spe.o: /usr/include/gnu/stubs-32.h /usr/include/stdint.h
-decode.spe.o: /usr/include/bits/wchar.h
+decode.spe.o: gen_spu_command_defs.h struct.h spuregs.h primitives.h
+decode.spe.o: ./GL/gl.h ./GL/glext.h /usr/lib/gcc/spu/4.0.2/include/stddef.h
+decode.spe.o: /usr/include/inttypes.h /usr/include/features.h
+decode.spe.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+decode.spe.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+decode.spe.o: /usr/include/stdint.h /usr/include/bits/wchar.h
 primitives.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 primitives.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 primitives.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h
-primitives.spe.o: types.h gen_spu_command_defs.h struct.h
+primitives.spe.o: types.h gen_spu_command_defs.h struct.h spuregs.h
 triangleColourSpan.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 triangleColourSpan.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 triangleColourSpan.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
-triangleColourSpan.spe.o: struct.h types.h
+triangleColourSpan.spe.o: struct.h types.h spuregs.h
