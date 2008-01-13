@@ -51,8 +51,8 @@ _bitmap_image screen = { .address = 0};
 	screen.width = *from++;
 	screen.height = *from++;
 	screen.bytes_per_line = *from++;
-	printf("screen at %llx, width %d, height %d, bpl %d\n",
-		screen.address, screen.width, screen.height, screen.bytes_per_line);
+//	printf("screen at %llx, width %d, height %d, bpl %d\n",
+//		screen.address, screen.width, screen.height, screen.bytes_per_line);
 	return from;
 }
 	
@@ -262,13 +262,14 @@ static void* imp_vertex(void* from, float4 in)
 			current_state);
 		return from;
 	}
+/*
 	printf("state %2d: insert=%2d next=%2d add=%d end=%2d\n",
 		current_state,
 		shuffle_map[current_state].insert,
 		shuffle_map[current_state].next,
 		shuffle_map[current_state].add,
 		shuffle_map[current_state].end);
-
+*/
 	int ins = shuffle_map[current_state].insert;
 	if (ins >= sizeof(shuffles)/sizeof(shuffles[0])) {
 		printf("imp_vertex with invalid shuffle value %d\n", ins);

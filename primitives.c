@@ -84,7 +84,7 @@ static void debug(vertex_state v)
 
 void imp_triangle()
 {
-	debug_state("tri\t",3);
+//	debug_state("tri\t",3);
 
 	vertex_state a = pull_compat(0);
 	vertex_state b = pull_compat(1);
@@ -173,8 +173,8 @@ void imp_triangle()
 		mid = b.coords.y; bottom = c.coords.y;
 	}
 
-	printf ("y=%.2f, lx=%.2f, lgrad=%.2f, rx=%.2f, rgrad=%.2f, mid=%.2f, bottom=%.2f\n",
-		y, lx, lgrad, rx, rgrad, mid, bottom);
+//	printf ("y=%.2f, lx=%.2f, lgrad=%.2f, rx=%.2f, rgrad=%.2f, mid=%.2f, bottom=%.2f\n",
+//		y, lx, lgrad, rx, rgrad, mid, bottom);
 
 	float tab = a.coords.x * b.coords.y - b.coords.x * a.coords.y;
 	float tbc = b.coords.x * c.coords.y - c.coords.x * b.coords.y;
@@ -258,8 +258,8 @@ void imp_triangle()
 		rx = ((int)b.coords.x) + 0.5;
 	}
 		
-	printf ("cont y=%.2f, lx=%.2f, lgrad=%.2f, rx=%.2f, rgrad=%.2f, mid=%.2f, bottom=%.2f\n",
-		y, lx, lgrad, rx, rgrad, mid, bottom);
+//	printf ("cont y=%.2f, lx=%.2f, lgrad=%.2f, rx=%.2f, rgrad=%.2f, mid=%.2f, bottom=%.2f\n",
+//		y, lx, lgrad, rx, rgrad, mid, bottom);
 
 	while (y < bottom && y < 0) {
 		y += 1.0;

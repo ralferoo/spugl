@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
 	int y,z;
 	for (y=1; y<100; y++)
 	for (z=250; z>-300; z-=5) {
-		printf("z=%d\n", z);
+//		printf("z=%d\n", z);
 		glspuClear();
 		glBegin(GL_QUADS);
 //		glColor3ub(127, 15, 192);
