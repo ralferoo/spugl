@@ -10,7 +10,6 @@
 #include <spu_mfcio.h>
 #include "fifo.h"
 
-
 SPU_CONTROL control __CACHE_ALIGNED__;
 
 void raise_error(int error) {
