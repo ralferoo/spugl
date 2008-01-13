@@ -61,8 +61,13 @@ int _flush_3d_driver(DriverContext _context)
 {
 	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;
 
-	while (context->control->fifo_written != context->control->fifo_read)
-		; //usleep(10);
+	if (context->control->fifo_written != context->control->fifo_read) {
+		printf("glFlush() wait...\n");
+		while (context->control->fifo_written !=
+				context->control->fifo_read) 
+			usleep(25000);
+		printf("glFlush() done...\n");
+	}
 }
 
 int _exit_3d_driver(DriverContext _context)
@@ -95,7 +100,6 @@ u32 _3d_idle_count(DriverContext _context)
 
 u32* _begin_fifo(DriverContext _context, u32 minsize)
 {
-	minsize = 400;
 	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;
 	SPU_CONTROL* control = context->control;
 

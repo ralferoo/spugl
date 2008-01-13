@@ -54,6 +54,7 @@ void process_fifo(u32* from, u32* to) {
 		if (func) {
 			printf("%06lx: running command %lx\n", addr, command);
 			from = (*func)(from);
+			printf("from is %lx\n", from);
 			if (!from)
 				return;
 		} else {
@@ -115,7 +116,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 				spu_write_out_mbox(0);
 				break; 
 			case SPU_MBOX_3D_INITIALISE_MASTER:
-				if (init_fifo(4096)) {
+				if (init_fifo(256)) {
 					printf("couldn't allocate FIFO\n");
 					spu_write_out_mbox(0);
 					running = 0;
