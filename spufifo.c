@@ -84,6 +84,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 
 	int running = 1;
 	while (running) {
+		int zzz = 0;
 		while (spu_stat_in_mbox() == 0) {
 			control.idle_count ++;
 			// check to see if there's any data waiting on FIFO
@@ -95,8 +96,12 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 				u32* from = (u32*) ((u32)(read-ls));
 				process_fifo(from, to);
 				u64 new_read = control.fifo_read;
-//				printf("Processed FIFO from %llx to %llx "
-//					"(ends %llx)\n", read,new_read,written);
+				printf("Processed FIFO from %llx to %llx "
+					"(ends %llx)\n", read,new_read,written);
+				zzz = 0;
+			} else if (zzz==0) {
+				zzz = 1;
+				printf("SPU waiting... %llx,%llx\n", written, read);
 			}
 		}
 
