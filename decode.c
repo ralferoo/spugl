@@ -16,14 +16,12 @@
 extern SPU_CONTROL control;
 
 /*0*/void* imp_nop(void* p) {
-//	printf("NOP\n");
 	return p;
 }
 
 /*1*/void* imp_jump(u32* from) {
 	u64 ea;
 	__READ_EA(from)
-//	printf("JMP %llx\n", ea);
 	control.fifo_read = ea;
 	return 0;
 }
@@ -179,16 +177,21 @@ static int current_state = -1;
 /*15*/void* imp_glBegin(u32* from) {
 	u32 state = *from++;
 	if (current_state >= 0) {
-		printf("ERROR: nested glBegin()\n");
+		raise_error(ERROR_NESTED_GLBEGIN);
 	}
-//	printf("glBegin(%d)\n", state);
+	if (state < 0 ||
+		  state >= sizeof(shuffle_map)/sizeof(shuffle_map[0]) ||
+		  shuffle_map[state].insert != 0) {
+		raise_error(ERROR_GLBEGIN_INVALID_STATE);
+		return from;
+	}
 	current_state = state;
 	return from;
 }
 	
 /*16*/void* imp_glEnd(u32* from) {
 	if (current_state < 0) {
-		printf("ERROR: glEnd() without glBegin()\n");
+		raise_error(ERROR_GLEND_WITHOUT_GLBEGIN);
 	} else {
 		int end = shuffle_map[current_state].end;
 		if (end) {
@@ -215,28 +218,18 @@ static void inline imp_update_vertex(float4 in, vec_uchar16 inserter)
 	// just for testing, have hard-coded persective and screen
 	// transformations here. they'll probably live here anyway, just
 	// done with matrices.
-//	float4 p = {.x=in.x - screen.width/2, .y = in.y - screen.height/2, .z = in.z, .w = 420/(in.z-420)};
-//	float recip = 1.0/p.w;
-//	float4 s = {.x=p.x*recip, .y = p.y*recip, .z = p.z*recip, .w = recip};
 
 	float recip = 420.0 / (in.z-420.0);
 	float4 s = {.x=in.x*recip+screen.width/2, .y = in.y*recip+screen.height/2, .z = in.z*recip, .w = recip};
 
 	float4 c= current_colour;
 	float4 col = {.x=c.x*recip, .y = c.y*recip, .z = c.z*recip, .w = c.w*recip};
-/*
-	vertex_state v = {
-		.coords = s,
-		.colour = col,
-	};
-	v.coords = s;
-	imp_vertex_state(v);
-*/
-//	printf("tran (%.2f,%.2f,%.2f,%.2f)\n", s.x, s.y, s.z, s.w);
-//	printf("col  (%.2f,%.2f,%.2f,%.2f)\n", col.x, col.y, col.z, col.w);
 
-	TRIorder = shuffles[9];
-//	debug_state("previous state", 4);
+//	printf("tran (%.2f,%.2f,%.2f,%.2f)\n", s.x, s.y, s.z, s.w);
+
+//	float4 p = {.x=in.x - screen.width/2, .y = in.y - screen.height/2, .z = in.z, .w = 420/(in.z-420)};
+//	float recip = 1.0/p.w;
+//	float4 s = {.x=p.x*recip, .y = p.y*recip, .z = p.z*recip, .w = recip};
 
 	TRIx = spu_shuffle(TRIx, (vec_float4) s.x, inserter);
 	TRIy = spu_shuffle(TRIy, (vec_float4) s.y, inserter);
@@ -248,31 +241,19 @@ static void inline imp_update_vertex(float4 in, vec_uchar16 inserter)
 	TRIa = spu_shuffle(TRIa, (vec_float4) col.w, inserter);
 //	TRIu = spu_shuffle(TRIu, (vec_float4) in.u, inserter);
 //	TRIv = spu_shuffle(TRIv, (vec_float4) in.v, inserter);
-
-	TRIorder = shuffles[9];
-//	debug_state("current state", 4);
 }
 
 static void* imp_vertex(void* from, float4 in)
 {
-//	printf("\nvert (%.2f,%.2f,%.2f,%.2f)\n", in.x, in.y, in.z, in.w);
 	if (current_state < 0 ||
 		  current_state >= sizeof(shuffle_map)/sizeof(shuffle_map[0])) {
-		printf("imp_vertex with invalid current_state value %d\n",
-			current_state);
+		raise_error(ERROR_VERTEX_INVALID_STATE);
 		return from;
 	}
-/*
-	printf("state %2d: insert=%2d next=%2d add=%d end=%2d\n",
-		current_state,
-		shuffle_map[current_state].insert,
-		shuffle_map[current_state].next,
-		shuffle_map[current_state].add,
-		shuffle_map[current_state].end);
-*/
+
 	int ins = shuffle_map[current_state].insert;
 	if (ins >= sizeof(shuffles)/sizeof(shuffles[0])) {
-		printf("imp_vertex with invalid shuffle value %d\n", ins);
+		raise_error(ERROR_VERTEX_INVALID_SHUFFLE);
 		return from;
 	}
 	vec_uchar16 inserter = shuffles[ins];
@@ -330,14 +311,3 @@ static void* imp_vertex(void* from, float4 in)
 	current_colour = a;
 	return &col[4];
 }
-
-
-// just testing some stuff with gcc...
-// this is really cool, you have have global registers ;)
-
-u32 getNext(void)
-{
-return ___foo++;
-}
-
-

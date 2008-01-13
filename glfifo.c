@@ -20,6 +20,11 @@ extern BitmapImage _flipScreen(void);
 static DriverContext ctx = NULL;
 static BitmapImage screen = NULL;
 
+GLAPI GLenum GLAPIENTRY glGetError(void)
+{
+	return _3d_error(ctx);
+}
+
 static void updateScreenPointer(void) 
 {
 	FIFO_PROLOGUE(ctx,10);

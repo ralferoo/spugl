@@ -98,6 +98,14 @@ u32 _3d_idle_count(DriverContext _context)
 	return (u32)(context->control->idle_count);
 }
 
+u32 _3d_error(DriverContext _context)
+{
+	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;
+	u32 error = (u32)(context->control->error);
+	context->control->error = 0;
+	return error;
+}
+
 u32* _begin_fifo(DriverContext _context, u32 minsize)
 {
 	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;

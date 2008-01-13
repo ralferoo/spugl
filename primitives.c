@@ -142,15 +142,15 @@ void imp_triangle()
 	}
 
 	if (b.coords.y < a.coords.y || c.coords.y < a.coords.y) {
-		printf (":ERROR: a not least\n");
+		raise_error(ERROR_TRI_A_NOT_LEAST);
 		return;
 	}
 	if (left && b.coords.y < c.coords.y) {
-		printf (":ERROR: left and b<c\n");
+		raise_error(ERROR_TRI_LEFT_AND_B_C);
 		return;
 	}
 	if (!left && c.coords.y < b.coords.y) {
-		printf (":ERROR: right and c<b\n");
+		raise_error(ERROR_TRI_RIGHT_AND_C_B);
 		return;
 	}
 		

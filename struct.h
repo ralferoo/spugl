@@ -28,6 +28,25 @@ typedef struct {
 	float4 colour;
 } vertex_state;
 
+///////////////////////////////////////////////////////////////////////////////
+//
+// application errors
+#define ERROR_NONE			0 //GL_NO_ERROR
+#define ERROR_NESTED_GLBEGIN		1
+#define ERROR_GLBEGIN_INVALID_STATE	2
+#define ERROR_GLEND_WITHOUT_GLBEGIN	3
+
+// internal errors
+#define ERROR_TRI_A_NOT_LEAST		1001
+#define ERROR_TRI_LEFT_AND_B_C		1002
+#define ERROR_TRI_RIGHT_AND_C_B		1003
+#define ERROR_VERTEX_INVALID_STATE	1004
+#define ERROR_VERTEX_INVALID_SHUFFLE	1005
+
+extern void raise_error(int error);
+
+///////////////////////////////////////////////////////////////////////////////
+
 #include "spuregs.h"
 
 #endif // __struct_h

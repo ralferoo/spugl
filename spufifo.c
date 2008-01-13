@@ -13,6 +13,11 @@
 
 SPU_CONTROL control __CACHE_ALIGNED__;
 
+void raise_error(int error) {
+	if (control.error == ERROR_NONE)
+		control.error = error;
+}
+
 int init_fifo(int fifo_size) {
 	u64 ls = control.my_local_address;
 //	printf("init_fifo local address %llx\n", ls);
@@ -35,6 +40,7 @@ int init_fifo(int fifo_size) {
 	control.fifo_read = ea;
 	control.fifo_written = ea;
 	control.fifo_host_start = ea;
+	control.error = ERROR_NONE;
 	return 0;
 }
 

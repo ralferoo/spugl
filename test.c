@@ -32,6 +32,9 @@ int main(int argc, char* argv[]) {
 		glspuFlip();
 		glspuWait();
 //		sleep(1);
+		GLenum error = glGetError();
+		if (error)
+			printf("glGetError() returned %d\n", error);
 	}
 	usleep(250000);
 	glspuDestroy();
