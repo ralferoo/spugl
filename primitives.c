@@ -12,24 +12,38 @@
 
 extern _bitmap_image screen;
 
-static void debug(vertex_state v)
+void debug_state(char*s, int i)
 {
-	printf("v=(%.2f,%.2f,%.2f,%.2f)",
-		v.coords.x, v.coords.y, v.coords.z, v.coords.w);
-	printf(" c=(%.2f,%.2f,%.2f,%.2f)",
-		v.colour.x, v.colour.y, v.colour.z, v.colour.w);
+	printf("\n%s:",s);
+	vec_uchar16 sel = TRIorder;
+	int j = 0;
+	while (i--) {
+		printf("v=(%.2f,%.2f,%.2f,%.2f)"
+			" c=(%.2f,%.2f,%.2f,%.2f)"
+			"%s",
+			spu_extract(spu_shuffle(TRIx, TRIx, sel), j),
+			spu_extract(spu_shuffle(TRIy, TRIx, sel), j),
+			spu_extract(spu_shuffle(TRIz, TRIx, sel), j),
+			spu_extract(spu_shuffle(TRIw, TRIx, sel), j),
+
+			spu_extract(spu_shuffle(TRIr, TRIx, sel), j),
+			spu_extract(spu_shuffle(TRIg, TRIx, sel), j),
+			spu_extract(spu_shuffle(TRIb, TRIx, sel), j),
+			spu_extract(spu_shuffle(TRIa, TRIx, sel), j),
+
+			i ? ",\n\t" : "\n");
+		j++;
+	}
 }
 
-void imp_point(vertex_state a)
+void imp_point()
 {
-	printf("point\t");
-	debug(a);printf("\n\n");
+	debug_state("point\t",1);
 }
 
-void imp_line(vertex_state a, vertex_state b)
+void imp_line()
 {
-	printf("line\t");
-	debug(a);printf(",\n\t");debug(b);printf("\n\n");
+	debug_state("line\t",2);
 }
 
 typedef void TRIANGLE_SPAN_FUNCTION
@@ -38,11 +52,48 @@ typedef void TRIANGLE_SPAN_FUNCTION
 
 extern TRIANGLE_SPAN_FUNCTION triangleSpan;
 
-void imp_triangle(vertex_state a, vertex_state b, vertex_state c)
+vertex_state pull_compat(int j)
 {
-	printf("tri\t");
-	debug(a);printf(",\n\t");debug(b);printf(",\n\t");debug(c);printf("\n\n");
+	vec_uchar16 sel = TRIorder;
+	float4 s = {
+			.x = spu_extract(spu_shuffle(TRIx, TRIx, sel), j),
+			.y = spu_extract(spu_shuffle(TRIy, TRIx, sel), j),
+			.z = spu_extract(spu_shuffle(TRIz, TRIx, sel), j),
+			.w = spu_extract(spu_shuffle(TRIw, TRIx, sel), j),
+	};
+	float4 c = {
+			.x = spu_extract(spu_shuffle(TRIr, TRIx, sel), j),
+			.y = spu_extract(spu_shuffle(TRIg, TRIx, sel), j),
+			.z = spu_extract(spu_shuffle(TRIb, TRIx, sel), j),
+			.w = spu_extract(spu_shuffle(TRIa, TRIx, sel), j),
+	};
+	vertex_state v = {
+		.coords = s,
+		.colour = c,
+	};
+	return v;
+}
 
+static void debug(vertex_state v)
+{
+//       printf("DBG v=(%.2f,%.2f,%.2f,%.2f)",
+//               v.coords.x, v.coords.y, v.coords.z, v.coords.w);
+//       printf(" c=(%.2f,%.2f,%.2f,%.2f)\n",
+//               v.colour.x, v.colour.y, v.colour.z, v.colour.w);
+}
+
+void imp_triangle()
+{
+	debug_state("tri\t",3);
+
+	vertex_state a = pull_compat(0);
+	vertex_state b = pull_compat(1);
+	vertex_state c = pull_compat(2);
+
+	debug(a);
+	debug(b);
+	debug(c);
+	
 	TRIANGLE_SPAN_FUNCTION* func = triangleSpan;
 
 	float abx = b.coords.x - a.coords.x;
@@ -149,6 +200,14 @@ void imp_triangle(vertex_state a, vertex_state b, vertex_state c)
 	float Db = a.coords.y - c.coords.y;
 	float Dc = b.coords.y - a.coords.y;
 
+	while (y < mid && y < 0) {
+		y += 1.0;
+		lx += lgrad;
+		rx += rgrad;
+		Sa += dSa;
+		Sb += dSb;
+		Sc += dSc;
+	}
 
 	while (y < mid && y < screen.height) {
 		float l = lx>0.5 ? lx : 0.5;
@@ -201,6 +260,15 @@ void imp_triangle(vertex_state a, vertex_state b, vertex_state c)
 		
 	printf ("cont y=%.2f, lx=%.2f, lgrad=%.2f, rx=%.2f, rgrad=%.2f, mid=%.2f, bottom=%.2f\n",
 		y, lx, lgrad, rx, rgrad, mid, bottom);
+
+	while (y < bottom && y < 0) {
+		y += 1.0;
+		lx += lgrad;
+		rx += rgrad;
+		Sa += dSa;
+		Sb += dSb;
+		Sc += dSc;
+	}
 
 	while (y < bottom && y < screen.height) {
 		float l = lx>0.5 ? lx : 0.5;
