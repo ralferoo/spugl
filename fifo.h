@@ -30,10 +30,10 @@ typedef void* DriverContext;
 
 #define FIFO_PROLOGUE(fifo,minsize) \
 DriverContext __fifo = (fifo); \
-u32* __fifo_head = _begin_fifo(__fifo); \
+u32* __fifo_head = _begin_fifo(__fifo, (minsize)*4); \
 u32* __fifo_ptr = __fifo_head;
 
-#define FIFO_EPILOGUE(fifo) _end_fifo(__fifo, __fifo_ptr); \
+#define FIFO_EPILOGUE(fifo) _end_fifo(__fifo, __fifo_head, __fifo_ptr); \
 __fifo_ptr = 0UL;
 
 #define OUT_RING(v) { *(__fifo_ptr)++ = (u32)v; }
@@ -93,22 +93,24 @@ typedef struct {
 	// the first 128 bytes are writable by the PPU-side driver
 	volatile u64 fifo_written;	// the address the driver has written
 	volatile u64 my_local_address;	// the address this SPU lives at
-	volatile u32 pad1[32-4];
+	volatile u32 fifo_write_space;  // space we have to write in
+	volatile u32 pad1[32-5];
 
 	// the next 128 bytes are writable by the SPU-side driver
 	volatile u64 fifo_read;		// the current position in FIFO read
 	volatile u32 fifo_start;	// the start of the FIFO area
 	volatile u32 fifo_size;		// the length of the FIFO area
+	volatile u64 fifo_host_start;	// the start of the FIFO in host terms
 
 	volatile u32 idle_count;	// this is our count of idle cycles
 	volatile u32 last_count;	// last value of counter we saw
-	volatile u32 pad2[32-6];
+	volatile u32 pad2[32-8];
 } SPU_CONTROL;
 
 extern DriverContext _init_3d_driver(int master);
 extern int _exit_3d_driver(DriverContext _context);
-extern u32* _begin_fifo(DriverContext _context);
-extern void _end_fifo(DriverContext _context, u32* fifo);
+extern u32* _begin_fifo(DriverContext _context, u32 minsize);
+extern void _end_fifo(DriverContext _context, u32* fifo_head, u32* fifo);
 extern void _bind_child(DriverContext _parent, DriverContext _child, int assign);
 extern u32 _3d_idle_count(DriverContext _context);
 extern u32 _3d_spu_address(DriverContext _context, u32* address);

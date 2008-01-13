@@ -29,8 +29,10 @@ int init_fifo(int fifo_size) {
 
 //	printf("FIFO ea = %llx\n", ea);
 
+	control.fifo_size = fifo_size;
 	control.fifo_read = ea;
 	control.fifo_written = ea;
+	control.fifo_host_start = ea;
 	return 0;
 }
 
@@ -50,6 +52,7 @@ void process_fifo(u32* from, u32* to) {
 					? spu_commands[command] : 0;
 
 		if (func) {
+			printf("%06lx: running command %lx\n", addr, command);
 			from = (*func)(from);
 			if (!from)
 				return;
@@ -73,6 +76,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 	control.fifo_size = 0;
 	control.fifo_written = 0;
 	control.fifo_read = 0;
+	control.fifo_host_start = 0;
 
 	control.last_count = 0;
 	control.idle_count = 0;
@@ -106,7 +110,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 				spu_write_out_mbox(0);
 				break; 
 			case SPU_MBOX_3D_INITIALISE_MASTER:
-				if (init_fifo(64096)) {
+				if (init_fifo(4096)) {
 					printf("couldn't allocate FIFO\n");
 					spu_write_out_mbox(0);
 					running = 0;

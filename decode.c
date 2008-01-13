@@ -188,7 +188,7 @@ static void imp_vertex(float4 in)
 	// just for testing, have hard-coded persective and screen
 	// transformations here. they'll probably live here anyway, just
 	// done with matrices.
-	float4 p = {.x=in.x - screen.width/2, .y = in.y - screen.height/2, .z = in.z, .w = 200/(in.z-200)};
+	float4 p = {.x=in.x - screen.width/2, .y = in.y - screen.height/2, .z = in.z, .w = 420/(in.z-420)};
 	float recip = 1.0/p.w;
 	float4 s = {.x=p.x*recip, .y = p.y*recip, .z = p.z*recip, .w = recip};
 

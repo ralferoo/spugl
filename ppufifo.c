@@ -52,6 +52,7 @@ DriverContext _init_3d_driver(int master)
 		 master ? SPU_MBOX_3D_INITIALISE_MASTER
 			: SPU_MBOX_3D_INITIALISE_NORMAL); 
 	spe_read(context->spe_id);
+	context->control->fifo_write_space = context->control->fifo_size;
 
 	return (DriverContext) context;
 }
@@ -92,25 +93,123 @@ u32 _3d_idle_count(DriverContext _context)
 	return (u32)(context->control->idle_count);
 }
 
-u32* _begin_fifo(DriverContext _context)
+u32* _begin_fifo(DriverContext _context, u32 minsize)
 {
+	minsize = 400;
 	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;
-	return (u32*)_FROM_EA(context->control->fifo_written);
+	SPU_CONTROL* control = context->control;
+
+	u64 read = control->fifo_read;
+	u64 written = control->fifo_written;
+
+	if (read<=written) {
+ 		u64 end = control->fifo_host_start + control->fifo_size;
+		u32* __fifo_ptr = (u32*)_FROM_EA(written);
+		if (written + minsize + 40 < end) {
+//			printf("_begin_fifo: written %llx + size %d = %llx < %llx\n",
+//				written, minsize, written+minsize, end);
+			return __fifo_ptr;
+		} else {
+			while (read==control->fifo_host_start) {
+				printf("_begin_fifo: Waiting for them to start reading... %llx\n", read);
+				usleep(10000);
+				read = context->control->fifo_read;
+			};
+
+			u32* sptr = (u32*)_FROM_EA(control->fifo_host_start);
+			BEGIN_RING(SPU_COMMAND_JUMP,1);
+			OUT_RINGea(sptr);
+			written = control->fifo_host_start;
+			control->fifo_written = written;
+			printf("_begin_fifo: jumped back to beginning of buffer %llx\n",
+				control->fifo_host_start);
+		}
+	}
+
+	while (written != control->fifo_read &&
+			written + minsize + 40 > control->fifo_read) {
+		printf("_begin_fifo: Still not enough space... read=%llx, written=%llx, need until=%llx, want=%d\n", control->fifo_read, written, written + minsize + 40);
+		usleep(10000);
+	}
+
+	printf("_begin_fifo: returning %llx for %d bytes\n", control->fifo_written, minsize);
+	return (u32*)_FROM_EA(control->fifo_written);
+
+/*
+	u32 left = context->control->fifo_write_space;
+	printf("_begin_fifo(%d), left=%d, buffer=%llx\n",
+		minsize, left, context->control->fifo_written);
+
+	if (left < minsize + 40) {
+		u64 written = context->control->fifo_written;
+		u64 read = context->control->fifo_read;
+
+		if (read<written) {
+			u64 start = context->control->fifo_host_start;
+			while (read==start) {
+				printf("Waiting for them to start reading... %llx\n", read);
+				usleep(10000);
+				read = context->control->fifo_read;
+			} while (read<written);
+
+			// they've moved off the starting block, jump to start
+			u32* __fifo_ptr = (u32*)_FROM_EA(written);
+			u32* sptr = (u32*)_FROM_EA(start);
+			BEGIN_RING(SPU_COMMAND_JUMP,1);
+			OUT_RINGea(sptr);
+			context->control->fifo_written = start;
+			written = start;
+
+			printf("They've started to read data, forced jump to start of buffer... %lx -> %lx\n", __fifo_ptr, sptr);
+		}
+
+		left = read - written;
+		if (left == 0) {
+			printf("Hey, they finally caught up!\n");
+			left = context->control->fifo_size;
+		}
+		while (left < minsize + 10) {
+			printf("Write buffer full; only %d want %d\n", left, minsize);
+			usleep(10000);
+			read = context->control->fifo_read;
+			left = read - written;
+			if (left == 0) {
+				printf("Hey, they finally caught up!\n");
+				left = context->control->fifo_size;
+			}
+		}
+		printf("Updating buffer with %d left, written %llx\n", left, context->control->fifo_written);
+		context->control->fifo_write_space = left;
+	}
+*/
 }
 
-void _end_fifo(DriverContext _context, u32* fifo)
+void _end_fifo(DriverContext _context, u32* fifo_head, u32* fifo)
 {
 	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;
 	SPU_CONTROL* control = context->control;
+
 	control->fifo_written = _MAKE_EA(fifo);
 
+	u32 used = ((void*)fifo) - ((void*)fifo_head);
+	
+	printf("_end_fifo used %d, updated %llx\n",
+		used, control->fifo_written);
+
+//	u32 left = control->fifo_write_space;
+//	control->fifo_write_space -= used;
+//	
+//	printf("_end_fifo used %d, left %d, updated %d\n",
+//		used, left, control->fifo_write_space);
+
+/*
 	if (control->fifo_written - control->fifo_start
 			> control->fifo_size - SPU_MIN_FIFO) {
 		*fifo++ = SPU_COMMAND_JUMP;
 		*fifo++ = control->fifo_start;
 		control->fifo_written = ((void*)fifo) - context->local_store;
 	}
-/*
+
 	int written = ((u32*)fifo) - ((u32*)context->fifo_write);
 	context->fifo_left -= written;
 	
@@ -128,6 +227,7 @@ void _end_fifo(DriverContext _context, u32* fifo)
 */
 }
 
+/*
 void _bind_child(DriverContext _parent, DriverContext _child, int assign)
 {
 	__DRIVER_CONTEXT* parent = (__DRIVER_CONTEXT*) _parent;
@@ -144,6 +244,7 @@ void _bind_child(DriverContext _parent, DriverContext _child, int assign)
 		_end_fifo(parent,fifo);
 	}
 }
+*/
 
 static u32 spe_read(speid_t spe_id) {
 	while(!spe_stat_out_mbox(spe_id))
