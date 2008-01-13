@@ -16,14 +16,14 @@ int main(int argc, char* argv[]) {
 	glspuSetup();
 	int y,z;
 	for (y=1; y<100; y++)
-	for (z=-50; z>-300; z-=5) {
+	for (z=250; z>-300; z-=5) {
 		printf("z=%d\n", z);
 		glspuClear();
 		glBegin(GL_QUADS);
 //		glColor3ub(127, 15, 192);
-		glVertex3f(-100.0f, 100.0f, -250.0f+z);
+		glVertex3f(-100.0f, 100.0f, -50.0f+z);
 		glColor3f(1.0, 0.0, 0.25);
-		glVertex3f(-100.0f,-100.0f, -250.0f+z);
+		glVertex3f(-100.0f,-100.0f, -50.0f+z);
 		glVertex3f( 100.0f,-100.0f,  50.0f+z);
 		glColor3f(0.0, 1.0, 0.25);
 		glVertex3f( 100.0f, 100.0f,  50.0f+z);
