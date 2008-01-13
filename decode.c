@@ -15,14 +15,14 @@
 extern SPU_CONTROL control;
 
 /*0*/void* imp_nop(void* p) {
-	printf("NOP\n");
+//	printf("NOP\n");
 	return p;
 }
 
 /*1*/void* imp_jump(u32* from) {
 	u64 ea;
 	__READ_EA(from)
-	printf("JMP %llx\n", ea);
+//	printf("JMP %llx\n", ea);
 	control.fifo_read = ea;
 	return 0;
 }
@@ -67,6 +67,7 @@ _bitmap_image screen = { .address = 0};
 		mfc_write_tag_mask(1);
 		mfc_read_tag_status_any();
 	}
+	free(lb);
 	return from;
 }
 	

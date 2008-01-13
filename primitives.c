@@ -226,7 +226,6 @@ void imp_triangle(vertex_state a, vertex_state b, vertex_state c)
 		Sb += dSb;
 		Sc += dSc;
 	}
-	printf("done tri\n");
 	free(lb);
 }
 

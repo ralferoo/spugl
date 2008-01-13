@@ -38,6 +38,9 @@ test:	$(PPU_TEST_OBJS) $(SPU_HNDL)
 run:	test
 	./test
 
+edit:
+	gvim -p Makefile *.c *.h
+
 ppufifo.o: Makefile .gen
 spufifo.spe.o: Makefile .gen
 

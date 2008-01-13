@@ -62,11 +62,11 @@ int _flush_3d_driver(DriverContext _context)
 	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;
 
 	if (context->control->fifo_written != context->control->fifo_read) {
-		printf("glFlush() wait...\n");
+//		printf("glFlush() wait...\n");
 		while (context->control->fifo_written !=
 				context->control->fifo_read) 
 			usleep(25000);
-		printf("glFlush() done...\n");
+//		printf("glFlush() done...\n");
 	}
 }
 
@@ -125,67 +125,19 @@ u32* _begin_fifo(DriverContext _context, u32 minsize)
 			OUT_RINGea(sptr);
 			written = control->fifo_host_start;
 			control->fifo_written = written;
-			printf("_begin_fifo: jumped back to beginning of buffer %llx\n",
-				control->fifo_host_start);
+//			printf("_begin_fifo: jumped back to beginning of buffer %llx\n",
+//				control->fifo_host_start);
 		}
 	}
 
 	while (written != control->fifo_read &&
 			written + minsize + 40 > control->fifo_read) {
-		printf("_begin_fifo: Still not enough space... read=%llx, written=%llx, need until=%llx, want=%d\n", control->fifo_read, written, written + minsize + 40);
+//		printf("_begin_fifo: Still not enough space... read=%llx, written=%llx, need until=%llx, want=%d\n", control->fifo_read, written, written + minsize + 40);
 		usleep(10000);
 	}
 
-	printf("_begin_fifo: returning %llx for %d bytes\n", control->fifo_written, minsize);
+//	printf("_begin_fifo: returning %llx for %d bytes\n", control->fifo_written, minsize);
 	return (u32*)_FROM_EA(control->fifo_written);
-
-/*
-	u32 left = context->control->fifo_write_space;
-	printf("_begin_fifo(%d), left=%d, buffer=%llx\n",
-		minsize, left, context->control->fifo_written);
-
-	if (left < minsize + 40) {
-		u64 written = context->control->fifo_written;
-		u64 read = context->control->fifo_read;
-
-		if (read<written) {
-			u64 start = context->control->fifo_host_start;
-			while (read==start) {
-				printf("Waiting for them to start reading... %llx\n", read);
-				usleep(10000);
-				read = context->control->fifo_read;
-			} while (read<written);
-
-			// they've moved off the starting block, jump to start
-			u32* __fifo_ptr = (u32*)_FROM_EA(written);
-			u32* sptr = (u32*)_FROM_EA(start);
-			BEGIN_RING(SPU_COMMAND_JUMP,1);
-			OUT_RINGea(sptr);
-			context->control->fifo_written = start;
-			written = start;
-
-			printf("They've started to read data, forced jump to start of buffer... %lx -> %lx\n", __fifo_ptr, sptr);
-		}
-
-		left = read - written;
-		if (left == 0) {
-			printf("Hey, they finally caught up!\n");
-			left = context->control->fifo_size;
-		}
-		while (left < minsize + 10) {
-			printf("Write buffer full; only %d want %d\n", left, minsize);
-			usleep(10000);
-			read = context->control->fifo_read;
-			left = read - written;
-			if (left == 0) {
-				printf("Hey, they finally caught up!\n");
-				left = context->control->fifo_size;
-			}
-		}
-		printf("Updating buffer with %d left, written %llx\n", left, context->control->fifo_written);
-		context->control->fifo_write_space = left;
-	}
-*/
 }
 
 void _end_fifo(DriverContext _context, u32* fifo_head, u32* fifo)
@@ -197,38 +149,8 @@ void _end_fifo(DriverContext _context, u32* fifo_head, u32* fifo)
 
 	u32 used = ((void*)fifo) - ((void*)fifo_head);
 	
-	printf("_end_fifo used %d, updated %llx\n",
-		used, control->fifo_written);
-
-//	u32 left = control->fifo_write_space;
-//	control->fifo_write_space -= used;
-//	
-//	printf("_end_fifo used %d, left %d, updated %d\n",
-//		used, left, control->fifo_write_space);
-
-/*
-	if (control->fifo_written - control->fifo_start
-			> control->fifo_size - SPU_MIN_FIFO) {
-		*fifo++ = SPU_COMMAND_JUMP;
-		*fifo++ = control->fifo_start;
-		control->fifo_written = ((void*)fifo) - context->local_store;
-	}
-
-	int written = ((u32*)fifo) - ((u32*)context->fifo_write);
-	context->fifo_left -= written;
-	
-	if (context->fifo_left < SPU_MIN_FIFO) {
-		printf("Only %d bytes remaining; causing jump to %lx\n",
-			context->fifo_left, control->fifo_start);
-		*fifo++ = SPU_COMMAND_JUMP;
-		*fifo++ = control->fifo_start;
-
-		control->fifo_written = control->fifo_start;
-		context->fifo_left = control->fifo_size;
-
-		control->fifo_written = context->fifo_write;
-	}
-*/
+//	printf("_end_fifo used %d, updated %llx\n",
+//		used, control->fifo_written);
 }
 
 /*

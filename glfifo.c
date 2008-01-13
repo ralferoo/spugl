@@ -24,7 +24,7 @@ static void updateScreenPointer(void)
 {
 	FIFO_PROLOGUE(ctx,10);
 	BEGIN_RING(SPU_COMMAND_SCREEN_INFO,1);
-	OUT_RINGea(screen->address);
+	OUT_RINGea(_FROM_EA(screen->address));
 	OUT_RING(screen->width);
 	OUT_RING(screen->height);
 	OUT_RING(screen->bytes_per_line);

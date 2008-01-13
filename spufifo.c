@@ -52,15 +52,15 @@ void process_fifo(u32* from, u32* to) {
 					? spu_commands[command] : 0;
 
 		if (func) {
-			printf("%06lx: running command %lx\n", addr, command);
+//			printf("%06lx: running command %lx\n", addr, command);
 			from = (*func)(from);
-			printf("from is %lx\n", from);
+//			printf("from is %lx\n", from);
 			if (!from)
 				return;
 		} else {
 			printf("%06lx: command %lx\n", addr, command);
 			from++;
-			printf("from %lx to %lx\n", from, to);
+//			printf("from %lx to %lx\n", from, to);
 		}
 	}
 	u64 ls = control.my_local_address;
@@ -85,7 +85,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 
 	int running = 1;
 	while (running) {
-		int zzz = 0;
+//		int zzz = 0;
 		while (spu_stat_in_mbox() == 0) {
 			control.idle_count ++;
 			// check to see if there's any data waiting on FIFO
@@ -97,12 +97,12 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 				u32* from = (u32*) ((u32)(read-ls));
 				process_fifo(from, to);
 				u64 new_read = control.fifo_read;
-				printf("Processed FIFO from %llx to %llx "
-					"(ends %llx)\n", read,new_read,written);
-				zzz = 0;
-			} else if (zzz==0) {
-				zzz = 1;
-				printf("SPU waiting... %llx,%llx\n", written, read);
+//				printf("Processed FIFO from %llx to %llx "
+//					"(ends %llx)\n", read,new_read,written);
+//				zzz = 0;
+//			} else if (zzz==0) {
+//				zzz = 1;
+//				printf("SPU waiting... %llx,%llx\n", written, read);
 			}
 		}
 
