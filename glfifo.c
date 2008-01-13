@@ -20,11 +20,8 @@ extern BitmapImage _flipScreen(void);
 static DriverContext ctx = NULL;
 static BitmapImage screen = NULL;
 
-GL_API void GL_APIENTRY glspuSetup(void)
+static void updateScreenPointer(void) 
 {
-	ctx = _init_3d_driver(1);
-	screen = _getScreen();
-
 	FIFO_PROLOGUE(ctx,10);
 	BEGIN_RING(SPU_COMMAND_SCREEN_INFO,1);
 	OUT_RINGea(screen->address);
@@ -32,6 +29,13 @@ GL_API void GL_APIENTRY glspuSetup(void)
 	OUT_RING(screen->height);
 	OUT_RING(screen->bytes_per_line);
 	FIFO_EPILOGUE();
+}
+
+GL_API void GL_APIENTRY glspuSetup(void)
+{
+	ctx = _init_3d_driver(1);
+	screen = _getScreen();
+	updateScreenPointer();
 }
 
 GL_API void GL_APIENTRY glspuDestroy(void)
@@ -45,11 +49,12 @@ GL_API void GL_APIENTRY glspuDestroy(void)
 GL_API void GL_APIENTRY glspuFlip(void)
 {
 	screen = _flipScreen();
+	updateScreenPointer();
 }
 
 GL_API void GL_APIENTRY glspuWait(void)
 {
-	screen = _waitScreen();
+	_waitScreen();
 }
 
 GL_API void GL_APIENTRY glFlush()

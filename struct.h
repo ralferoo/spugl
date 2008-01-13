@@ -24,7 +24,7 @@ typedef struct {
 } float4;
 
 typedef struct {
-	float4 v;
+	float4 coords;
 	float4 colour;
 } vertex_state;
 

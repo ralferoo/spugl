@@ -28,6 +28,7 @@ int main(int argc, char* argv[]) {
 		glFlush();
 		glspuFlip();
 		glspuWait();
+//		sleep(1);
 	}
 	usleep(250000);
 	glspuDestroy();

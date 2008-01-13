@@ -41,7 +41,7 @@ extern SPU_CONTROL control;
 	return from;
 }
 	
-static _bitmap_image screen = { .address = 0};
+_bitmap_image screen = { .address = 0};
 
 /*4*/void* impScreenInfo(u32* from) {
 	u64 ea;
@@ -177,8 +177,13 @@ static void imp_vertex(float4 in)
 	float recip = 1.0/p.w;
 	float4 s = {.x=p.x*recip, .y = p.y*recip, .z = p.z*recip, .w = recip};
 
-	vertex_state v = current_state;
-	v.v = s;
+	float4 c= current_state.colour;
+	float4 col = {.x=c.x*recip, .y = c.y*recip, .z = c.z*recip, .w = c.w*recip};
+	vertex_state v = {
+		.coords = s,
+		.colour = col,
+	};
+	v.coords = s;
 	imp_vertex_state(v);
 }
 	

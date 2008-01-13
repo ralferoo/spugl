@@ -21,7 +21,7 @@ SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS
 SPUCCFLAGS = -O6 -I.
 
 GENSOURCES = decode.c
-SPU_OBJS = spufifo.spe.o decode.spe.o primitives.spe.o
+SPU_OBJS = spufifo.spe.o decode.spe.o primitives.spe.o triangleColourSpan.spe.o
 PPU_OBJS = ppufifo.o glfifo.o framebuffer.o
 
 SPU_HNDL = spu_3d.handle.o
@@ -124,7 +124,7 @@ glfifo.o: /usr/include/bits/wchar.h /usr/include/gconv.h
 glfifo.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 glfifo.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
 glfifo.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
-glfifo.o: fifo.h types.h gen_spu_command_defs.h ./GLES/gl.h
+glfifo.o: fifo.h types.h gen_spu_command_defs.h struct.h ./GLES/gl.h
 glfifo.o: ./GLES/glplatform.h
 framebuffer.o: /usr/include/fcntl.h /usr/include/features.h
 framebuffer.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
@@ -201,3 +201,7 @@ primitives.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 primitives.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 primitives.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h
 primitives.spe.o: types.h gen_spu_command_defs.h struct.h
+triangleColourSpan.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
+triangleColourSpan.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+triangleColourSpan.spe.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
+triangleColourSpan.spe.o: struct.h types.h

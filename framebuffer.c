@@ -228,6 +228,7 @@ BitmapImage _getScreen(void)
 
 BitmapImage _flipScreen(void)
 {
+	Screen_flip(&_screen);
 	_screen.image.address = _MAKE_EA(_screen.current) +
 	    4*(_screen.res.xres * _screen.res.xoff + _screen.res.yoff);
 	return &(_screen.image);
