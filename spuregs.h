@@ -24,7 +24,29 @@
 #define __spuregs_h
 
 #ifdef SPU_REGS
+#include <spu_intrinsics.h>
 register u32 ___foo asm ("80");
+
+// current triangle transformation state
+// -------------------------------------
+//
+// note this is used internally in the vertex transformation, the fragment
+// shader and is updated by imp_vertex.
+register vec_uchar16	TRIorder	asm ("100"); // shufb mask to get ABC-
+
+register vec_float4	TRIx		asm ("101"); // the normalised screen
+register vec_float4	TRIy		asm ("102"); // coordinates
+register vec_float4	TRIz		asm ("103"); // depth buffer value
+register vec_float4	TRIw		asm ("104"); // 1/z recip
+
+register vec_float4	TRIr		asm ("105"); // primary colour
+register vec_float4	TRIg		asm ("106");
+register vec_float4	TRIb		asm ("107");
+register vec_float4	TRIa		asm ("108");
+
+register vec_float4	TRIu		asm ("109"); // primary tex coords
+register vec_float4	TRIv		asm ("110");
+
 #endif
 
 #endif // __spuregs_h
