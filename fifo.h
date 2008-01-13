@@ -21,6 +21,9 @@ typedef void* DriverContext;
 #define __SPUMEM_ALIGNED__ __attribute__((aligned(16)))
 #define __CACHE_ALIGNED__ __attribute__((aligned(128)))
 
+#define BYTE_ALIGNMENT 127
+#define PIXEL_ALIGNMENT (BYTE_ALIGNMENT>>2)
+
 #include "gen_spu_command_defs.h"
 
 //////////////////////////////////////////////////////////////////////////////

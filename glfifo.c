@@ -52,6 +52,13 @@ GLAPI void GLAPIENTRY glspuFlip(void)
 	updateScreenPointer();
 }
 
+GLAPI void GLAPIENTRY glspuClear(void)
+{
+	FIFO_PROLOGUE(ctx,10);
+	BEGIN_RING(SPU_COMMAND_CLEAR_SCREEN,1);
+	FIFO_EPILOGUE();
+}
+
 GLAPI void GLAPIENTRY glspuWait(void)
 {
 	_waitScreen();

@@ -38,9 +38,6 @@ typedef void TRIANGLE_SPAN_FUNCTION
 
 extern TRIANGLE_SPAN_FUNCTION triangleSpan;
 
-#define BYTE_ALIGNMENT 127
-#define PIXEL_ALIGNMENT (BYTE_ALIGNMENT>>2)
-
 void imp_triangle(vertex_state a, vertex_state b, vertex_state c)
 {
 	printf("tri\t");

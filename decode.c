@@ -55,6 +55,21 @@ _bitmap_image screen = { .address = 0};
 	return from;
 }
 	
+/*5*/void* impClearScreen(u32* from) {
+	void* lb = malloc( (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT) + BYTE_ALIGNMENT);
+	u32* p = lb;
+	int i;
+	for (i=0; i<screen.width; i++)
+		p[i] = 0;
+	for (i=0; i<screen.height; i++) {
+		u64 addr = screen.address + screen.bytes_per_line*i;
+		mfc_putf(lb, addr, (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT), 0, 0, 0);
+		mfc_write_tag_mask(1);
+		mfc_read_tag_status_any();
+	}
+	return from;
+}
+	
 #define STATE_NONE 0x16375923
 static u32 begin_end_state = STATE_NONE;
 static u32 vertex_count = 0;

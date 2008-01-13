@@ -16,6 +16,7 @@ int main(int argc, char* argv[]) {
 	glspuSetup();
 	int z;
 	for (z=-50; z>-100; z--) {
+		glspuClear();
 		glBegin(GL_QUADS);
 		glColor3f(1.0, 0.5, 0.25);
 		glVertex3f(-100.0f, 100.0f, -50.0f+z);
