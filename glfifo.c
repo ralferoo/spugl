@@ -11,7 +11,7 @@
 
 #include "fifo.h"
 #include "struct.h"
-#include <GLES/gl.h>
+#include <GL/gl.h>
 
 extern BitmapImage _getScreen(void);
 extern void _closeScreen(void);
@@ -31,14 +31,14 @@ static void updateScreenPointer(void)
 	FIFO_EPILOGUE();
 }
 
-GL_API void GL_APIENTRY glspuSetup(void)
+GLAPI void GLAPIENTRY glspuSetup(void)
 {
 	ctx = _init_3d_driver(1);
 	screen = _getScreen();
 	updateScreenPointer();
 }
 
-GL_API void GL_APIENTRY glspuDestroy(void)
+GLAPI void GLAPIENTRY glspuDestroy(void)
 {
 	_exit_3d_driver(ctx);
 	_closeScreen();
@@ -46,23 +46,23 @@ GL_API void GL_APIENTRY glspuDestroy(void)
 	screen = NULL;
 }
 
-GL_API void GL_APIENTRY glspuFlip(void)
+GLAPI void GLAPIENTRY glspuFlip(void)
 {
 	screen = _flipScreen();
 	updateScreenPointer();
 }
 
-GL_API void GL_APIENTRY glspuWait(void)
+GLAPI void GLAPIENTRY glspuWait(void)
 {
 	_waitScreen();
 }
 
-GL_API void GL_APIENTRY glFlush()
+GLAPI void GLAPIENTRY glFlush()
 {
 	_flush_3d_driver(ctx);
 }
 
-GL_API void GL_APIENTRY glBegin(GLuint type)
+GLAPI void GLAPIENTRY glBegin(GLuint type)
 {
 	FIFO_PROLOGUE(ctx,10);
 	BEGIN_RING(SPU_COMMAND_GL_BEGIN,1);
@@ -70,14 +70,14 @@ GL_API void GL_APIENTRY glBegin(GLuint type)
 	FIFO_EPILOGUE();
 }
 
-GL_API void GL_APIENTRY glEnd()
+GLAPI void GLAPIENTRY glEnd()
 {
 	FIFO_PROLOGUE(ctx,10);
 	BEGIN_RING(SPU_COMMAND_GL_END,1);
 	FIFO_EPILOGUE();
 }
 
-GL_API void GL_APIENTRY glVertex3f (GLfloat x, GLfloat y, GLfloat z)
+GLAPI void GLAPIENTRY glVertex3f (GLfloat x, GLfloat y, GLfloat z)
 {
 	FIFO_PROLOGUE(ctx,10);
 	BEGIN_RING(SPU_COMMAND_GL_VERTEX3,3);
@@ -87,7 +87,7 @@ GL_API void GL_APIENTRY glVertex3f (GLfloat x, GLfloat y, GLfloat z)
 	FIFO_EPILOGUE();
 }
 
-GL_API void GL_APIENTRY glColor3f (GLfloat r, GLfloat g, GLfloat b)
+GLAPI void GLAPIENTRY glColor3f (GLfloat r, GLfloat g, GLfloat b)
 {
 	FIFO_PROLOGUE(ctx,10);
 	BEGIN_RING(SPU_COMMAND_GL_COLOR3,3);
@@ -97,7 +97,7 @@ GL_API void GL_APIENTRY glColor3f (GLfloat r, GLfloat g, GLfloat b)
 	FIFO_EPILOGUE();
 }
 
-GL_API void GL_APIENTRY glColor4f (GLfloat r, GLfloat g, GLfloat b, GLfloat a)
+GLAPI void GLAPIENTRY glColor4f (GLfloat r, GLfloat g, GLfloat b, GLfloat a)
 {
 	FIFO_PROLOGUE(ctx,10);
 	BEGIN_RING(SPU_COMMAND_GL_COLOR4,3);
@@ -108,7 +108,7 @@ GL_API void GL_APIENTRY glColor4f (GLfloat r, GLfloat g, GLfloat b, GLfloat a)
 	FIFO_EPILOGUE();
 }
 
-GL_API void GL_APIENTRY glColor3ub (GLubyte r, GLubyte g, GLubyte b)
+GLAPI void GLAPIENTRY glColor3ub (GLubyte r, GLubyte g, GLubyte b)
 {
 	FIFO_PROLOGUE(ctx,10);
 	BEGIN_RING(SPU_COMMAND_GL_COLOR3,3);
@@ -118,7 +118,7 @@ GL_API void GL_APIENTRY glColor3ub (GLubyte r, GLubyte g, GLubyte b)
 	FIFO_EPILOGUE();
 }
 
-GL_API void GL_APIENTRY glColor4ub (GLubyte r, GLubyte g, GLubyte b, GLubyte a)
+GLAPI void GLAPIENTRY glColor4ub (GLubyte r, GLubyte g, GLubyte b, GLubyte a)
 {
 	FIFO_PROLOGUE(ctx,10);
 	BEGIN_RING(SPU_COMMAND_GL_COLOR4,3);
