@@ -37,6 +37,16 @@ int faces[6][7] = {
 int main(int argc, char* argv[]) {
 	glspuSetup();
 
+	printf("Calibrating SPU speed...\n");
+	unsigned long start = glspuCounter();
+	sleep(1);
+//	unsigned long one = glspuCounter();
+//	sleep(1);
+	unsigned long two = glspuCounter();
+	float onesec = (two-start); // /2;
+//	printf("Time taken: %d, %d: avg %f\n", one-start, two-one, onesec);
+	printf("Time taken: %f\n", onesec);
+
 	float a=0.0,b=0.0,c=0.0;
 
 	int f,v;
@@ -57,6 +67,7 @@ int main(int argc, char* argv[]) {
 		float x,y,z,t;
 
 		glspuClear();
+	start = glspuCounter();
 		glBegin(GL_QUADS);
 		for (f=0; f<6; f++) {
 			for (v=0; v<4; v++) {
@@ -91,10 +102,19 @@ int main(int argc, char* argv[]) {
 		glEnd();	
 		glFlush();
 		glspuFlip();
+	two = glspuCounter();
 		glspuWait();
 		GLenum error = glGetError();
 		if (error)
 			printf("glGetError() returned %d\n", error);
+
+		printf("Idle %d; currently using %3.3f%% SPU capacity\r",
+			(two-start), (onesec-(two-start))*100.0/onesec);
+
+//printf("clear %2.3fs %3.0f%%, draw %2.3fs %3.0f%%, idle %2.3fs %3.0f%%\r",
+//			(one-start)/onesec, (one-start)/(total-start),
+//			(two-one)/onesec, (one-start)/(total-start),
+//			(total-two)/onesec, (one-start)/(total-start) );
 	}
 	usleep(250000);
 	glspuDestroy();

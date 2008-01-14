@@ -25,6 +25,11 @@ GLAPI GLenum GLAPIENTRY glGetError(void)
 	return _3d_error(ctx);
 }
 
+GLAPI unsigned long GLAPIENTRY glspuCounter(void)
+{
+	return _3d_idle_count(ctx);
+}
+
 static void updateScreenPointer(void) 
 {
 	FIFO_PROLOGUE(ctx,10);
