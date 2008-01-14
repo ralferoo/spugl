@@ -12,21 +12,74 @@
 #include <GL/gl.h>
 #include <GL/glspu.h>
 
+float vertices[][3] = {
+	{ -100, -100, -100},
+	{  100, -100, -100},
+	{ -100,  100, -100},
+	{  100,  100, -100},
+	{ -100, -100,  100},
+	{  100, -100,  100},
+	{ -100,  100,  100},
+	{  100,  100,  100},
+};
+
+int faces[6][7] = {
+	{ 4,5,7,6, 0,192,192},
+	{ 1,0,2,3, 0,192,64},
+
+	{ 0,4,6,2, 192,64,0},
+	{ 5,1,3,7, 192,192,0},
+
+	{ 5,4,0,1, 64,0,192},
+	{ 3,2,6,7, 192,0,192},
+};
+
 int main(int argc, char* argv[]) {
 	glspuSetup();
-	int y,z;
-	for (y=1; y<100; y++)
-	for (z=250; z>-300; z-=5) {
-//		printf("z=%d\n", z);
+
+	float a=0.0,b=0.0,c=0.0;
+
+	int f,v;
+	for (;;) {
+		a += 0.011;
+		b += 0.037;
+		c += 0.017;
+
+		float sa = sin(a);
+		float ca = cos(a);
+
+		float sb = sin(b);
+		float cb = cos(b);
+
+		float sc = sin(c);
+		float cc = cos(c);
+
+		float x,y,z,t;
+
 		glspuClear();
 		glBegin(GL_QUADS);
-//		glColor3ub(127, 15, 192);
-		glVertex3f(-100.0f, 100.0f, -50.0f+z);
-		glColor3f(1.0, 0.0, 0.25);
-		glVertex3f(-100.0f,-100.0f, -50.0f+z);
-		glVertex3f( 100.0f,-100.0f,  50.0f+z);
-		glColor3f(0.0, 1.0, 0.25);
-		glVertex3f( 100.0f, 100.0f,  50.0f+z);
+		for (f=0; f<6; f++) {
+			glColor3ub(faces[f][4], faces[f][5], faces[f][6]);
+			for (v=0; v<4; v++) {
+				x = vertices[faces[f][v]][0];
+				y = vertices[faces[f][v]][1];
+				z = vertices[faces[f][v]][2];
+
+				t = ca*x+sa*y;
+				y = ca*y-sa*x;
+				x = t;
+
+				t = cb*y+sb*z;
+				z = cb*z-sb*y;
+				y = t;
+				
+				t = cc*x+sc*z;
+				z = cc*z-sc*x;
+				x = t;
+
+				glVertex3f(x,y,z);
+			}
+		}
 		glEnd();	
 		glFlush();
 		glspuFlip();

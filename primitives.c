@@ -105,7 +105,7 @@ void imp_triangle()
 
 	if (a.coords.x * bcy + b.coords.x * cay + c.coords.x * aby > 0) {
 		// z is negative, so +ve means counter-clockwise and so not vis
-		printf("Back-facing triangle...\n");
+//		printf("Back-facing triangle...\n");
 		return;
 	}
 
