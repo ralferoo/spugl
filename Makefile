@@ -49,21 +49,25 @@ gen_spu_command_exts.h: .gen
 gen_spu_command_table.h: .gen
 .gen: $(GENSOURCES) importdefs.pl
 	perl importdefs.pl $(GENSOURCES)
-	touch .gen
+	@touch .gen
 
 ###############################################################################
 #
 # useful targets
 
-depend:
+depend: .gen
+	@echo checking dependencies
 	@makedepend -I/usr/include/python2.4/ -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(PPU_SRCS) -DUSERLAND_$(USERLAND)_BITS
 	@makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.0 $(SPU_SRCS) -DUSERLAND_$(USERLAND)_BITS
+	@rm -f Makefile.bak
 	@for i in $(SPU_OBJS) ; do grep $$i:.*spuregs.h Makefile >/dev/null || (echo ERROR: $$i does not refer to spuregs.h && false) ; done
 
 clean:
 	rm -f *.o
 	rm -f *.spe *.0
 	rm -rf build dist
+	rm -f .gen
+# gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h
 
 ###############################################################################
 #
