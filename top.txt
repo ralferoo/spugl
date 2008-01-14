@@ -1,0 +1,16 @@
+It's kind of hard to believe this is a ps3 running my spinning cube demo... ;)
+
+P.S. check the load average...
+
+Ralf.
+
+top - 00:37:07 up  2:21,  2 users,  load average: 0.01, 0.03, 0.00
+Tasks:  55 total,   1 running,  54 sleeping,   0 stopped,   0 zombie
+Cpu(s):  0.2%us,  0.3%sy,  0.0%ni, 99.2%id,  0.0%wa,  0.3%hi,  0.0%si,  0.0%st
+Mem:    218712k total,   117236k used,   101476k free,    12900k buffers
+Swap:   488440k total,        0k used,   488440k free,    68252k cached
+
+  PID USER      PR  NI  VIRT  RES  SHR S %CPU %MEM    TIME+  COMMAND           
+ 5298 root      20   0 19988 1328 1176 S    1  0.6   0:00.73 test               
+ 5306 root      20   0  2984 1304 1060 R    1  0.6   0:00.06 top                
+    1 root      20   0  3060 1984  660 S    0  0.9   0:01.82 init          
