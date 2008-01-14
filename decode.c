@@ -70,32 +70,7 @@ _bitmap_image screen = { .address = 0};
 	return from;
 }
 	
-#define SEL_A0 0,1,2,3,
-#define SEL_A1 4,5,6,7,
-#define SEL_A2 8,9,10,11,
-#define SEL_A3 12,13,14,15,
-#define SEL_B0 16,17,18,19,
-#define SEL_B1 20,21,22,23,
-#define SEL_B2 24,25,26,27,
-#define SEL_B3 28,29,30,31,
-
-/* A3 is preserved as the initial state if we need to loop */
-static vec_uchar16 shuffles[] = {
-{ SEL_B0 SEL_B0 SEL_B0 SEL_B0 }, /* 0 = fill all elements with new */
-{ SEL_A1 SEL_B0 SEL_B0 SEL_A3 }, /* 1 = add line vertex */
-{ SEL_A1 SEL_A3 SEL_B0 SEL_A3 }, /* 2 = line loop finished */
-{ SEL_A1 SEL_A2 SEL_B0 SEL_A3 }, /* 3 = add triangle vertex */
-{ SEL_A2 SEL_A1 SEL_B0 SEL_A3 }, /* 4 = add triangle strip vertex 4th */
-{ SEL_A0 SEL_A2 SEL_B0 SEL_A3 }, /* 5 = add triangle fan vertex 4th */
-{ SEL_A1 SEL_A2 SEL_A3 SEL_B0 }, /* 6 = add quad vertex */
-{ SEL_A0 SEL_A2 SEL_B0 SEL_A3 }, /* 7 = add polygon vertex */
-{ SEL_A0 SEL_A1 SEL_A3 SEL_A3 }, /* 8 = polygon vertex finished */
-
-{ SEL_A0 SEL_A1 SEL_A2 SEL_A3 }, /* 9 = polygon finished */
-{ SEL_A0 SEL_A2 SEL_A3 SEL_A3 }, /* 10 = quad finished */
-{ SEL_A2 SEL_A1 SEL_A3 SEL_A3 }, /* 11 = quad strip finished */
-};
-
+static int current_state = -1;
 static struct {
 	unsigned char next;
 	unsigned char insert;
@@ -173,7 +148,36 @@ static struct {
 	{ .insert = 7, .next = 29, .add = 2, .end = 8 },
 };
 
-static int current_state = -1;
+#define SEL_A0 0,1,2,3,
+#define SEL_A1 4,5,6,7,
+#define SEL_A2 8,9,10,11,
+#define SEL_A3 12,13,14,15,
+#define SEL_B0 16,17,18,19,
+#define SEL_B1 20,21,22,23,
+#define SEL_B2 24,25,26,27,
+#define SEL_B3 28,29,30,31,
+
+static vec_uchar16 shuffles[] = {
+{ SEL_B0 SEL_B0 SEL_B0 SEL_B0 }, /* 0 = fill all elements with new */
+{ SEL_A1 SEL_B0 SEL_B0 SEL_A3 }, /* 1 = add line vertex */
+{ SEL_A1 SEL_A3 SEL_B0 SEL_A3 }, /* 2 = line loop finished */
+{ SEL_A1 SEL_A2 SEL_B0 SEL_A3 }, /* 3 = add triangle vertex */
+{ SEL_A2 SEL_A1 SEL_B0 SEL_A3 }, /* 4 = add triangle strip vertex 4th */
+{ SEL_A0 SEL_A2 SEL_B0 SEL_A3 }, /* 5 = add triangle fan vertex 4th */
+{ SEL_A1 SEL_A2 SEL_A3 SEL_B0 }, /* 6 = add quad vertex */
+{ SEL_A0 SEL_A2 SEL_B0 SEL_A3 }, /* 7 = add polygon vertex */
+{ SEL_A0 SEL_A1 SEL_A3 SEL_A3 }, /* 8 = polygon vertex finished */
+
+{ SEL_A0 SEL_A1 SEL_A2 SEL_A3 }, /* 9 = polygon finished */
+{ SEL_A0 SEL_A2 SEL_A3 SEL_A3 }, /* 10 = quad finished */
+{ SEL_A2 SEL_A1 SEL_A3 SEL_A3 }, /* 11 = quad strip finished */
+};
+
+#define SHUFFLE_READ_POLY 9
+#define SHUFFLE_READ_QUAD 10
+#define SHUFFLE_READ_QUAD_STRIP 11
+
+/* A3 is preserved as the initial state if we need to loop */
 /*15*/void* imp_glBegin(u32* from) {
 	u32 state = *from++;
 	if (current_state >= 0) {
@@ -211,10 +215,40 @@ static int current_state = -1;
 }
 
 static float4 current_colour = {.x=1.0,.y=1.0,.z=1.0,.w=1.0};
+static void* imp_vertex(void* from, float4 in);
 
-extern void debug_state(char*s, int i);
-static void inline imp_update_vertex(float4 in, vec_uchar16 inserter)
+/*17*/void* imp_glVertex2(float* from) {
+	float4 a = {.x=from[0],.y=from[1],.z=0.0f,.w=1.0f};
+	return imp_vertex(&from[2], a);
+}
+	
+/*18*/void* imp_glVertex3(float* from) {
+	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=1.0f};
+	return imp_vertex(&from[3], a);
+}
+	
+/*19*/void* imp_glVertex4(float* from) {
+	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=from[3]};
+	return imp_vertex(&from[4], a);
+}
+
+static void* imp_vertex(void* from, float4 in)
 {
+	if (current_state < 0 ||
+		  current_state >= sizeof(shuffle_map)/sizeof(shuffle_map[0])) {
+		raise_error(ERROR_VERTEX_INVALID_STATE);
+		return from;
+	}
+
+	int ins = shuffle_map[current_state].insert;
+	if (ins >= sizeof(shuffles)/sizeof(shuffles[0])) {
+		raise_error(ERROR_VERTEX_INVALID_SHUFFLE);
+		return from;
+	}
+	vec_uchar16 inserter = shuffles[ins];
+
+//////////////////////////////////////////////////////////////////////////
+
 	// just for testing, have hard-coded persective and screen
 	// transformations here. they'll probably live here anyway, just
 	// done with matrices.
@@ -241,27 +275,11 @@ static void inline imp_update_vertex(float4 in, vec_uchar16 inserter)
 	TRIa = spu_shuffle(TRIa, (vec_float4) col.w, inserter);
 //	TRIu = spu_shuffle(TRIu, (vec_float4) in.u, inserter);
 //	TRIv = spu_shuffle(TRIv, (vec_float4) in.v, inserter);
-}
 
-static void* imp_vertex(void* from, float4 in)
-{
-	if (current_state < 0 ||
-		  current_state >= sizeof(shuffle_map)/sizeof(shuffle_map[0])) {
-		raise_error(ERROR_VERTEX_INVALID_STATE);
-		return from;
-	}
-
-	int ins = shuffle_map[current_state].insert;
-	if (ins >= sizeof(shuffles)/sizeof(shuffles[0])) {
-		raise_error(ERROR_VERTEX_INVALID_SHUFFLE);
-		return from;
-	}
-	vec_uchar16 inserter = shuffles[ins];
-
-	imp_update_vertex(in, inserter);
+//////////////////////////////////////////////////////////////////////////
 
 	// check to see if we need to draw
-	TRIorder = shuffles[9];
+	TRIorder = shuffles[SHUFFLE_READ_POLY ];
 	switch (shuffle_map[current_state].add) {
 		case 1:
 			imp_line();
@@ -271,12 +289,12 @@ static void* imp_vertex(void* from, float4 in)
 			break;
 		case 3:
 			imp_triangle();
-			TRIorder = shuffles[10];
+			TRIorder = shuffles[SHUFFLE_READ_QUAD];
 			imp_triangle();
 			break;
 		case 4:
 			imp_triangle();
-			TRIorder = shuffles[11];
+			TRIorder = shuffles[SHUFFLE_READ_QUAD_STRIP];
 			imp_triangle();
 			break;
 	}
@@ -285,21 +303,6 @@ static void* imp_vertex(void* from, float4 in)
 	return from;
 }
 	
-/*17*/void* imp_glVertex2(float* from) {
-	float4 a = {.x=from[0],.y=from[1],.z=0.0f,.w=1.0f};
-	return imp_vertex(&from[2], a);
-}
-	
-/*18*/void* imp_glVertex3(float* from) {
-	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=1.0f};
-	return imp_vertex(&from[3], a);
-}
-	
-/*19*/void* imp_glVertex4(float* from) {
-	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=from[3]};
-	return imp_vertex(&from[4], a);
-}
-
 /*20*/void* imp_glColor3(float* col) {
 	float4 a = {.x=col[0],.y=col[1],.z=col[2],.w=1.0f};
 	current_colour = a;
