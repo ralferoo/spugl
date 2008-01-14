@@ -13,14 +13,14 @@
 #include <GL/glspu.h>
 
 float vertices[][6] = {
-	{ -100, -100, -100,	0,0,0},
-	{  100, -100, -100,	0,0,127},
-	{ -100,  100, -100,	0,127,0},
-	{  100,  100, -100,	0,127,127},
-	{ -100, -100,  100,	127,0,127},
-	{  100, -100,  100,	127,127,0},
-	{ -100,  100,  100,	127,127,127},
-	{  100,  100,  100,	127,0,0},
+	{ -100, -100, -100,	0,127,0},
+	{  100, -100, -100,	187,107,33},
+	{ -100,  100, -100,	127,0,127},
+	{  100,  100, -100,	27,64,96},
+	{ -100, -100,  100,	30,90,199},
+	{  100, -100,  100,	0,127,155},
+	{ -100,  100,  100,	64,255,127},
+	{  100,  100,  100,	127,42,0},
 };
 
 int faces[6][7] = {
@@ -60,9 +60,15 @@ int main(int argc, char* argv[]) {
 		glBegin(GL_QUADS);
 		for (f=0; f<6; f++) {
 			for (v=0; v<4; v++) {
-				glColor3ub(faces[f][4]+vertices[faces[f][v]][4],
-					   faces[f][5]+vertices[faces[f][v]][5],
-					   faces[f][6]+vertices[faces[f][v]][3]);
+			    if (0)
+				glColor3ub(faces[f][4],
+					   faces[f][5],
+					   faces[f][6]);
+			    else
+				glColor3ub(vertices[faces[f][v]][4],
+					   vertices[faces[f][v]][5],
+					   vertices[faces[f][v]][3]);
+
 				x = vertices[faces[f][v]][0];
 				y = vertices[faces[f][v]][1];
 				z = vertices[faces[f][v]][2];
