@@ -47,6 +47,21 @@ register vec_float4	TRIa		asm ("108");
 register vec_float4	TRIu		asm ("109"); // primary tex coords
 register vec_float4	TRIv		asm ("110");
 
+#define SEL_A0 0,1,2,3,
+#define SEL_A1 4,5,6,7,
+#define SEL_A2 8,9,10,11,
+#define SEL_A3 12,13,14,15,
+#define SEL_B0 16,17,18,19,
+#define SEL_B1 20,21,22,23,
+#define SEL_B2 24,25,26,27,
+#define SEL_B3 28,29,30,31,
+#define SEL_00 0x80,0x80,0x80,0x80,
+#define SEL_FF 0xC0,0xC0,0xC0,0xC0,
+#define SEL_80 0xE0,0xE0,0xE0,0xE0,
+
+extern vec_uchar16 shuffle_tri_cw;
+extern vec_uchar16 shuffle_tri_ccw;
+
 #endif
 
 #endif // __spuregs_h

@@ -148,34 +148,28 @@ static struct {
 	{ .insert = 7, .next = 29, .add = 2, .end = 8 },
 };
 
-#define SEL_A0 0,1,2,3,
-#define SEL_A1 4,5,6,7,
-#define SEL_A2 8,9,10,11,
-#define SEL_A3 12,13,14,15,
-#define SEL_B0 16,17,18,19,
-#define SEL_B1 20,21,22,23,
-#define SEL_B2 24,25,26,27,
-#define SEL_B3 28,29,30,31,
-
 static vec_uchar16 shuffles[] = {
 { SEL_B0 SEL_B0 SEL_B0 SEL_B0 }, /* 0 = fill all elements with new */
 { SEL_A1 SEL_B0 SEL_B0 SEL_A3 }, /* 1 = add line vertex */
-{ SEL_A1 SEL_A3 SEL_B0 SEL_A3 }, /* 2 = line loop finished */
+{ SEL_A1 SEL_A3 SEL_00 SEL_00 }, /* 2 = END line loop finished */
 { SEL_A1 SEL_A2 SEL_B0 SEL_A3 }, /* 3 = add triangle vertex */
 { SEL_A2 SEL_A1 SEL_B0 SEL_A3 }, /* 4 = add triangle strip vertex 4th */
 { SEL_A0 SEL_A2 SEL_B0 SEL_A3 }, /* 5 = add triangle fan vertex 4th */
 { SEL_A1 SEL_A2 SEL_A3 SEL_B0 }, /* 6 = add quad vertex */
 { SEL_A0 SEL_A2 SEL_B0 SEL_A3 }, /* 7 = add polygon vertex */
-{ SEL_A0 SEL_A1 SEL_A3 SEL_A3 }, /* 8 = polygon vertex finished */
 
-{ SEL_A0 SEL_A1 SEL_A2 SEL_A3 }, /* 9 = polygon finished */
-{ SEL_A0 SEL_A2 SEL_A3 SEL_A3 }, /* 10 = quad finished */
-{ SEL_A2 SEL_A1 SEL_A3 SEL_A3 }, /* 11 = quad strip finished */
+{ SEL_A0 SEL_A1 SEL_A3 SEL_00 }, /* 8 = END polygon vertex finished */
+
+#define SHUFFLE_READ_TRI 9
+{ SEL_A0 SEL_A1 SEL_A2 SEL_00 }, /* 9 = END triangle finished */
+
+#define SHUFFLE_READ_TRI2_QUAD 10
+{ SEL_A0 SEL_A2 SEL_A3 SEL_00 }, /* 10 = END quad finished */
+
+#define SHUFFLE_READ_TRI2_QUAD_STRIP 11
+{ SEL_A2 SEL_A1 SEL_A3 SEL_00 }, /* 11 = END quad strip finished */
 };
 
-#define SHUFFLE_READ_POLY 9
-#define SHUFFLE_READ_QUAD 10
-#define SHUFFLE_READ_QUAD_STRIP 11
 
 /* A3 is preserved as the initial state if we need to loop */
 /*15*/void* imp_glBegin(u32* from) {
@@ -202,9 +196,11 @@ static vec_uchar16 shuffles[] = {
 			TRIorder = shuffles[end];
 			switch (shuffle_map[current_state].add) {
 				case 1:
+					TRIorder = shuffles[SHUFFLE_READ_TRI];
 					imp_line();
 					break;
 				case 2:
+					TRIorder = shuffles[SHUFFLE_READ_TRI];
 					imp_triangle();
 					break;
 			}
@@ -279,22 +275,25 @@ static void* imp_vertex(void* from, float4 in)
 //////////////////////////////////////////////////////////////////////////
 
 	// check to see if we need to draw
-	TRIorder = shuffles[SHUFFLE_READ_POLY ];
 	switch (shuffle_map[current_state].add) {
 		case 1:
+			TRIorder = shuffles[SHUFFLE_READ_TRI];
 			imp_line();
 			break;
 		case 2:
+			TRIorder = shuffles[SHUFFLE_READ_TRI];
 			imp_triangle();
 			break;
 		case 3:
+			TRIorder = shuffles[SHUFFLE_READ_TRI];
 			imp_triangle();
-			TRIorder = shuffles[SHUFFLE_READ_QUAD];
+			TRIorder = shuffles[SHUFFLE_READ_TRI2_QUAD];
 			imp_triangle();
 			break;
 		case 4:
+			TRIorder = shuffles[SHUFFLE_READ_TRI];
 			imp_triangle();
-			TRIorder = shuffles[SHUFFLE_READ_QUAD_STRIP];
+			TRIorder = shuffles[SHUFFLE_READ_TRI2_QUAD_STRIP];
 			imp_triangle();
 			break;
 	}
