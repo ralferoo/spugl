@@ -148,6 +148,7 @@ static struct {
 	{ .insert = 7, .next = 29, .add = 2, .end = 8 },
 };
 
+/* A3 is preserved as the initial state if we need to loop */
 static vec_uchar16 shuffles[] = {
 { SEL_B0 SEL_B0 SEL_B0 SEL_B0 }, /* 0 = fill all elements with new */
 { SEL_A1 SEL_B0 SEL_B0 SEL_A3 }, /* 1 = add line vertex */
@@ -170,8 +171,11 @@ static vec_uchar16 shuffles[] = {
 { SEL_A2 SEL_A1 SEL_A3 SEL_00 }, /* 11 = END quad strip finished */
 };
 
+// thinking about this some more...
+// these could be organised so that we ensure that triangles are always
+// in A0 A1 A2 order and we can scrap quads entirely if we're only implementing
+// GLES...
 
-/* A3 is preserved as the initial state if we need to loop */
 /*15*/void* imp_glBegin(u32* from) {
 	u32 state = *from++;
 	if (current_state >= 0) {
