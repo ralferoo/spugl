@@ -13,33 +13,8 @@
 
 #include <GL/gl.h>
 
-extern SPU_CONTROL control;
+void imp_close_segment();
 
-/*0*/void* imp_nop(void* p) {
-	return p;
-}
-
-/*1*/void* imp_jump(u32* from) {
-	u64 ea;
-	__READ_EA(from)
-	control.fifo_read = ea;
-	return 0;
-}
-
-/*2*/void* impAddChild(u32* from) {
-	u64 ea;
-	__READ_EA(from)
-	printf("add child %llx\n", ea);
-	return from;
-}
-
-/*3*/void* impDeleteChild(u32* from) {
-	u64 ea;
-	__READ_EA(from)
-	printf("delete child %llx\n", ea);
-	return from;
-}
-	
 extern _bitmap_image screen;
 
 #define ADD_LINE	1
@@ -185,50 +160,8 @@ void imp_close_segment()
 	}
 }
 	
-/*15*/void* imp_glBegin(u32* from) {
-	u32 state = *from++;
-	if (current_state >= 0) {
-		raise_error(ERROR_NESTED_GLBEGIN);
-	}
-	if (state < 0 ||
-		  state >= sizeof(shuffle_map)/sizeof(shuffle_map[0]) ||
-		  shuffle_map[state].insert != 0) {
-		raise_error(ERROR_GLBEGIN_INVALID_STATE);
-		return from;
-	}
-	current_state = state;
-	return from;
-}
-
-// if we're only support GLES, the onyl important case is lines and i think
-// they should be handled seperately anyway
-/*16*/void* imp_glEnd(u32* from) {
-	if (current_state < 0) {
-		raise_error(ERROR_GLEND_WITHOUT_GLBEGIN);
-	} else {
-		imp_close_segment();
-	}
-	current_state = -1;
-	return from;
-}
-
 static float4 current_colour = {.x=1.0,.y=1.0,.z=1.0,.w=1.0};
 static void* imp_vertex(void* from, float4 in);
-
-/*17*/void* imp_glVertex2(float* from) {
-	float4 a = {.x=from[0],.y=from[1],.z=0.0f,.w=1.0f};
-	return imp_vertex(&from[2], a);
-}
-	
-/*18*/void* imp_glVertex3(float* from) {
-	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=1.0f};
-	return imp_vertex(&from[3], a);
-}
-	
-/*19*/void* imp_glVertex4(float* from) {
-	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=from[3]};
-	return imp_vertex(&from[4], a);
-}
 
 static void* imp_vertex(void* from, float4 in)
 {
@@ -294,6 +227,77 @@ static void* imp_vertex(void* from, float4 in)
 	return from;
 }
 	
+//////////////////////////////////////////////////////////////////////////////
+
+extern SPU_CONTROL control;
+
+/*0*/void* imp_nop(void* p) {
+	return p;
+}
+
+/*1*/void* imp_jump(u32* from) {
+	u64 ea;
+	__READ_EA(from)
+	control.fifo_read = ea;
+	return 0;
+}
+
+/*2*/void* impAddChild(u32* from) {
+	u64 ea;
+	__READ_EA(from)
+	printf("add child %llx\n", ea);
+	return from;
+}
+
+/*3*/void* impDeleteChild(u32* from) {
+	u64 ea;
+	__READ_EA(from)
+	printf("delete child %llx\n", ea);
+	return from;
+}
+	
+/*15*/void* imp_glBegin(u32* from) {
+	u32 state = *from++;
+	if (current_state >= 0) {
+		raise_error(ERROR_NESTED_GLBEGIN);
+	}
+	if (state < 0 ||
+		  state >= sizeof(shuffle_map)/sizeof(shuffle_map[0]) ||
+		  shuffle_map[state].insert != 0) {
+		raise_error(ERROR_GLBEGIN_INVALID_STATE);
+		return from;
+	}
+	current_state = state;
+	return from;
+}
+
+// if we're only support GLES, the only important case is lines and i think
+// they should be handled seperately anyway
+/*16*/void* imp_glEnd(u32* from) {
+	if (current_state < 0) {
+		raise_error(ERROR_GLEND_WITHOUT_GLBEGIN);
+	} else {
+		imp_close_segment();
+	}
+	current_state = -1;
+	return from;
+}
+
+/*17*/void* imp_glVertex2(float* from) {
+	float4 a = {.x=from[0],.y=from[1],.z=0.0f,.w=1.0f};
+	return imp_vertex(&from[2], a);
+}
+	
+/*18*/void* imp_glVertex3(float* from) {
+	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=1.0f};
+	return imp_vertex(&from[3], a);
+}
+	
+/*19*/void* imp_glVertex4(float* from) {
+	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=from[3]};
+	return imp_vertex(&from[4], a);
+}
+
 /*20*/void* imp_glColor3(float* col) {
 	float4 a = {.x=col[0],.y=col[1],.z=col[2],.w=1.0f};
 	current_colour = a;
