@@ -175,6 +175,7 @@ static vec_uchar16 shuffles[] = {
 // these could be organised so that we ensure that triangles are always
 // in A0 A1 A2 order and we can scrap quads entirely if we're only implementing
 // GLES...
+// this in turn would remove a lot of the complicated stuff from imp_tri ;)
 
 /*15*/void* imp_glBegin(u32* from) {
 	u32 state = *from++;
