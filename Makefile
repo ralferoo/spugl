@@ -66,7 +66,7 @@ clean:
 	rm -f *.o
 	rm -f *.spe *.0
 	rm -rf build dist
-	rm -f .gen
+	rm -f .gen test
 # gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h
 
 ###############################################################################
