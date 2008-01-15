@@ -20,7 +20,7 @@ PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I.
 SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS
 SPUCCFLAGS = -O6 -I. -DSPU_REGS
 
-SPU_OBJS = spufifo.0 decode.0 primitives.0 triangleColourSpan.0 fragment.0
+SPU_OBJS = spufifo.0 decode.0 primitives.0 triangleColourSpan.0 fragment.0 shader.0
 PPU_OBJS = ppufifo.o glfifo.o framebuffer.o
 
 SPU_HNDL = spu_3d.handle.o
