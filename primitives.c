@@ -117,16 +117,9 @@ void imp_triangle()
 {
 	// TRIorder holds the select mask for triangle as is
 	// these two are select masks for clockwise and counter-clockwise
-	vec_uchar16 r_cw = spu_shuffle(TRIorder, TRIorder, shuffle_tri_cw);
-	vec_uchar16 r_ccw = spu_shuffle(TRIorder, TRIorder, shuffle_tri_ccw);
-
-	vec_float4 vx = spu_shuffle(TRIx, TRIx, TRIorder);
-	vec_float4 vx_cw = spu_shuffle(TRIx, TRIx, r_cw);
-	vec_float4 vx_ccw = spu_shuffle(TRIx, TRIx, r_ccw);
 
 	vec_float4 vy = spu_shuffle(TRIy, TRIy, TRIorder);
-	vec_float4 vy_cw = spu_shuffle(TRIy, TRIy, r_cw);
-	vec_float4 vy_ccw = spu_shuffle(TRIy, TRIy, r_ccw);
+	vec_float4 vy_cw = spu_shuffle(vy, vy, shuffle_tri_cw);
 
 	// all-ones if ay>by, by>cy, cy>ay, 0>0
 	vec_uint4 fcgt_y = spu_cmpgt(vy, vy_cw);
@@ -140,20 +133,28 @@ void imp_triangle()
 	vec_ushort8 q2 = (vec_ushort8)copy_as_is;
 	vec_uchar16 ns_mask = (vec_uchar16) spu_add(q1,q2);
 	//vec_uchar16 rep_ns_mask = spu_add(rep_swap_add,copy_as_is);
-	vec_uchar16 new_select = spu_shuffle(r_right_padded,TRIorder,ns_mask);
+	vec_uchar16 r_normal = spu_shuffle(r_right_padded,TRIorder,ns_mask);
 	
-	unsigned char left_flag = spu_extract(rep_swap_add,0); // & 0x20;
+	unsigned char left_flag = spu_extract(rep_swap_add,3); // & 0x20;
 
-int i;
-for (i=0; i<16; i++)
-	printf("%02x ",spu_extract(TRIorder,i));
-printf("\n");
-for (i=0; i<16; i++)
-	printf("%02x ",spu_extract(new_select,i));
-printf("\n\n");
+//	int i;
+//	for (i=0; i<16; i++)
+	//	printf("%02x ",spu_extract(TRIorder,i));
+//	printf("\n");
+//	for (i=0; i<16; i++)
+	//	printf("%02x ",spu_extract(r_normal,i));
+//	printf("\n\n");
 
-	// new new_select should be the mask containing a,b,c in height order
+	// new r_normal should be the mask containing a,b,c in height order
 	// and left_flag should be 0x20 if the bulge is on the left edge
+
+	vec_uchar16 r_cw = spu_shuffle(r_normal, r_normal, shuffle_tri_cw);
+	vec_uchar16 r_ccw = spu_shuffle(r_normal, r_normal, shuffle_tri_ccw);
+
+	vec_float4 vx = spu_shuffle(TRIx, TRIx, r_normal);
+	vec_float4 vx_cw = spu_shuffle(TRIx, TRIx, r_cw);
+	vec_float4 vx_ccw = spu_shuffle(TRIx, TRIx, r_ccw);
+	vec_float4 vy_ccw = spu_shuffle(TRIy, TRIy, r_ccw);
 
 	vec_float4 vx_cw_sub_vx = spu_sub(vx_cw, vx);
 	vec_float4 vx_ccw_sub_vx = spu_sub(vx_ccw, vx);
@@ -183,16 +184,16 @@ printf("\n\n");
 
 	
 
-	vec_float4 x_r = spu_shuffle(TRIy, TRIy, TRIorder);
-	vec_float4 y_r = spu_shuffle(TRIy, TRIy, TRIorder);
+	vec_float4 x_r = spu_shuffle(TRIy, TRIy, r_normal);
+	vec_float4 y_r = spu_shuffle(TRIy, TRIy, r_normal);
 
 //			spu_extract(spu_shuffle(TRIx, TRIx, sel), j),
 
 	TRIANGLE_SPAN_FUNCTION* func = triangleSpan;
 
-	vertex_state a = pull_compat(0, new_select);
-	vertex_state b = pull_compat(1, new_select);
-	vertex_state c = pull_compat(2, new_select);
+	vertex_state a = pull_compat(0, r_normal);
+	vertex_state b = pull_compat(1, r_normal);
+	vertex_state c = pull_compat(2, r_normal);
 
 	float abx = b.coords.x - a.coords.x;
 	float aby = b.coords.y - a.coords.y;
