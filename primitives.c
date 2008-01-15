@@ -317,7 +317,7 @@ void* imp_vertex(void* from, float4 in)
 	// transformations here. they'll probably live here anyway, just
 	// done with matrices.
 
-	float recip = 420.0 / (in.z-420.0);
+	float recip = 420.0f / (in.z-420.0f);
 	float4 s = {.x=in.x*recip+screen.width/2, .y = in.y*recip+screen.height/2, .z = in.z*recip, .w = recip};
 
 	float4 c= current_colour;
