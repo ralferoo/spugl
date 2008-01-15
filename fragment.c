@@ -16,6 +16,8 @@
 extern SPU_CONTROL control;
 _bitmap_image screen = { .address = 0};
 
+#define LOCAL_FRAGMENTS 40
+
 #define FRAGMENT_WIDTH 32
 #define FRAGMENT_HEIGHT 32
 #define FRAGMENT_SIZE (4*FRAGMENT_WIDTH*FRAGMENT_HEIGHT)
@@ -26,6 +28,8 @@ static struct {
 	u64 base_ea;
 	u32 buffer_length;
 	unsigned int num_fragments;
+	void* fragment_local_base = 0;
+	unsigned short id[LOCAL_FRAGMENTS] = {0};
 } frags;
 
 ///////////////////////////////////////////////////////////////////////////////
