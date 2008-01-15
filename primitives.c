@@ -78,6 +78,12 @@ static vec_uchar16 make_rhs_0 = {
 	0x00, 0x00, 0x00, 0x00,
 };
 
+vec_uchar16 shuffle_tri_right_padded = {
+	SEL_00 SEL_A0 SEL_A1 SEL_A2
+};
+vec_uchar16 shuffle_tri_normal = {
+	SEL_A0 SEL_A1 SEL_A2 SEL_00
+};
 vec_uchar16 shuffle_tri_cw = {
 	SEL_A1 SEL_A2 SEL_A0 SEL_00
 };
@@ -91,7 +97,9 @@ void imp_triangle()
 	// TRIorder holds the select mask for triangle as is
 	// these two are select masks for clockwise and counter-clockwise
 
-	vec_float4 t_vy = spu_shuffle(TRIy, TRIy, TRIorder);
+	//TRIorder = shuffle_tri_normal;
+
+	vec_float4 t_vy = spu_shuffle(TRIy, TRIy, shuffle_tri_normal);
 	vec_float4 t_vy_cw = spu_shuffle(t_vy, t_vy, shuffle_tri_cw);
 
 	// all-ones if ay>by, by>cy, cy>ay, 0>0
@@ -99,13 +107,14 @@ void imp_triangle()
 	u32 fcgt_bits = spu_extract(spu_gather(fcgt_y), 0);
 	//printf("fcgt_bits = %d\n", fcgt_bits);
 
-	vec_uchar16 r_right_padded = spu_rlqwbyte(TRIorder, -4);
+	vec_uchar16 r_right_padded = shuffle_tri_right_padded; // spu_rlqwbyte(TRIorder, -4);
 	vec_uchar16 swap_mask = spu_rlqwbyte(triangle_order_data, fcgt_bits);
 	vec_uchar16 rep_swap_add = spu_shuffle(swap_mask, swap_mask, copy_order_data);
 	vec_ushort8 q1 = (vec_ushort8)rep_swap_add;
 	vec_ushort8 q2 = (vec_ushort8)copy_as_is;
 	vec_uchar16 ns_mask = (vec_uchar16) spu_add(q1,q2);
-	vec_uchar16 r_normal = spu_shuffle(r_right_padded,TRIorder,ns_mask);
+	vec_uchar16 r_normal = spu_shuffle(r_right_padded,shuffle_tri_normal,ns_mask);
+	//vec_uchar16 r_normal = spu_shuffle(r_right_padded,TRIorder,ns_mask);
 	unsigned char left = spu_extract(rep_swap_add,3) & 0x20;
 
 	// new r_normal should be the mask containing a,b,c in height order

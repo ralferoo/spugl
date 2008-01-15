@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
 
 	float a=0.0,b=0.0,c=0.0;
 
-	int f,v;
+	int f,v,vv;
 	for (;;) {
 		a += 0.011;
 		b += 0.037;
@@ -71,9 +71,12 @@ int main(int argc, char* argv[]) {
 
 		glspuClear();
 		unsigned long _start = glspuCounter();
-		glBegin(GL_QUADS);
 		for (f=0; f<6; f++) {
-			for (v=0; v<4; v++) {
+		glBegin(GL_QUADS);
+		//glBegin(GL_QUAD_STRIP);
+			for (vv=0; vv<4; vv++) {
+				v = vv;
+		//		v = vv^(vv>>1); // swap 2 and 3
 			    if (0)
 				glColor3ub(faces[f][4],
 					   faces[f][5],
@@ -101,8 +104,8 @@ int main(int argc, char* argv[]) {
 
 				glVertex3f(x,y,z);
 			}
-		}
 		glEnd();	
+		}
 		glFlush();
 		glspuFlip();
 		unsigned long _end = glspuCounter();

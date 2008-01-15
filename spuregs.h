@@ -32,7 +32,6 @@ register u32 ___foo asm ("80");
 //
 // note this is used internally in the vertex transformation, the fragment
 // shader and is updated by imp_vertex.
-register vec_uchar16	TRIorder	asm ("100"); // shufb mask to get ABC-
 
 register vec_float4	TRIx		asm ("101"); // the normalised screen
 register vec_float4	TRIy		asm ("102"); // coordinates
@@ -44,8 +43,10 @@ register vec_float4	TRIg		asm ("106");
 register vec_float4	TRIb		asm ("107");
 register vec_float4	TRIa		asm ("108");
 
-register vec_float4	TRIu		asm ("109"); // primary tex coords
-register vec_float4	TRIv		asm ("110");
+register vec_float4	TRIs		asm ("109"); // primary tex coords
+register vec_float4	TRIt		asm ("110");
+register vec_float4	TRIu		asm ("111");
+register vec_float4	TRIv		asm ("112");
 
 #define SEL_A0 0,1,2,3,
 #define SEL_A1 4,5,6,7,

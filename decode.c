@@ -70,6 +70,11 @@ _bitmap_image screen = { .address = 0};
 	return from;
 }
 	
+#define ADD_LINE	1
+#define ADD_TRIANGLE	2
+#define ADD_POINT	3
+#define ADD_TRIANGLE2	4
+
 static int current_state = -1;
 static struct {
 	unsigned char next;
@@ -78,7 +83,7 @@ static struct {
 	unsigned char add;
 } shuffle_map[] = {
 /*0 GL_POINTS          */
-	{ .insert = 0, .next = 0 },
+	{ .insert = 0, .next = 0, .add = ADD_POINT },
 /*1 GL_LINES           */
 	{ .insert = 0, .next = 10 },
 /*2 GL_LINE_LOOP       */
@@ -99,54 +104,66 @@ static struct {
 	{ .insert = 0, .next = 27 },
 
 /* 10 line second point */
-	{ .insert = 1, .next = 1, .add = 1 },
+	{ .insert = 1, .next = 1, .add = ADD_LINE },
 /* 11 line loop second point */
-	{ .insert = 1, .next = 11, .add = 1, .end = 2},
+	{ .insert = 1, .next = 11, .add = ADD_LINE, .end = 2},
 /* 12 line strip second point */
-	{ .insert = 1, .next = 12, .add = 1 },
+	{ .insert = 1, .next = 12, .add = ADD_LINE },
 
 /* 13 triangle second point */
 	{ .insert = 3, .next = 14 },
 /* 14 triangle third point */
-	{ .insert = 3, .next = 4, .add = 2 },
+	{ .insert = 3, .next = 4, .add = ADD_TRIANGLE },
 
 /* 15 triangle strip second point */
 	{ .insert = 3, .next = 16 },
 /* 16 triangle strip third point */
-	{ .insert = 3, .next = 17, .add = 2 },
+	{ .insert = 3, .next = 17, .add = ADD_TRIANGLE },
 /* 17 triangle strip fourth point */
-	{ .insert = 4, .next = 16, .add = 2 },
+	{ .insert = 4, .next = 16, .add = ADD_TRIANGLE },
 
 /* 18 triangle fan second point */
 	{ .insert = 3, .next = 19 },
 /* 19 triangle fan third point */
-	{ .insert = 3, .next = 20, .add = 2 },
+	{ .insert = 3, .next = 20, .add = ADD_TRIANGLE },
 /* 20 triangle fan fourth point */
-	{ .insert = 5, .next = 20, .add = 2 },
+	{ .insert = 5, .next = 20, .add = ADD_TRIANGLE },
 
 /* 21 quad second point */
 	{ .insert = 6, .next = 22 },
 /* 22 quad third point */
 	{ .insert = 6, .next = 23 },
 /* 23 quad fourth point */
-	{ .insert = 6, .next = 7, .add = 3 },
+	{ .insert = 6, .next = 30, .add = ADD_TRIANGLE2 },
 
 /* 24 quad strip second point */
 	{ .insert = 6, .next = 22 },
 /* 25 quad strip third point */
-	{ .insert = 6, .next = 26 },
-/* 26 quad strip fourth point */
-	{ .insert = 6, .next = 27, .add = 4 },
-/* 26 quad strip fifth point */
 	{ .insert = 6, .next = 25 },
+/* 26 quad strip fourth point */
+	{ .insert = 6, .next = 31, .add = ADD_TRIANGLE2 },
 
 /* 27 polygon second point */
 	{ .insert = 3, .next = 28 },
 /* 28 polygon third point */
-	{ .insert = 3, .next = 4, .add = 2 },
+	{ .insert = 3, .next = 4, .add = ADD_TRIANGLE },
 /* 29 polygon fourth point */
-	{ .insert = 7, .next = 29, .add = 2, .end = 8 },
+	{ .insert = 7, .next = 29, .add = ADD_TRIANGLE, .end = 8 },
+
+/* 30 quad fake point, 2nd triangle */
+	{ .insert = 10, .next = 7, .add = ADD_TRIANGLE },
+
+/* 31 quad strip fake point */
+	{ .insert = 9, .next = 25, .add = ADD_TRIANGLE },
 };
+
+/* for quad_strips, the first triangle seems to be backwards. of course
+ * it could just be my test data...
+ *
+ * there's also the case that quads aren't needed by GLES so i should
+ * probably just get rid of them entirely and only use this function for
+ * tris, tristrips and trifans.
+ */
 
 /* A3 is preserved as the initial state if we need to loop */
 static vec_uchar16 shuffles[] = {
@@ -158,24 +175,26 @@ static vec_uchar16 shuffles[] = {
 { SEL_A0 SEL_A2 SEL_B0 SEL_A3 }, /* 5 = add triangle fan vertex 4th */
 { SEL_A1 SEL_A2 SEL_A3 SEL_B0 }, /* 6 = add quad vertex */
 { SEL_A0 SEL_A2 SEL_B0 SEL_A3 }, /* 7 = add polygon vertex */
-
 { SEL_A0 SEL_A1 SEL_A3 SEL_00 }, /* 8 = END polygon vertex finished */
-
-#define SHUFFLE_READ_TRI 9
-{ SEL_A0 SEL_A1 SEL_A2 SEL_00 }, /* 9 = END triangle finished */
-
-#define SHUFFLE_READ_TRI2_QUAD 10
-{ SEL_A0 SEL_A2 SEL_A3 SEL_00 }, /* 10 = END quad finished */
-
-#define SHUFFLE_READ_TRI2_QUAD_STRIP 11
-{ SEL_A2 SEL_A1 SEL_A3 SEL_00 }, /* 11 = END quad strip finished */
+{ SEL_A2 SEL_A1 SEL_A3 SEL_A0 }, /* 9 = quad strip fake, do 1st tri second */
+{ SEL_A2 SEL_A3 SEL_A0 SEL_A1 }, /* 10 = quad fake, do 1st tri second */
+{ SEL_A2 SEL_A1 SEL_B0 SEL_A0 }, /* 11 = quad strip fourth, do 2nd tri first */
 };
 
-// thinking about this some more...
-// these could be organised so that we ensure that triangles are always
-// in A0 A1 A2 order and we can scrap quads entirely if we're only implementing
-// GLES...
-// this in turn would remove a lot of the complicated stuff from imp_tri ;)
+static inline void shuffle_in(vec_uchar16 inserter, float4 s, float4 col) {
+	TRIx = spu_shuffle(TRIx, (vec_float4) s.x, inserter);
+	TRIy = spu_shuffle(TRIy, (vec_float4) s.y, inserter);
+	TRIz = spu_shuffle(TRIz, (vec_float4) s.z, inserter);
+	TRIw = spu_shuffle(TRIw, (vec_float4) s.w, inserter);
+	TRIr = spu_shuffle(TRIr, (vec_float4) col.x, inserter);
+	TRIg = spu_shuffle(TRIg, (vec_float4) col.y, inserter);
+	TRIb = spu_shuffle(TRIb, (vec_float4) col.z, inserter);
+	TRIa = spu_shuffle(TRIa, (vec_float4) col.w, inserter);
+//	TRIs = spu_shuffle(TRIs, (vec_float4) in.s, inserter);
+//	TRIt = spu_shuffle(TRIt, (vec_float4) in.t, inserter);
+//	TRIu = spu_shuffle(TRIu, (vec_float4) in.u, inserter);
+//	TRIv = spu_shuffle(TRIv, (vec_float4) in.v, inserter);
+}
 
 /*15*/void* imp_glBegin(u32* from) {
 	u32 state = *from++;
@@ -198,14 +217,13 @@ static vec_uchar16 shuffles[] = {
 	} else {
 		int end = shuffle_map[current_state].end;
 		if (end) {
-			TRIorder = shuffles[end];
+			float4 x;
+			shuffle_in(shuffles[end], x, x);
 			switch (shuffle_map[current_state].add) {
-				case 1:
-					TRIorder = shuffles[SHUFFLE_READ_TRI];
+				case ADD_LINE:
 					imp_line();
 					break;
-				case 2:
-					TRIorder = shuffles[SHUFFLE_READ_TRI];
+				case ADD_TRIANGLE:
 					imp_triangle();
 					break;
 			}
@@ -266,39 +284,29 @@ static void* imp_vertex(void* from, float4 in)
 //	float recip = 1.0/p.w;
 //	float4 s = {.x=p.x*recip, .y = p.y*recip, .z = p.z*recip, .w = recip};
 
-	TRIx = spu_shuffle(TRIx, (vec_float4) s.x, inserter);
-	TRIy = spu_shuffle(TRIy, (vec_float4) s.y, inserter);
-	TRIz = spu_shuffle(TRIz, (vec_float4) s.z, inserter);
-	TRIw = spu_shuffle(TRIw, (vec_float4) s.w, inserter);
-	TRIr = spu_shuffle(TRIr, (vec_float4) col.x, inserter);
-	TRIg = spu_shuffle(TRIg, (vec_float4) col.y, inserter);
-	TRIb = spu_shuffle(TRIb, (vec_float4) col.z, inserter);
-	TRIa = spu_shuffle(TRIa, (vec_float4) col.w, inserter);
-//	TRIu = spu_shuffle(TRIu, (vec_float4) in.u, inserter);
-//	TRIv = spu_shuffle(TRIv, (vec_float4) in.v, inserter);
+	shuffle_in(inserter, s, col);
 
 //////////////////////////////////////////////////////////////////////////
 
 	// check to see if we need to draw
 	switch (shuffle_map[current_state].add) {
-		case 1:
-			TRIorder = shuffles[SHUFFLE_READ_TRI];
+		case ADD_LINE:
 			imp_line();
 			break;
-		case 2:
-			TRIorder = shuffles[SHUFFLE_READ_TRI];
+		case ADD_TRIANGLE2:
 			imp_triangle();
-			break;
-		case 3:
-			TRIorder = shuffles[SHUFFLE_READ_TRI];
-			imp_triangle();
-			TRIorder = shuffles[SHUFFLE_READ_TRI2_QUAD];
-			imp_triangle();
-			break;
-		case 4:
-			TRIorder = shuffles[SHUFFLE_READ_TRI];
-			imp_triangle();
-			TRIorder = shuffles[SHUFFLE_READ_TRI2_QUAD_STRIP];
+
+			current_state = shuffle_map[current_state].next;
+			ins = shuffle_map[current_state].insert;
+			if (ins >= sizeof(shuffles)/sizeof(shuffles[0])) {
+				raise_error(ERROR_VERTEX_INVALID_SHUFFLE);
+				return from;
+			}
+			inserter = shuffles[ins];
+			shuffle_in(inserter, s, col);
+
+			// fall through here
+		case ADD_TRIANGLE:
 			imp_triangle();
 			break;
 	}
