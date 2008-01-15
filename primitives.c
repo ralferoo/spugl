@@ -24,27 +24,6 @@ typedef void TRIANGLE_SPAN_FUNCTION(u32* screenBuffer, int start, int length, ve
 
 extern TRIANGLE_SPAN_FUNCTION triangleSpan;
 
-vertex_state pull_compat(int j, vec_uchar16 sel)
-{
-	float4 s = {
-			.x = spu_extract(spu_shuffle(TRIx, TRIx, sel), j),
-			.y = spu_extract(spu_shuffle(TRIy, TRIx, sel), j),
-			.z = spu_extract(spu_shuffle(TRIz, TRIx, sel), j),
-			.w = spu_extract(spu_shuffle(TRIw, TRIx, sel), j),
-	};
-	float4 c = {
-			.x = spu_extract(spu_shuffle(TRIr, TRIx, sel), j),
-			.y = spu_extract(spu_shuffle(TRIg, TRIx, sel), j),
-			.z = spu_extract(spu_shuffle(TRIb, TRIx, sel), j),
-			.w = spu_extract(spu_shuffle(TRIa, TRIx, sel), j),
-	};
-	vertex_state v = {
-		.coords = s,
-		.colour = c,
-	};
-	return v;
-}
-
 // this is tricky... 
 // basically, this is a table representing vertex y orders and how to
 // translate them to the correct order.
@@ -91,8 +70,19 @@ vec_uchar16 shuffle_tri_ccw = {
 	SEL_A2 SEL_A0 SEL_A1 SEL_00
 };
 
+triangle* _new_imp_triangle(triangle* triangle_out_ptr);
+void _draw_imp_triangle(triangle* tri);
 
-void imp_triangle()
+triangle* imp_triangle()
+{
+	static triangle dummy[10];
+	triangle* next = _new_imp_triangle(&dummy[0]);
+	if (next!=&dummy[0])
+		_draw_imp_triangle(&dummy[0]);
+	return next;
+}
+
+triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 {
 	// TRIorder holds the select mask for triangle as is
 	// these two are select masks for clockwise and counter-clockwise
@@ -115,8 +105,11 @@ void imp_triangle()
 	vec_uchar16 ns_mask = (vec_uchar16) spu_add(q1,q2);
 	vec_uchar16 r_normal = spu_shuffle(r_right_padded,shuffle_tri_normal,ns_mask);
 	//vec_uchar16 r_normal = spu_shuffle(r_right_padded,TRIorder,ns_mask);
-	unsigned char left = spu_extract(rep_swap_add,3) & 0x20;
-
+	vec_uint4 cast_left = (vec_uint4) rep_swap_add;
+	vec_uint4 cast_left_mask = spu_and(cast_left,0x20);
+	vec_uint4 right_full = spu_cmpeq(cast_left_mask, (vec_uint4) 0);
+	unsigned long right_and = spu_extract(right_full,0);
+	
 	// new r_normal should be the mask containing a,b,c in height order
 	// and left_flag should be 0x20 if the bulge is on the left edge
 
@@ -136,11 +129,36 @@ void imp_triangle()
 	float face_sum = spu_extract(face_mul, 0) +
 			 spu_extract(face_mul, 1) +
 			 spu_extract(face_mul, 2);
-	if (face_sum > 0)
-		return;
+	vec_float4 cast_sum = (vec_float4) face_sum;
+	vec_float4 cast_zero = (vec_float4) 0.0f;
+	vec_uint4 fcgt_area = spu_cmpgt(cast_zero, cast_sum);
+	unsigned long advance_ptr_mask = spu_extract(fcgt_area, 0);
+	triangle* next_triangle = (triangle*) ( ((void*)triangle_out_ptr) +
+			(advance_ptr_mask&sizeof(triangle)) );
 
-//	vec_float4 v_y_cw = spu_shuffle(TRIy, TRIy, r_cw);
-//	vec_float4 v_y_ccw = spu_shuffle(TRIy, TRIy, r_ccw);
+	triangle_out_ptr -> shuffle = r_normal;
+	triangle_out_ptr -> x = TRIx;
+	triangle_out_ptr -> y = TRIy;
+	triangle_out_ptr -> z = TRIz;
+	triangle_out_ptr -> w = TRIw;
+	
+	triangle_out_ptr -> r = TRIr;
+	triangle_out_ptr -> g = TRIg;
+	triangle_out_ptr -> b = TRIb;
+	triangle_out_ptr -> a = TRIa;
+	
+	triangle_out_ptr -> s = TRIs;
+	triangle_out_ptr -> t = TRIt;
+	triangle_out_ptr -> u = TRIu;
+	triangle_out_ptr -> v = TRIv;
+	
+	triangle_out_ptr -> A = face_sum;
+	triangle_out_ptr -> dAdx = 0.0f;
+	triangle_out_ptr -> dAdy = 0.0f;
+	
+	triangle_out_ptr -> texture = 0;
+	triangle_out_ptr -> shader = 0;
+	triangle_out_ptr -> right = right_and;
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -153,12 +171,47 @@ void imp_triangle()
 // also... face_sum is -ve and the same as the ideal Sa and the ideal Sb and
 // Sc are both 0 (except we actually calculate Sa,Sb,Sc from mid-pixel)
 
+	return next_triangle;
+}
+
+static inline vertex_state pull_compat(int j, triangle* tri)
+{
+	vec_uchar16 sel = tri->shuffle;
+
+	float4 s = {
+			.x = spu_extract(spu_shuffle(tri->x, tri->x, sel), j),
+			.y = spu_extract(spu_shuffle(tri->y, tri->y, sel), j),
+			.z = spu_extract(spu_shuffle(tri->z, tri->z, sel), j),
+			.w = spu_extract(spu_shuffle(tri->w, tri->w, sel), j),
+	};
+	float4 c = {
+			.x = spu_extract(spu_shuffle(tri->r, tri->r, sel), j),
+			.y = spu_extract(spu_shuffle(tri->g, tri->g, sel), j),
+			.z = spu_extract(spu_shuffle(tri->b, tri->b, sel), j),
+			.w = spu_extract(spu_shuffle(tri->a, tri->a, sel), j),
+	};
+	vertex_state v = {
+		.coords = s,
+		.colour = c,
+	};
+	return v;
+}
+
+void _draw_imp_triangle(triangle* tri)
+{
+//	if (triangle_out_ptr == next_triangle)
+//		return next_triangle;
+
+//	vec_float4 v_y_cw = spu_shuffle(TRIy, TRIy, r_cw);
+//	vec_float4 v_y_ccw = spu_shuffle(TRIy, TRIy, r_ccw);
+
 	TRIANGLE_SPAN_FUNCTION* func = triangleSpan;
 
-	vertex_state a = pull_compat(0, r_normal);
-	vertex_state b = pull_compat(1, r_normal);
-	vertex_state c = pull_compat(2, r_normal);
+	vertex_state a = pull_compat(0, tri);
+	vertex_state b = pull_compat(1, tri);
+	vertex_state c = pull_compat(2, tri);
 
+	unsigned long left = ~ tri->right;
 		
 	void* lb = malloc( (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT) + BYTE_ALIGNMENT);
 	int tag_id = 1;

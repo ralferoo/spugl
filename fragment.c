@@ -28,9 +28,12 @@ static struct {
 	u64 base_ea;
 	u32 buffer_length;
 	unsigned int num_fragments;
-	void* fragment_local_base = 0;
-	unsigned short id[LOCAL_FRAGMENTS] = {0};
-} frags;
+	void* fragment_local_base;
+	unsigned short id[LOCAL_FRAGMENTS];
+} frags = {
+	.fragment_local_base = 0,
+	.id = {0}
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -53,8 +56,8 @@ static struct {
 	frags.buffer_length = control.fragment_buflen;
 	frags.num_fragments = frags.buffer_length/FRAGMENT_SIZE;
 
-	printf("screen is %dx%d frags, we have %d fragments at 0x%llx\n",
-		frags.wide, frags.high, frags.num_fragments, frags.base_ea);
+//	printf("screen is %dx%d frags, we have %d fragments at 0x%llx\n",
+//		frags.wide, frags.high, frags.num_fragments, frags.base_ea);
 
 	return from;
 }

@@ -168,6 +168,23 @@ static inline void shuffle_in(vec_uchar16 inserter, float4 s, float4 col) {
 //	TRIv = spu_shuffle(TRIv, (vec_float4) in.v, inserter);
 }
 
+void imp_close_segment()
+{
+	int end = shuffle_map[current_state].end;
+	if (end) {
+		float4 x;
+		shuffle_in(shuffles[end], x, x);
+		switch (shuffle_map[current_state].add) {
+			case ADD_LINE:
+				imp_line();
+				break;
+			case ADD_TRIANGLE:
+				imp_triangle();
+				break;
+		}
+	}
+}
+	
 /*15*/void* imp_glBegin(u32* from) {
 	u32 state = *from++;
 	if (current_state >= 0) {
@@ -182,24 +199,14 @@ static inline void shuffle_in(vec_uchar16 inserter, float4 s, float4 col) {
 	current_state = state;
 	return from;
 }
-	
+
+// if we're only support GLES, the onyl important case is lines and i think
+// they should be handled seperately anyway
 /*16*/void* imp_glEnd(u32* from) {
 	if (current_state < 0) {
 		raise_error(ERROR_GLEND_WITHOUT_GLBEGIN);
 	} else {
-		int end = shuffle_map[current_state].end;
-		if (end) {
-			float4 x;
-			shuffle_in(shuffles[end], x, x);
-			switch (shuffle_map[current_state].add) {
-				case ADD_LINE:
-					imp_line();
-					break;
-				case ADD_TRIANGLE:
-					imp_triangle();
-					break;
-			}
-		}
+		imp_close_segment();
 	}
 	current_state = -1;
 	return from;

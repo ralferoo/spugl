@@ -29,6 +29,28 @@ typedef struct {
 } vertex_state;
 
 ///////////////////////////////////////////////////////////////////////////////
+
+#ifdef SPU_REGS
+#include <spu_intrinsics.h>
+
+typedef struct {
+	vec_uchar16	shuffle;	// standard shuffle
+	vec_float4	x,y,z,w;	// coords
+	vec_float4	r,g,b,a;	// primary colour
+	vec_float4	s,t,u,v;	// primary texture
+
+	float		A,dAdx,dAdy;	// weight information, A is top vertex
+
+	void *		texture;
+	void *		shader;
+	unsigned long	right;		// flag if bulge is on right or not
+} triangle;
+
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
 //
 // application errors
 #define ERROR_NONE			0 //GL_NO_ERROR
