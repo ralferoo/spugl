@@ -149,6 +149,9 @@ void imp_triangle()
 // mask as well as the flag to describe how to render the triangle. this is
 // probably the official end of the transformation phase and should be passed
 // on at this point.
+//
+// also... face_sum is -ve and the same as the ideal Sa and the ideal Sb and
+// Sc are both 0 (except we actually calculate Sa,Sb,Sc from mid-pixel)
 
 	TRIANGLE_SPAN_FUNCTION* func = triangleSpan;
 
@@ -202,7 +205,12 @@ void imp_triangle()
 	float Da = c.coords.y - b.coords.y;
 	float Db = a.coords.y - c.coords.y;
 	float Dc = b.coords.y - a.coords.y;
-
+/*
+	printf("face_sum %f, Sa=%f, Sb=%f, Sc=%f\n",
+			face_sum, Sa, Sb, Sc);
+	printf("dSa=%f, dSb=%f, dSc=%f, dSb+dSc=%f, diff=%f\n\n",
+			dSa, dSb, dSc, dSb+dSc, face_sum-Sa);
+*/
 	while (y < mid && y < 0) {
 		y += 1.0;
 		lx += lgrad;

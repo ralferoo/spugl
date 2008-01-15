@@ -20,8 +20,7 @@ PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I.
 SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS
 SPUCCFLAGS = -O6 -I. -DSPU_REGS
 
-GENSOURCES = decode.c
-SPU_OBJS = spufifo.0 decode.0 primitives.0 triangleColourSpan.0
+SPU_OBJS = spufifo.0 decode.0 primitives.0 triangleColourSpan.0 fragment.0
 PPU_OBJS = ppufifo.o glfifo.o framebuffer.o
 
 SPU_HNDL = spu_3d.handle.o
@@ -29,6 +28,9 @@ PPU_TEST_OBJS = $(PPU_OBJS) test.o
 
 PPU_SRCS := $(patsubst %.o,%.c,$(PPU_TEST_OBJS))
 SPU_SRCS := $(patsubst %.0,%.c,$(SPU_OBJS))
+
+GENSOURCES = $(SPU_SRCS)
+#GENSOURCES = decode.c fragment.c
 
 all:	$(TARGETS)
 

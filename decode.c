@@ -40,36 +40,8 @@ extern SPU_CONTROL control;
 	return from;
 }
 	
-_bitmap_image screen = { .address = 0};
+extern _bitmap_image screen;
 
-/*4*/void* impScreenInfo(u32* from) {
-	u64 ea;
-	__READ_EA(from)
-	screen.address = ea;
-	screen.width = *from++;
-	screen.height = *from++;
-	screen.bytes_per_line = *from++;
-//	printf("screen at %llx, width %d, height %d, bpl %d\n",
-//		screen.address, screen.width, screen.height, screen.bytes_per_line);
-	return from;
-}
-	
-/*5*/void* impClearScreen(u32* from) {
-	void* lb = malloc( (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT) + BYTE_ALIGNMENT);
-	u32* p = lb;
-	int i;
-	for (i=0; i<screen.width; i++)
-		p[i] = 0;
-	for (i=0; i<screen.height; i++) {
-		u64 addr = screen.address + screen.bytes_per_line*i;
-		mfc_putf(lb, addr, (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT), 0, 0, 0);
-		mfc_write_tag_mask(1);
-		mfc_read_tag_status_any();
-	}
-	free(lb);
-	return from;
-}
-	
 #define ADD_LINE	1
 #define ADD_TRIANGLE	2
 #define ADD_POINT	3

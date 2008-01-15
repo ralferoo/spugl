@@ -93,8 +93,9 @@ typedef struct {
 	// the first 128 bytes are writable by the PPU-side driver
 	volatile u64 fifo_written;	// the address the driver has written
 	volatile u64 my_local_address;	// the address this SPU lives at
-	volatile u32 fifo_write_space;  // space we have to write in
-	volatile u32 pad1[32-5];
+	volatile u64 fragment_buffer;	// the address of the fragment buffer
+	volatile u32 fragment_buflen;	// the length of the fragment buffer
+	volatile u32 pad1[32-7];
 
 	// the next 128 bytes are writable by the SPU-side driver
 	volatile u64 fifo_read;		// the current position in FIFO read

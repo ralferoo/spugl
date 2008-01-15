@@ -9,8 +9,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <sys/mman.h>
 #include <libspe.h>
 #include "fifo.h"
+
+// the size of the fragment buffer
+// it needs to be at least the size of a frame in order to be able
+// to store a z-buffer and we will need other fragments as well
+// for partially rendered things
+#define FRAGMENT_SLOP 1024
+#define FRAGMENT_BUFFER_SIZE (1920*1080*4 + FRAGMENT_SLOP*1024)
 
 extern spe_program_handle_t spu_3d_handle;
 spe_program_handle_t* spu_3d_program = &spu_3d_handle;
@@ -20,6 +28,7 @@ typedef struct {
 	void* local_store;
 	SPU_CONTROL* control;
 	int master;
+	void* fragment_buffer;
 } __DRIVER_CONTEXT;
 
 static u32 spe_read(speid_t spe_id);
@@ -31,10 +40,23 @@ DriverContext _init_3d_driver(int master)
 	if (context == NULL)
 		return NULL;
 
+	if (master) {
+		context->fragment_buffer = mmap(NULL, FRAGMENT_BUFFER_SIZE,
+			PROT_READ | PROT_WRITE, 
+			MAP_SHARED | MAP_NORESERVE | MAP_ANONYMOUS,
+			-1, 0);
+		if (context->fragment_buffer == (void*)-1)
+			context->fragment_buffer = NULL;
+	} else {
+		context->fragment_buffer = NULL;
+	}
+
 	context->spe_id = spe_create_thread(0, spu_3d_program, NULL, NULL, -1, 0);
 	context->master = master;
 
 	if (context->spe_id==0) {
+		if (context->fragment_buffer)
+			munmap(context->fragment_buffer, FRAGMENT_BUFFER_SIZE);
 		free(context);
 		return NULL;
 	}
@@ -52,7 +74,9 @@ DriverContext _init_3d_driver(int master)
 		 master ? SPU_MBOX_3D_INITIALISE_MASTER
 			: SPU_MBOX_3D_INITIALISE_NORMAL); 
 	spe_read(context->spe_id);
-	context->control->fifo_write_space = context->control->fifo_size;
+
+	context->control->fragment_buffer = _MAKE_EA(context->fragment_buffer);
+	context->control->fragment_buflen = FRAGMENT_BUFFER_SIZE;
 
 	return (DriverContext) context;
 }
@@ -83,6 +107,12 @@ int _exit_3d_driver(DriverContext _context)
 	// wait for completion and return exit code
 	int status = 0;
 	spe_wait(context->spe_id, &status, 0);
+
+	if (context->fragment_buffer)
+		munmap(context->fragment_buffer, FRAGMENT_BUFFER_SIZE);
+
+	free(context);
+
 	return status;
 }
 
