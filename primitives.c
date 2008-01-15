@@ -12,43 +12,15 @@
 
 extern _bitmap_image screen;
 
-void debug_state(char*s, int i)
-{
-	printf("\n%s:",s);
-	vec_uchar16 sel = TRIorder;
-	int j = 0;
-	while (i--) {
-		printf("v=(%.2f,%.2f,%.2f,%.2f)"
-			" c=(%.2f,%.2f,%.2f,%.2f)"
-			"%s",
-			spu_extract(spu_shuffle(TRIx, TRIx, sel), j),
-			spu_extract(spu_shuffle(TRIy, TRIx, sel), j),
-			spu_extract(spu_shuffle(TRIz, TRIx, sel), j),
-			spu_extract(spu_shuffle(TRIw, TRIx, sel), j),
-
-			spu_extract(spu_shuffle(TRIr, TRIx, sel), j),
-			spu_extract(spu_shuffle(TRIg, TRIx, sel), j),
-			spu_extract(spu_shuffle(TRIb, TRIx, sel), j),
-			spu_extract(spu_shuffle(TRIa, TRIx, sel), j),
-
-			i ? ",\n\t" : "\n");
-		j++;
-	}
-}
-
 void imp_point()
 {
-	debug_state("point\t",1);
 }
 
 void imp_line()
 {
-	debug_state("line\t",2);
 }
 
-typedef void TRIANGLE_SPAN_FUNCTION
-(u32* screenBuffer, int start, int length, vertex_state* a, vertex_state* b, vertex_state* c, float Sa, float Sb, float Sc, float Da, float Db, float Dc)
-;
+typedef void TRIANGLE_SPAN_FUNCTION(u32* screenBuffer, int start, int length, vertex_state* a, vertex_state* b, vertex_state* c, float Sa, float Sb, float Sc, float Da, float Db, float Dc);
 
 extern TRIANGLE_SPAN_FUNCTION triangleSpan;
 
@@ -73,13 +45,38 @@ vertex_state pull_compat(int j, vec_uchar16 sel)
 	return v;
 }
 
-static void debug(vertex_state v)
-{
-//       printf("DBG v=(%.2f,%.2f,%.2f,%.2f)",
-//               v.coords.x, v.coords.y, v.coords.z, v.coords.w);
-//       printf(" c=(%.2f,%.2f,%.2f,%.2f)\n",
-//               v.colour.x, v.colour.y, v.colour.z, v.colour.w);
-}
+// this is tricky... 
+// basically, this is a table representing vertex y orders and how to
+// translate them to the correct order.
+// bit 0 represents ya>yb, bit 1 repr. yc>yb and bit 2 rep. ya>yc
+// the "unused" entries are because its impossible for all 3 conditions to be
+// true or false... ;)
+// L/R is set by bit L=0x20, R=0x00 - this determines which is the lumpy side.
+// none(0), cw(1), ccw(2) is encoded as 0 word, -2 word, -1 word respectively
+// which is itself used as a shuffle mask on a shuffle delta mask.
+// sadly, most of the working out of this is on paper rather than computer. :(
+vec_uchar16 triangle_order_data = {
+	0,0,		/*  0 - impossible */
+	0x10,0x10,	/*  2 - 0 0 1 => 0 1 (R0) */
+	0x0c,0x0c,	/*  4 - 0 1 0 => 0 1 (R2) */
+	0x30,0x30,	/*  6 - 0 1 1 => 1 1 (L0) */
+	0x08,0x08,	/*  8 - 1 0 0 => 0 0 (R1) */
+	0x28,0x28,	/* 10 - 1 0 1 => 0 1 (L1) */
+	0x2c,0x2c,	/* 12 - 1 1 0 => 0 1 (L2) */
+	0,0		/* 14 - impossible */
+};
+vec_uchar16 copy_order_data = {
+	1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1
+};
+vec_uchar16 copy_as_is = {
+	SEL_A0 SEL_A1 SEL_A2 SEL_A3
+};
+static vec_uchar16 make_rhs_0 = {
+	0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 
+	0xff, 0xff, 0xff, 0xff, 
+	0x00, 0x00, 0x00, 0x00,
+};
 
 vec_uchar16 shuffle_tri_cw = {
 	SEL_A1 SEL_A2 SEL_A0 SEL_00
@@ -87,31 +84,6 @@ vec_uchar16 shuffle_tri_cw = {
 vec_uchar16 shuffle_tri_ccw = {
 	SEL_A2 SEL_A0 SEL_A1 SEL_00
 };
-
-// this is tricky... 
-// L/R is set by bit L=0x20, R=0x00
-// none(0), cw(1), ccw(2) is encoded as 0x10, 0x0e, 0x0f respectively
-// which is itself used as a shuffle mask on a shuffle delta mask
-vec_uchar16 triangle_order_data = {
-0,0,	/*  0 - unused <----- this is the primary word */
-0x10,0x10,	/*  2 - 0 0 1 => 0 1 (R0) */
-0x0c,0x0c,	/*  4 - 0 1 0 => 0 1 (R2) */
-0x30,0x30,	/*  6 - 0 1 1 => 1 1 (L0) */
-0x08,0x08,	/*  8 - 1 0 0 => 0 0 (R1) */
-0x28,0x28,	/* 10 - 1 0 1 => 0 1 (L1) */
-0x2c,0x2c,	/* 12 - 1 1 0 => 0 1 (L2) */
-0,0	/* 14 - unused */
-};
-vec_uchar16 copy_order_data = {
-1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1
-};
-vec_uchar16 copy_as_is = {
-0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,
-};
-
-//vec_uchar16 xb_yc ={
-//	SEL_A2 SEL_A0 SEL_A1 SEL_00
-//};
 
 void imp_triangle()
 {
@@ -134,6 +106,7 @@ void imp_triangle()
 	vec_uchar16 ns_mask = (vec_uchar16) spu_add(q1,q2);
 	//vec_uchar16 rep_ns_mask = spu_add(rep_swap_add,copy_as_is);
 	vec_uchar16 r_normal = spu_shuffle(r_right_padded,TRIorder,ns_mask);
+	//vec_uchar16 r_normal = spu_and(make_rhs_0,spu_shuffle(r_right_padded,TRIorder,ns_mask));
 	
 	unsigned char left_flag = spu_extract(rep_swap_add,3); // & 0x20;
 
@@ -151,7 +124,20 @@ void imp_triangle()
 	vec_uchar16 r_cw = spu_shuffle(r_normal, r_normal, shuffle_tri_cw);
 	vec_uchar16 r_ccw = spu_shuffle(r_normal, r_normal, shuffle_tri_ccw);
 
+	// we now have new shuffle normals again (yay!)
+
 	vec_float4 vx = spu_shuffle(TRIx, TRIx, r_normal);
+	vec_float4 v_y_cw = spu_shuffle(TRIy, TRIy, r_cw);
+	vec_float4 v_y_ccw = spu_shuffle(TRIy, TRIy, r_ccw);
+	vec_float4 v_by_to_cy = spu_sub(v_y_ccw, v_y_cw);
+
+	vec_float4 face_mul = spu_mul(vx, v_by_to_cy);
+	float face_sum = spu_extract(face_mul, 0) +
+			 spu_extract(face_mul, 1) +
+			 spu_extract(face_mul, 2);
+
+
+/*
 	vec_float4 vx_cw = spu_shuffle(TRIx, TRIx, r_cw);
 	vec_float4 vx_ccw = spu_shuffle(TRIx, TRIx, r_ccw);
 	vec_float4 vy_ccw = spu_shuffle(TRIy, TRIy, r_ccw);
@@ -161,31 +147,27 @@ void imp_triangle()
 
 	vec_float4 vy_cw_sub_vy = spu_sub(vy_cw, vy);
 	vec_float4 vy_ccw_sub_vy = spu_sub(vy_ccw, vy);
-
+*/
 	
 
 //	vec_float4 vx_mul_yv_cw = spu_mul(vx, vy_cw);
 //	vec_float4 vx_mul_yv_cw = spu_mul(vx, vy_cw);
 
-	vec_float4 face_mul = spu_mul(vx, vy_cw);
 
-	float face_sum = spu_extract(face_mul, 0) +
-			 spu_extract(face_mul, 1) +
-			 spu_extract(face_mul, 2);
-
+/*
 	printf("face_sum: %.2f (%.2f %.2f %.2f)\n", face_sum, 
 			 spu_extract(face_mul, 0),
 			 spu_extract(face_mul, 1),
 			 spu_extract(face_mul, 2));
+*/
 
-
-//	if (face_sum > 0)
-//		return;
+	if (face_sum > 0)
+		return;
 
 	
 
-	vec_float4 x_r = spu_shuffle(TRIy, TRIy, r_normal);
-	vec_float4 y_r = spu_shuffle(TRIy, TRIy, r_normal);
+//	vec_float4 x_r = spu_shuffle(TRIy, TRIy, r_normal);
+//	vec_float4 y_r = spu_shuffle(TRIy, TRIy, r_normal);
 
 //			spu_extract(spu_shuffle(TRIx, TRIx, sel), j),
 
@@ -194,7 +176,7 @@ void imp_triangle()
 	vertex_state a = pull_compat(0, r_normal);
 	vertex_state b = pull_compat(1, r_normal);
 	vertex_state c = pull_compat(2, r_normal);
-
+/*
 	float abx = b.coords.x - a.coords.x;
 	float aby = b.coords.y - a.coords.y;
 	float bcx = c.coords.x - b.coords.x;
@@ -213,6 +195,7 @@ void imp_triangle()
 		printf("Back-facing triangle...\n");
 		return;
 	}
+*/
 /*
 	int qab = aby<0;
 	int qbc = bcy<0;
@@ -260,7 +243,10 @@ void imp_triangle()
 	int left = left_flag & 0x20;
 
 
+/*
 
+// these cases cannot occur and probably not worth sanity checking in
+// production...
 
 	if (b.coords.y < a.coords.y || c.coords.y < a.coords.y) {
 		raise_error(ERROR_TRI_A_NOT_LEAST);
@@ -274,6 +260,7 @@ void imp_triangle()
 		raise_error(ERROR_TRI_RIGHT_AND_C_B);
 		return;
 	}
+*/
 		
 	void* lb = malloc( (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT) + BYTE_ALIGNMENT);
 	int tag_id = 1;
