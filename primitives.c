@@ -10,6 +10,8 @@
 #include "fifo.h"
 #include "struct.h"
 
+//#define CHECK_STATE_TABLE
+
 extern void _draw_imp_triangle(triangle* tri);
 
 static void imp_point()
@@ -300,17 +302,21 @@ extern _bitmap_image screen;
 
 void* imp_vertex(void* from, float4 in)
 {
+#ifdef CHECK_STATE_TABLE
 	if (current_state < 0 ||
 		  current_state >= sizeof(shuffle_map)/sizeof(shuffle_map[0])) {
 		raise_error(ERROR_VERTEX_INVALID_STATE);
 		return from;
 	}
-
+#endif
 	int ins = shuffle_map[current_state].insert;
+#ifdef CHECK_STATE_TABLE
 	if (ins >= sizeof(shuffles)/sizeof(shuffles[0])) {
 		raise_error(ERROR_VERTEX_INVALID_SHUFFLE);
 		return from;
 	}
+#endif
+
 	vec_uchar16 inserter = shuffles[ins];
 
 	// just for testing, have hard-coded persective and screen
@@ -341,10 +347,12 @@ void* imp_vertex(void* from, float4 in)
 
 			current_state = shuffle_map[current_state].next;
 			ins = shuffle_map[current_state].insert;
+#ifdef CHECK_STATE_TABLE
 			if (ins >= sizeof(shuffles)/sizeof(shuffles[0])) {
 				raise_error(ERROR_VERTEX_INVALID_SHUFFLE);
 				return from;
 			}
+#endif
 			inserter = shuffles[ins];
 			shuffle_in(inserter, s, col);
 
