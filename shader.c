@@ -90,53 +90,53 @@ void _draw_imp_triangle(triangle* tri)
 	float dbp = b.coords.x - b.coords.y * lgrad;
 	float dcp = c.coords.x - c.coords.y * lgrad;
 
-	float Sa = -tbc-tcp+tbp;
-	float Sb = -tca-tap+tcp;
-	float Sc = -tab-tbp+tap;
+//	float Sa = -tbc-tcp+tbp;
+//	float Sb = -tca-tap+tcp;
+//	float Sc = -tab-tbp+tap;
 
 	float dSa = -dcp+dbp;
 	float dSb = -dap+dcp;
 	float dSc = -dbp+dap;
 
-	float Da = c.coords.y - b.coords.y;
-	float Db = a.coords.y - c.coords.y;
-	float Dc = b.coords.y - a.coords.y;
+//	float Da = c.coords.y - b.coords.y;
+//	float Db = a.coords.y - c.coords.y;
+//	float Dc = b.coords.y - a.coords.y;
 
 	float face_sum = tri->A;
 	vec_float4 _dx = tri->dx; //spu_shuffle(tri->dx, tri->dx, tri->shuffle);
 	vec_float4 _dy = tri->dy; //spu_shuffle(tri->dy, tri->dy, tri->shuffle);
 
-	printf("    Sa=%f, Sb=%f, Sc=%f\n",
-			Sa, Sb, Sc);
+//	printf("    Sa=%f, Sb=%f, Sc=%f\n",
+//			Sa, Sb, Sc);
 
 	printf("    dSa=%f, dSb=%f, dSc=%f\n",
 			dSa, dSb, dSc);
 
-	printf("old Da=%f, Db=%f, Dc=%f, Db+Dc=%f\n",
-			Da, Db, Dc, Db+Dc);
+//	printf("old Da=%f, Db=%f, Dc=%f, Db+Dc=%f\n",
+//			Da, Db, Dc, Db+Dc);
 
-	Da = spu_extract(_dx, 0);
-	Db = spu_extract(_dx, 1);
-	Dc = spu_extract(_dx, 2);
+	float Da = spu_extract(_dx, 0);
+	float Db = spu_extract(_dx, 1);
+	float Dc = spu_extract(_dx, 2);
 
 //	dSa = spu_extract(_dy, 0);
 //	dSb = spu_extract(_dy, 1);
 //	dSc = spu_extract(_dy, 2);
 
-	Sa = face_sum;
-	Sb = 0.0f;
-	Sc = 0.0f;
+	float Sa = face_sum;
+	float Sb = 0.0f;
+	float Sc = 0.0f;
 
-	printf("new Da=%f, Db=%f, Dc=%f, Db+Dc=%f\n",
-			Da, Db, Dc, Db+Dc);
+//	printf("new Da=%f, Db=%f, Dc=%f, Db+Dc=%f\n",
+//			Da, Db, Dc, Db+Dc);
 
 	printf("    dSa=%f, dSb=%f, dSc=%f\n",
 			dSa, dSb, dSc);
 
-	printf("face_sum %f, Sa=%f, Sb=%f, Sc=%f\n",
-			face_sum, Sa, Sb, Sc);
-	printf("dSa=%f, dSb=%f, dSc=%f, dSb+dSc=%f, diff=%f\n\n",
-			dSa, dSb, dSc, dSb+dSc, face_sum-Sa);
+//	printf("face_sum %f, Sa=%f, Sb=%f, Sc=%f\n",
+//			face_sum, Sa, Sb, Sc);
+//	printf("dSa=%f, dSb=%f, dSc=%f, dSb+dSc=%f, diff=%f\n\n",
+//			dSa, dSb, dSc, dSb+dSc, face_sum-Sa);
 //	printf("Da=%f, Db=%f, Dc=%f, Db+Dc=%f\n\n",
 //			Da, Db, Dc, Db+Dc);
 
