@@ -154,6 +154,7 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 	triangle_out_ptr -> dx = v_by_to_cy;
 	triangle_out_ptr -> dy = v_bx_to_cx;
 
+/*
 	if (face_sum<0) {
 	int i;
 	for (i=0; i<3; i++) {
@@ -164,7 +165,7 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 	}
 	printf("\n");
 	}
-
+*/
 
 ///////////////////////////////////////////////////////////////////////////////
 //

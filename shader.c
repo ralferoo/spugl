@@ -75,8 +75,8 @@ void _draw_imp_triangle(triangle* tri)
 		mid = b.coords.y; bottom = c.coords.y;
 	}
 
-	printf ("y=%.2f, lx=%.2f, lgrad=%.2f, rx=%.2f, rgrad=%.2f, mid=%.2f, bottom=%.2f\n",
-		y, lx, lgrad, rx, rgrad, mid, bottom);
+//	printf ("y=%.2f, lx=%.2f, lgrad=%.2f, rx=%.2f, rgrad=%.2f, mid=%.2f, bottom=%.2f\n",
+//		y, lx, lgrad, rx, rgrad, mid, bottom);
 
 	float tab = a.coords.x * b.coords.y - b.coords.x * a.coords.y;
 	float tbc = b.coords.x * c.coords.y - c.coords.x * b.coords.y;
@@ -109,8 +109,8 @@ void _draw_imp_triangle(triangle* tri)
 //	printf("    Sa=%f, Sb=%f, Sc=%f\n",
 //			Sa, Sb, Sc);
 
-	printf("    dSa=%f, dSb=%f, dSc=%f\n",
-			dSa, dSb, dSc);
+//	printf("    dSa=%f, dSb=%f, dSc=%f\n",
+//			dSa, dSb, dSc);
 
 //	printf("old Da=%f, Db=%f, Dc=%f, Db+Dc=%f\n",
 //			Da, Db, Dc, Db+Dc);
@@ -119,9 +119,9 @@ void _draw_imp_triangle(triangle* tri)
 	float Db = spu_extract(_dx, 1);
 	float Dc = spu_extract(_dx, 2);
 
-//	dSa = spu_extract(_dy, 0);
-//	dSb = spu_extract(_dy, 1);
-//	dSc = spu_extract(_dy, 2);
+	dSa = Da * lgrad - spu_extract(_dy, 0);
+	dSb = Db * lgrad - spu_extract(_dy, 1);
+	dSc = Dc * lgrad - spu_extract(_dy, 2);
 
 	float Sa = face_sum;
 	float Sb = 0.0f;
@@ -130,8 +130,8 @@ void _draw_imp_triangle(triangle* tri)
 //	printf("new Da=%f, Db=%f, Dc=%f, Db+Dc=%f\n",
 //			Da, Db, Dc, Db+Dc);
 
-	printf("    dSa=%f, dSb=%f, dSc=%f\n",
-			dSa, dSb, dSc);
+//	printf("    dSa=%f, dSb=%f, dSc=%f\n",
+//			dSa, dSb, dSc);
 
 //	printf("face_sum %f, Sa=%f, Sb=%f, Sc=%f\n",
 //			face_sum, Sa, Sb, Sc);
@@ -139,6 +139,9 @@ void _draw_imp_triangle(triangle* tri)
 //			dSa, dSb, dSc, dSb+dSc, face_sum-Sa);
 //	printf("Da=%f, Db=%f, Dc=%f, Db+Dc=%f\n\n",
 //			Da, Db, Dc, Db+Dc);
+
+//	printf("----------\n");
+
 
 	while (y < mid && y < 0) {
 		y += 1.0;
@@ -176,7 +179,7 @@ void _draw_imp_triangle(triangle* tri)
 
 	if (left) {
 		lgrad = (b.coords.x - c.coords.x) / (b.coords.y - c.coords.y);
-		lx = ((int)c.coords.x) + 0.5;
+		lx = c.coords.x; //((int)c.coords.x) + 0.5;
 
 		tap = a.coords.x * y - a.coords.y * lx;
 		tbp = b.coords.x * y - b.coords.y * lx;
@@ -186,17 +189,23 @@ void _draw_imp_triangle(triangle* tri)
 		dbp = b.coords.x - b.coords.y * lgrad;
 		dcp = c.coords.x - c.coords.y * lgrad;
 	
+// i want to be able to get rid of these fellows... but sometimes the colours
+// go wrong... ?
 		Sa = -tbc-tcp+tbp;
 		Sb = -tca-tap+tcp;
 		Sc = -tab-tbp+tap;
 
-		dSa = -dcp+dbp;
-		dSb = -dap+dcp;
-		dSc = -dbp+dap;
+//		dSa = -dcp+dbp;
+//		dSb = -dap+dcp;
+//		dSc = -dbp+dap;
+
+	dSa = Da * lgrad - spu_extract(_dy, 0);
+	dSb = Db * lgrad - spu_extract(_dy, 1);
+	dSc = Dc * lgrad - spu_extract(_dy, 2);
 
 	} else {
 		rgrad = (c.coords.x - b.coords.x) / (c.coords.y - b.coords.y);
-		rx = ((int)b.coords.x) + 0.5;
+		rx = b.coords.x; //((int)b.coords.x) + 0.5;
 	}
 		
 //	printf ("cont y=%.2f, lx=%.2f, lgrad=%.2f, rx=%.2f, rgrad=%.2f, mid=%.2f, bottom=%.2f\n",
