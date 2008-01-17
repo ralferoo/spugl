@@ -60,13 +60,13 @@ void _draw_imp_triangle(triangle* tri)
 	int tag_id = 1;
 	int mask;
 
-	float y = ((int)a.coords.y) + 0.5;
+	float y = a.coords.y; //((int)a.coords.y) + 0.5;
 
 	float lgrad = (c.coords.x - a.coords.x) / (c.coords.y - a.coords.y);
-	float lx = ((int)a.coords.x) + 0.5;
+	float lx = a.coords.x; //((int)a.coords.x) + 0.5;
 
 	float rgrad = (b.coords.x - a.coords.x) / (b.coords.y - a.coords.y);
-	float rx = ((int)a.coords.x) + 0.5;
+	float rx = a.coords.x; //((int)a.coords.x) + 0.5;
 
 	float mid, bottom;
 	if (left) {
@@ -75,8 +75,8 @@ void _draw_imp_triangle(triangle* tri)
 		mid = b.coords.y; bottom = c.coords.y;
 	}
 
-//	printf ("y=%.2f, lx=%.2f, lgrad=%.2f, rx=%.2f, rgrad=%.2f, mid=%.2f, bottom=%.2f\n",
-//		y, lx, lgrad, rx, rgrad, mid, bottom);
+	printf ("y=%.2f, lx=%.2f, lgrad=%.2f, rx=%.2f, rgrad=%.2f, mid=%.2f, bottom=%.2f\n",
+		y, lx, lgrad, rx, rgrad, mid, bottom);
 
 	float tab = a.coords.x * b.coords.y - b.coords.x * a.coords.y;
 	float tbc = b.coords.x * c.coords.y - c.coords.x * b.coords.y;
@@ -101,12 +101,45 @@ void _draw_imp_triangle(triangle* tri)
 	float Da = c.coords.y - b.coords.y;
 	float Db = a.coords.y - c.coords.y;
 	float Dc = b.coords.y - a.coords.y;
-/*
+
+	float face_sum = tri->A;
+	vec_float4 _dx = tri->dx; //spu_shuffle(tri->dx, tri->dx, tri->shuffle);
+	vec_float4 _dy = tri->dy; //spu_shuffle(tri->dy, tri->dy, tri->shuffle);
+
+	printf("    Sa=%f, Sb=%f, Sc=%f\n",
+			Sa, Sb, Sc);
+
+	printf("    dSa=%f, dSb=%f, dSc=%f\n",
+			dSa, dSb, dSc);
+
+	printf("old Da=%f, Db=%f, Dc=%f, Db+Dc=%f\n",
+			Da, Db, Dc, Db+Dc);
+
+	Da = spu_extract(_dx, 0);
+	Db = spu_extract(_dx, 1);
+	Dc = spu_extract(_dx, 2);
+
+//	dSa = spu_extract(_dy, 0);
+//	dSb = spu_extract(_dy, 1);
+//	dSc = spu_extract(_dy, 2);
+
+	Sa = face_sum;
+	Sb = 0.0f;
+	Sc = 0.0f;
+
+	printf("new Da=%f, Db=%f, Dc=%f, Db+Dc=%f\n",
+			Da, Db, Dc, Db+Dc);
+
+	printf("    dSa=%f, dSb=%f, dSc=%f\n",
+			dSa, dSb, dSc);
+
 	printf("face_sum %f, Sa=%f, Sb=%f, Sc=%f\n",
 			face_sum, Sa, Sb, Sc);
 	printf("dSa=%f, dSb=%f, dSc=%f, dSb+dSc=%f, diff=%f\n\n",
 			dSa, dSb, dSc, dSb+dSc, face_sum-Sa);
-*/
+//	printf("Da=%f, Db=%f, Dc=%f, Db+Dc=%f\n\n",
+//			Da, Db, Dc, Db+Dc);
+
 	while (y < mid && y < 0) {
 		y += 1.0;
 		lx += lgrad;
@@ -160,6 +193,7 @@ void _draw_imp_triangle(triangle* tri)
 		dSa = -dcp+dbp;
 		dSb = -dap+dcp;
 		dSc = -dbp+dap;
+
 	} else {
 		rgrad = (c.coords.x - b.coords.x) / (c.coords.y - b.coords.y);
 		rx = ((int)b.coords.x) + 0.5;

@@ -40,6 +40,7 @@ typedef struct {
 	vec_float4	s,t,u,v;	// primary texture
 
 	float		A,dAdx,dAdy;	// weight information, A is top vertex
+	vec_float4	dx,dy;		// primary texture
 
 	void *		texture;
 	void *		shader;

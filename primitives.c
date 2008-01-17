@@ -108,16 +108,17 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 	vec_float4 vy = spu_shuffle(TRIy, TRIy, r_normal);
 	vec_float4 v_y_cw = spu_shuffle(vy, vy, shuffle_tri_cw);
 	vec_float4 v_y_ccw = spu_shuffle(vy, vy, shuffle_tri_ccw);
-
 	vec_float4 v_by_to_cy = spu_sub(v_y_ccw, v_y_cw);
 
 	vec_float4 face_mul = spu_mul(vx, v_by_to_cy);
 	float face_sum = spu_extract(face_mul, 0) +
 			 spu_extract(face_mul, 1) +
 			 spu_extract(face_mul, 2);
+
 	vec_float4 cast_sum = (vec_float4) face_sum;
 	vec_float4 cast_zero = (vec_float4) 0.0f;
 	vec_uint4 fcgt_area = spu_cmpgt(cast_zero, cast_sum);
+
 	unsigned long advance_ptr_mask = spu_extract(fcgt_area, 0);
 	triangle* next_triangle = (triangle*) ( ((void*)triangle_out_ptr) +
 			(advance_ptr_mask&sizeof(triangle)) );
@@ -145,6 +146,25 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 	triangle_out_ptr -> texture = 0;
 	triangle_out_ptr -> shader = 0;
 	triangle_out_ptr -> right = right_and;
+
+	vec_float4 v_x_cw = spu_shuffle(vx, vx, shuffle_tri_cw);
+	vec_float4 v_x_ccw = spu_shuffle(vx, vx, shuffle_tri_ccw);
+	vec_float4 v_bx_to_cx = spu_sub(v_x_ccw, v_x_cw);
+
+	triangle_out_ptr -> dx = v_by_to_cy;
+	triangle_out_ptr -> dy = v_bx_to_cx;
+
+	if (face_sum<0) {
+	int i;
+	for (i=0; i<3; i++) {
+		printf("A(%c): %f, dAdx(%c)=%f dAdy(%c)=%f\n",
+			i+'a', spu_extract(face_mul,i),
+			i+'a', spu_extract(v_by_to_cy,i),
+			i+'a', spu_extract(v_bx_to_cx,i));
+	}
+	printf("\n");
+	}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 //

@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
 
 	float a=0.0,b=0.0,c=0.0;
 
-	int f,v,vv;
+	int f,v;
 	for (;;) {
 		a += 0.011;
 		b += 0.037;
@@ -71,21 +71,12 @@ int main(int argc, char* argv[]) {
 
 		glspuClear();
 		unsigned long _start = glspuCounter();
+		glBegin(GL_TRIANGLES);
 		for (f=0; f<6; f++) {
-		glBegin(GL_QUADS);
-		//glBegin(GL_QUAD_STRIP);
-			for (vv=0; vv<4; vv++) {
-				v = vv;
-		//		v = vv^(vv>>1); // swap 2 and 3
-			    if (0)
-				glColor3ub(faces[f][4],
-					   faces[f][5],
-					   faces[f][6]);
-			    else
-				glColor3ub(vertices[faces[f][v]][4],
-					   vertices[faces[f][v]][5],
-					   vertices[faces[f][v]][3]);
-
+			float sx[5], sy[5], sz[5];
+			float tx=0, ty=0, tz=0;
+			float tr=0, tg=0, tb=0;
+			for (v=0; v<4; v++) {
 				x = vertices[faces[f][v]][0];
 				y = vertices[faces[f][v]][1];
 				z = vertices[faces[f][v]][2];
@@ -102,14 +93,39 @@ int main(int argc, char* argv[]) {
 				z = cc*z-sc*x;
 				x = t;
 
-				glVertex3f(x,y,z);
+				sx[v] = x;
+				sy[v] = y;
+				sz[v] = z;
+
+				tx += x;
+				ty += y;
+				tz += z;
+
+				tr += vertices[faces[f][v]][4];
+				tg += vertices[faces[f][v]][5];
+				tb += vertices[faces[f][v]][3];
 			}
-		glEnd();	
+
+			for (v=0; v<4; v++) {
+				glColor3ub(vertices[faces[f][v]][4],
+					   vertices[faces[f][v]][5],
+					   vertices[faces[f][v]][3]);
+				glVertex3f(sx[v],sy[v],sz[v]);
+
+				glColor3ub(vertices[faces[f][(v+1)%4]][4],
+					   vertices[faces[f][(v+1)%4]][5],
+					   vertices[faces[f][(v+1)%4]][3]);
+				glVertex3f(sx[(v+1)%4],sy[(v+1)%4],sz[(v+1)%4]);
+
+				glColor3ub(tr/4, tg/4, tb/4);
+				glVertex3f(tx/4, ty/4, tz/4);
+			}
 		}
+		glEnd();	
 		glFlush();
 		glspuFlip();
 		unsigned long _end = glspuCounter();
-		glspuWait();
+//		glspuWait();
 		GLenum error = glGetError();
 		if (error)
 			printf("glGetError() returned %d\n", error);

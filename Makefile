@@ -41,7 +41,7 @@ run:	test
 	./test
 
 edit:
-	gvim -p Makefile *.c *.h
+	gvim -p Makefile fragment.c primitives.c shader.c test.c struct.h
 
 ppufifo.o: Makefile .gen
 spufifo.0: Makefile .gen
@@ -121,6 +121,7 @@ ppufifo.o: /usr/include/bits/wchar.h /usr/include/gconv.h
 ppufifo.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 ppufifo.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
 ppufifo.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
+ppufifo.o: /usr/include/sys/mman.h /usr/include/bits/mman.h
 ppufifo.o: /usr/include/libspe.h fifo.h types.h gen_spu_command_defs.h
 glfifo.o: /usr/include/stdlib.h /usr/include/features.h
 glfifo.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
@@ -220,3 +221,16 @@ triangleColourSpan.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 triangleColourSpan.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 triangleColourSpan.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h struct.h
 triangleColourSpan.0: types.h spuregs.h
+fragment.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
+fragment.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+fragment.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
+fragment.0: gen_spu_command_defs.h struct.h spuregs.h primitives.h ./GL/gl.h
+fragment.0: ./GL/glext.h /usr/lib/gcc/spu/4.0.2/include/stddef.h
+fragment.0: /usr/include/inttypes.h /usr/include/features.h
+fragment.0: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+fragment.0: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+fragment.0: /usr/include/stdint.h /usr/include/bits/wchar.h
+shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
+shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
+shader.0: gen_spu_command_defs.h struct.h spuregs.h
