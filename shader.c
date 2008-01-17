@@ -191,6 +191,14 @@ void _draw_imp_triangle(triangle* tri)
 	
 // i want to be able to get rid of these fellows... but sometimes the colours
 // go wrong... ?
+
+if (Sa != -tbc-tcp+tbp || Sb != -tca-tap+tcp || Sc != -tab-tbp+tap) {
+	printf ("%f -> %f\n%f -> %f\n%f -> %f\n\n",
+		Sa , -tbc-tcp+tbp,
+		Sb , -tca-tap+tcp,
+		Sc , -tab-tbp+tap);
+}
+
 		Sa = -tbc-tcp+tbp;
 		Sb = -tca-tap+tcp;
 		Sc = -tab-tbp+tap;
