@@ -119,8 +119,10 @@ int main(int argc, char* argv[]) {
 
 				glColor3ub(tr/4, tg/4, tb/4);
 				glVertex3f(tx/4, ty/4, tz/4);
+//goto cheat;
 			}
 		}
+cheat:
 		glEnd();	
 		glFlush();
 		glspuFlip();

@@ -46,7 +46,6 @@ typedef struct {
 	char* current;
 	int drawFrame;
 
-	struct timespec startPoint;
 	_bitmap_image image;
 } ScreenObject;
 
@@ -74,7 +73,6 @@ static void Screen_initResources(ScreenObject* self) {
 	self->fd = -1;
 	self->desiredMode = -1;
 	self->graphicsMode = 0;
-	clock_gettime(CLOCK_MONOTONIC,&(self->startPoint));
 	self->hasUnblankedScreen = 0;
 }
 
@@ -177,19 +175,6 @@ Screen_wait(ScreenObject *self)
 
 	uint32_t crt = 0;
 	ioctl(self->fd, FBIO_WAITFORVSYNC, (unsigned long)&crt);
-}
-
-static double
-Screen_getTime(ScreenObject* self) {
-	struct timespec after;
-	int resAfter = clock_gettime(CLOCK_MONOTONIC,&after);
-
-	if (resAfter==0) {
-		double secs = after.tv_sec-self->startPoint.tv_sec + ((after.tv_nsec-self->startPoint.tv_nsec) / 1000000000.0);
-		return secs;
-	} else {
-		return 0.0;
-	}
 }
 
 static int Screen_setMode(ScreenObject* self, int desiredMode) {

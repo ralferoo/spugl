@@ -16,11 +16,10 @@
 extern SPU_CONTROL control;
 _bitmap_image screen = { .address = 0};
 
-#define LOCAL_FRAGMENTS 40
+#define FRAG_IS_SCREEN	0x8000
+#define FRAG_ID_MASK	0x7fff
 
-#define FRAGMENT_WIDTH 32
-#define FRAGMENT_HEIGHT 32
-#define FRAGMENT_SIZE (4*FRAGMENT_WIDTH*FRAGMENT_HEIGHT)
+unsigned char _local_fragment_base[LOCAL_FRAGMENTS * FRAGMENT_SIZE] __attribute__((aligned(128)));
 
 static struct {
 	unsigned int wide;
@@ -28,15 +27,27 @@ static struct {
 	u64 base_ea;
 	u32 buffer_length;
 	unsigned int num_fragments;
-	void* fragment_local_base;
 	unsigned short id[LOCAL_FRAGMENTS];
+	void* fragment_local_base;
+	unsigned int next_fragment;
 } frags = {
-	.fragment_local_base = 0,
+	.fragment_local_base = (void*) &_local_fragment_base,
+	.next_fragment = 0,
 	.id = {0}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#define MAX_SCREEN_FRAGMENTS (1920*1280/(FRAGMENT_WIDTH*FRAGMENT_HEIGHT))
+
+u32* getFragment(unsigned int id, unsigned long dma_tag)
+{
+	unsigned int next_fragment = frags.next_fragment;
+	frags.next_fragment = (frags.next_fragment+1)%LOCAL_FRAGMENTS;
+	if (frags.id[next_fragment]) {
+//		if (
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -56,8 +67,9 @@ static struct {
 	frags.buffer_length = control.fragment_buflen;
 	frags.num_fragments = frags.buffer_length/FRAGMENT_SIZE;
 
-//	printf("screen is %dx%d frags, we have %d fragments at 0x%llx\n",
-//		frags.wide, frags.high, frags.num_fragments, frags.base_ea);
+//	printf("screen is %dx%d frags, we have %d fragments at 0x%llx, local 0x%lx\n",
+//		frags.wide, frags.high, frags.num_fragments, frags.base_ea,
+//		frags.fragment_local_base);
 
 	return from;
 }

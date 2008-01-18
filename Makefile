@@ -29,13 +29,16 @@ PPU_TEST_OBJS = $(PPU_OBJS) test.o
 PPU_SRCS := $(patsubst %.o,%.c,$(PPU_TEST_OBJS))
 SPU_SRCS := $(patsubst %.0,%.c,$(SPU_OBJS))
 
-GENSOURCES = $(SPU_SRCS)
-#GENSOURCES = decode.c fragment.c
+#GENSOURCES = $(SPU_SRCS)
+GENSOURCES = decode.c fragment.c
 
 all:	$(TARGETS)
 
 test:	$(PPU_TEST_OBJS) $(SPU_HNDL)
 	gcc -m$(USERLAND) -o test $(PPU_TEST_OBJS) $(SPU_HNDL) $(LIBS)
+
+test.static:	$(PPU_TEST_OBJS) $(SPU_HNDL)
+	gcc -m$(USERLAND) -o test.static $(PPU_TEST_OBJS) $(SPU_HNDL) $(LIBS) -static
 
 run:	test
 	./test

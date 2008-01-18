@@ -11,6 +11,12 @@
 
 #include "types.h"
 
+#define LOCAL_FRAGMENTS 40
+
+#define FRAGMENT_WIDTH 32
+#define FRAGMENT_HEIGHT 32
+#define FRAGMENT_SIZE (4*FRAGMENT_WIDTH*FRAGMENT_HEIGHT)
+
 typedef struct {
 	u64 address;
 	u32 width;
