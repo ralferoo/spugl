@@ -1,0 +1,1225 @@
+Index: fragment.c
+===================================================================
+--- fragment.c	(revision 793)
++++ fragment.c	(working copy)
+@@ -16,11 +16,10 @@
+ extern SPU_CONTROL control;
+ _bitmap_image screen = { .address = 0};
+ 
+-#define LOCAL_FRAGMENTS 40
++#define FRAG_IS_SCREEN	0x8000
++#define FRAG_ID_MASK	0x7fff
+ 
+-#define FRAGMENT_WIDTH 32
+-#define FRAGMENT_HEIGHT 32
+-#define FRAGMENT_SIZE (4*FRAGMENT_WIDTH*FRAGMENT_HEIGHT)
++unsigned char _local_fragment_base[LOCAL_FRAGMENTS * FRAGMENT_SIZE] __attribute__((aligned(128)));
+ 
+ static struct {
+ 	unsigned int wide;
+@@ -28,16 +27,28 @@
+ 	u64 base_ea;
+ 	u32 buffer_length;
+ 	unsigned int num_fragments;
++	unsigned short id[LOCAL_FRAGMENTS];
+ 	void* fragment_local_base;
+-	unsigned short id[LOCAL_FRAGMENTS];
++	unsigned int next_fragment;
+ } frags = {
+-	.fragment_local_base = 0,
++	.fragment_local_base = (void*) &_local_fragment_base,
++	.next_fragment = 0,
+ 	.id = {0}
+ };
+ 
+ ///////////////////////////////////////////////////////////////////////////////
+ 
++#define MAX_SCREEN_FRAGMENTS (1920*1280/(FRAGMENT_WIDTH*FRAGMENT_HEIGHT))
+ 
++u32* getFragment(unsigned int id, unsigned long dma_tag)
++{
++	unsigned int next_fragment = frags.next_fragment;
++	frags.next_fragment = (frags.next_fragment+1)%LOCAL_FRAGMENTS;
++	if (frags.id[next_fragment]) {
++//		if (
++	}
++}
++
+ ///////////////////////////////////////////////////////////////////////////////
+ 
+ /*4*/void* impScreenInfo(u32* from) {
+@@ -56,8 +67,9 @@
+ 	frags.buffer_length = control.fragment_buflen;
+ 	frags.num_fragments = frags.buffer_length/FRAGMENT_SIZE;
+ 
+-//	printf("screen is %dx%d frags, we have %d fragments at 0x%llx\n",
+-//		frags.wide, frags.high, frags.num_fragments, frags.base_ea);
++//	printf("screen is %dx%d frags, we have %d fragments at 0x%llx, local 0x%lx\n",
++//		frags.wide, frags.high, frags.num_fragments, frags.base_ea,
++//		frags.fragment_local_base);
+ 
+ 	return from;
+ }
+Index: shader.c
+===================================================================
+--- shader.c	(revision 805)
++++ shader.c	(working copy)
+@@ -10,12 +10,462 @@
+ #include "fifo.h"
+ #include "struct.h"
+ 
++// #define DEBUG_1
++
+ extern _bitmap_image screen;
+ 
+-typedef void TRIANGLE_SPAN_FUNCTION(u32* screenBuffer, int start, int length, vertex_state* a, vertex_state* b, vertex_state* c, float Sa, float Sb, float Sc, float Da, float Db, float Dc);
++u32 textureTemp[32] __attribute__((aligned(128)));
+ 
+-extern TRIANGLE_SPAN_FUNCTION triangleSpan;
+ 
++vec_int4 _a[10];
++
++int qs(int a) { return a>>5; }
++
++unsigned int qu(unsigned int a) { return a>>5; }
++
++//////////////////////////////////////////////////////////////////////////////
++
++static inline void block(vec_uint4* ptr, int line, vec_float4 lx, vec_float4 rx, vec_float4 vx_base_28)
++{
++	vec_uint4 left_28 = spu_cmpgt(vx_base_28, lx);
++	vec_uint4 right_28 = spu_cmpgt(rx, vx_base_28);
++	vec_uint4 pixel = spu_xor(left_28, right_28);
++
++	vec_uint4 colour = {0xffff00,0xff00ff,0x00ffff,0xffffff};
++	*ptr = spu_sel(*ptr, colour, pixel);
++
++/*
++	printf("%lx %c%c%c%c ", ptr,
++		spu_extract(pixel,0)?'.':'*',
++		spu_extract(pixel,1)?'.':'*',
++		spu_extract(pixel,2)?'.':'*',
++		spu_extract(pixel,3)?'.':'*');
++*/
++}
++
++void fast_triangle(triangle* tri, vec_uint4* block_ptr)
++{
++	vec_float4 vx = spu_shuffle(tri->x, tri->x, tri->shuffle);
++	vec_float4 vy = spu_shuffle(tri->y, tri->y, tri->shuffle);
++
++	// these are ((int(coord)+0.5)*2)
++	vec_int4 vx_int = spu_convts(vx,0);
++	vec_int4 vy_int = spu_convts(vy,0);
++	vec_int4 _1 = {1,1,1,1};
++	vec_int4 vx_x2 = spu_sl(vx_int,1);
++	vec_int4 vx_1 = spu_or(vx_x2,_1);
++	vec_int4 vy_x2 = spu_sl(vy_int,1);
++	vec_int4 vy_1 = spu_or(vy_x2,_1);
++
++	// so, now these are the mid-pixel points
++	vec_float4 vx_mid = spu_convtf(vx_1,1);
++	vec_float4 vy_mid = spu_convtf(vy_1,1);
++
++	vec_int4 vx_block = spu_rlmaska(vx_int,-5);
++	vec_int4 vy_block = spu_rlmaska(vy_int,-5);
++
++	vec_int4 _bases = {0,2,4,6};
++	vec_int4 vx_base_i = spu_or(spu_splats(spu_extract(vx_1,0)&~62),_bases);
++	vec_int4 vy_base_i = spu_splats(spu_extract(vy_1,0)&~62);
++
++	vec_float4 _base_add4 = {4.0, 4.0, 4.0, 4.0};
++	vec_float4 _base_add8 = {8.0, 8.0, 8.0, 8.0};
++	vec_float4 _base_add16 = {16.0, 16.0, 16.0, 16.0};
++	vec_float4 vx_base_0 = spu_convtf(vx_base_i,1);
++	vec_float4 vy_base_0 = spu_convtf(vy_base_i,1);
++	vec_float4 vx_base_4 = spu_add(vx_base_0,_base_add4);
++	vec_float4 vx_base_8 = spu_add(vx_base_0,_base_add8);
++	vec_float4 vx_base_12 = spu_add(vx_base_8,_base_add4);
++	vec_float4 vx_base_16 = spu_add(vx_base_0,_base_add16);
++	vec_float4 vx_base_20 = spu_add(vx_base_4,_base_add16);
++	vec_float4 vx_base_24 = spu_add(vx_base_8,_base_add16);
++	vec_float4 vx_base_28 = spu_add(vx_base_12,_base_add16);
++
++	vec_float4 lx = spu_splats(spu_extract(vx, 0));
++	vec_float4 rx = spu_splats(spu_extract(vx, 0));
++	vec_float4 y = spu_splats(spu_extract(vy, 0));
++
++	vec_float4 dl = spu_splats(0.5f);
++	vec_float4 dr = spu_splats(-1.0f);
++
++	int line;
++	for (line=0; line<32; line++) {
++		block(&block_ptr[0], line, lx, rx, vx_base_0);
++		block(&block_ptr[1], line, lx, rx, vx_base_4);
++		block(&block_ptr[2], line, lx, rx, vx_base_8);
++		block(&block_ptr[3], line, lx, rx, vx_base_12);
++		block(&block_ptr[4], line, lx, rx, vx_base_16);
++		block(&block_ptr[5], line, lx, rx, vx_base_20);
++		block(&block_ptr[6], line, lx, rx, vx_base_24);
++		block(&block_ptr[7], line, lx, rx, vx_base_28);
++
++		lx = spu_add(lx, dl);
++		rx = spu_add(rx, dr);
++		block_ptr += 8;
++//		printf("\n");
++	}
++
++/*
++	int i;
++	for (i=0; i<3; i++) {
++		printf("%d: (%f,%f) -> (%d,%d) -> (%f,%f) -> (%d,%d)\n", i,
++			spu_extract(vx,i), spu_extract(vy,i), 
++			spu_extract(vx_int,i), spu_extract(vy_int,i), 
++			spu_extract(vx_mid,i), spu_extract(vy_mid,i),
++			spu_extract(vx_block,i), spu_extract(vy_block,i)
++			); 
++	}
++	for (i=0; i<4; i++) {
++		printf("%f: %f %f %f %f %f %f %f %f\n", 
++			spu_extract(vy_base_0,i),
++			spu_extract(vx_base_0,i), spu_extract(vx_base_4,i),
++			spu_extract(vx_base_8,i), spu_extract(vx_base_12,i),
++			spu_extract(vx_base_16,i), spu_extract(vx_base_20,i),
++			spu_extract(vx_base_24,i), spu_extract(vx_base_28,i));
++	}
++	printf("\n");
++*/
++
++
++
++
++
++
++
++
++	
++/*
++
++//	if (triangle_out_ptr == next_triangle)
++//		return next_triangle;
++
++//	vec_float4 v_y_cw = spu_shuffle(TRIy, TRIy, r_cw);
++//	vec_float4 v_y_ccw = spu_shuffle(TRIy, TRIy, r_ccw);
++
++	vertex_state a = pull_compat(0, tri);
++	vertex_state b = pull_compat(1, tri);
++	vertex_state c = pull_compat(2, tri);
++
++	unsigned long left = ~ tri->right;
++		
++	void* lb = malloc( (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT) + BYTE_ALIGNMENT);
++	int tag_id = 1;
++	int mask;
++
++	float x = a.coords.x;
++	float y = a.coords.y; //((int)a.coords.y) + 0.5;
++
++	float lgrad = (c.coords.x - a.coords.x) / (c.coords.y - a.coords.y);
++	float lx = a.coords.x; //((int)a.coords.x) + 0.5;
++
++	float rgrad = (b.coords.x - a.coords.x) / (b.coords.y - a.coords.y);
++	float rx = a.coords.x; //((int)a.coords.x) + 0.5;
++
++	float mid, bottom;
++	if (left) {
++		mid = c.coords.y; bottom = b.coords.y;
++	} else {
++		mid = b.coords.y; bottom = c.coords.y;
++	}
++
++//	printf ("y=%.2f, lx=%.2f, lgrad=%.2f, rx=%.2f, rgrad=%.2f, mid=%.2f, bottom=%.2f\n",
++//		y, lx, lgrad, rx, rgrad, mid, bottom);
++
++	float tab = a.coords.x * b.coords.y - b.coords.x * a.coords.y;
++	float tbc = b.coords.x * c.coords.y - c.coords.x * b.coords.y;
++	float tca = c.coords.x * a.coords.y - a.coords.x * c.coords.y;
++
++	float tap = a.coords.x * y - a.coords.y * lx;
++	float tbp = b.coords.x * y - b.coords.y * lx;
++	float tcp = c.coords.x * y - c.coords.y * lx;
++
++	float dap = a.coords.x - a.coords.y * lgrad;
++	float dbp = b.coords.x - b.coords.y * lgrad;
++	float dcp = c.coords.x - c.coords.y * lgrad;
++
++//	float Sa = -tbc-tcp+tbp;
++//	float Sb = -tca-tap+tcp;
++//	float Sc = -tab-tbp+tap;
++
++	float dSa = -dcp+dbp;
++	float dSb = -dap+dcp;
++	float dSc = -dbp+dap;
++
++//	float Da = c.coords.y - b.coords.y;
++//	float Db = a.coords.y - c.coords.y;
++//	float Dc = b.coords.y - a.coords.y;
++
++	float face_sum = tri->A;
++	vec_float4 _dx = tri->dx; //spu_shuffle(tri->dx, tri->dx, tri->shuffle);
++	vec_float4 _dy = tri->dy; //spu_shuffle(tri->dy, tri->dy, tri->shuffle);
++
++//	printf("    Sa=%f, Sb=%f, Sc=%f\n",
++//			Sa, Sb, Sc);
++
++//	printf("    dSa=%f, dSb=%f, dSc=%f\n",
++//			dSa, dSb, dSc);
++
++//	printf("old Da=%f, Db=%f, Dc=%f, Db+Dc=%f\n",
++//			Da, Db, Dc, Db+Dc);
++
++	float Da = spu_extract(_dx, 0);
++	float Db = spu_extract(_dx, 1);
++	float Dc = spu_extract(_dx, 2);
++
++	dSa = - spu_extract(_dy, 0);
++	dSb = - spu_extract(_dy, 1);
++	dSc = - spu_extract(_dy, 2);
++
++	float Sa = face_sum;
++	float Sb = 0.0f;
++	float Sc = 0.0f;
++
++//	printf("new Da=%f, Db=%f, Dc=%f, Db+Dc=%f\n",
++//			Da, Db, Dc, Db+Dc);
++
++//	printf("    dSa=%f, dSb=%f, dSc=%f\n",
++//			dSa, dSb, dSc);
++
++//	printf("face_sum %f, Sa=%f, Sb=%f, Sc=%f\n",
++//			face_sum, Sa, Sb, Sc);
++//	printf("dSa=%f, dSb=%f, dSc=%f, dSb+dSc=%f, diff=%f\n\n",
++//			dSa, dSb, dSc, dSb+dSc, face_sum-Sa);
++//	printf("Da=%f, Db=%f, Dc=%f, Db+Dc=%f\n\n",
++//			Da, Db, Dc, Db+Dc);
++
++//	printf("----------\n");
++
++
++	while (y < mid && y < 0) {
++		y += 1.0;
++		lx += lgrad;
++		rx += rgrad;
++		Sa += dSa;
++		Sb += dSb;
++		Sc += dSc;
++	}
++
++	while (y < mid && y < screen.height) {
++		float l = lx>0.5 ? lx : 0.5;
++		float r = rx<screen.width-1 ? rx : screen.width-0.5;
++		if (l <= r) {
++	    		int fbLine = (int)y;
++			u64 scrbuf = screen.address + screen.bytes_per_line*fbLine;
++			mfc_getf(lb, scrbuf, (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT), tag_id, 0, 0);
++			mfc_write_tag_mask(1<<tag_id);
++			mask = mfc_read_tag_status_any();
++
++			int start = (int)l;
++			int length = (int)(r-l);
++			linespan(lb, start, length, &a, &b, &c, Sa+Da*(lx-x), Sb+Db*(lx-x), Sc+Dc*(lx-x), Da, Db, Dc);
++			mfc_putf(lb, scrbuf, (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT), tag_id, 0, 0);
++			mfc_write_tag_mask(1<<tag_id);
++			mask = mfc_read_tag_status_any();
++		}
++		y += 1.0;
++		lx += lgrad;
++		rx += rgrad;
++		Sa += dSa;
++		Sb += dSb;
++		Sc += dSc;
++	}
++
++	if (left) {
++		lgrad = (b.coords.x - c.coords.x) / (b.coords.y - c.coords.y);
++		lx = c.coords.x; //((int)c.coords.x) + 0.5;
++
++		tap = a.coords.x * y - a.coords.y * lx;
++		tbp = b.coords.x * y - b.coords.y * lx;
++		tcp = c.coords.x * y - c.coords.y * lx;
++
++		dap = a.coords.x - a.coords.y * lgrad;
++		dbp = b.coords.x - b.coords.y * lgrad;
++		dcp = c.coords.x - c.coords.y * lgrad;
++	
++// i want to be able to get rid of these fellows... but sometimes the colours
++// go wrong... ?
++
++if (Sa != -tbc-tcp+tbp || Sb != -tca-tap+tcp || Sc != -tab-tbp+tap) {
++	printf ("%f -> %f\n%f -> %f\n%f -> %f\n\n",
++		Sa , -tbc-tcp+tbp,
++		Sb , -tca-tap+tcp,
++		Sc , -tab-tbp+tap);
++}
++
++		Sa = -tbc-tcp+tbp;
++		Sb = -tca-tap+tcp;
++		Sc = -tab-tbp+tap;
++
++//		dSa = -dcp+dbp;
++//		dSb = -dap+dcp;
++//		dSc = -dbp+dap;
++
++	dSa = Da * lgrad - spu_extract(_dy, 0);
++	dSb = Db * lgrad - spu_extract(_dy, 1);
++	dSc = Dc * lgrad - spu_extract(_dy, 2);
++
++	} else {
++		rgrad = (c.coords.x - b.coords.x) / (c.coords.y - b.coords.y);
++		rx = b.coords.x; //((int)b.coords.x) + 0.5;
++	}
++		
++//	printf ("cont y=%.2f, lx=%.2f, lgrad=%.2f, rx=%.2f, rgrad=%.2f, mid=%.2f, bottom=%.2f\n",
++//		y, lx, lgrad, rx, rgrad, mid, bottom);
++
++	while (y < bottom && y < 0) {
++		y += 1.0;
++		lx += lgrad;
++		rx += rgrad;
++		Sa += dSa;
++		Sb += dSb;
++		Sc += dSc;
++	}
++
++	while (y < bottom && y < screen.height) {
++		float l = lx>0.5 ? lx : 0.5;
++		float r = rx<screen.width-1 ? rx : screen.width-0.5;
++		if (l < r) {
++	    		int fbLine = (int)y;
++			u64 scrbuf = screen.address + screen.bytes_per_line*fbLine;
++			mfc_getf(lb, scrbuf, (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT), tag_id, 0, 0);
++			mfc_write_tag_mask(1<<tag_id);
++			mask = mfc_read_tag_status_any();
++
++			int start = (int)l;
++			int length = (int)(r-l);
++			linespan(lb, start, length, &a, &b, &c, Sa+Da*(lx-x), Sb+Db*(lx-x), Sc+Dc*(lx-x), Da, Db, Dc);
++//			linespan(lb, start, length, &a, &b, &c, Sa, Sb, Sc, Da, Db, Dc);
++			mfc_putf(lb, scrbuf, (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT), tag_id, 0, 0);
++			mfc_write_tag_mask(1<<tag_id);
++			mask = mfc_read_tag_status_any();
++		}
++		y += 1.0;
++		lx += lgrad;
++		rx += rgrad;
++		Sa += dSa;
++		Sb += dSb;
++		Sc += dSc;
++	}
++	free(lb);
++*/
++}
++
++
++
++
++
++
++
++
++
++
++
++static inline void linespan
++(u32* screenBuffer, int start, int length, vertex_state* a, vertex_state* b, vertex_state* c, float Sa, float Sb, float Sc, float Da, float Db, float Dc)
++{
++	screenBuffer += start;	// skip pixels on left
++
++// printf("%f %f %f\n", Sa, Sb, Sc);
++
++//	int tex_blocks_wide = (texture_width-1+31)>>5;
++
++	do {
++		// can do these by anding off the sign bit
++		float Aa = fabs(Sa);
++		float Ab = fabs(Sb);
++		float Ac = fabs(Sc);
++	
++		// with these running in parallel (although if unrolled to
++		// 8 x vector[4] we will have 0..7*D precalculated and this
++		// doesn't actually change per line)
++		Sa += Da;
++		Sb += Db;
++		Sc += Dc;
++
++		float w = a->coords.w*Aa + b->coords.w*Ab + c->coords.w*Ac;
++		float z = 1.0/w; // don't forget newton-rhapson here
++
++		float Ba = Aa*z;
++		float Bb = Ab*z;
++		float Bc = Ac*z;
++
++/*
++		if (texture_stride) {
++			float ru = (a->r * Ba + b->r * Bb + c->r * Bc);
++			float rv = (a->g * Ba + b->g * Bb + c->g * Bc);
++
++			int u,v;
++
++			u32 result = 0;
++#ifdef RUBBISH
++			vec_float4 tru = spu_splats(ru);
++			vec_uint4 tu = si_cflts((qword)ru, 13);
++			u = spu_extract(tu, 0)>>(32-7);
++
++			vec_float4 trv = spu_splats(rv);
++			vec_uint4 tv = si_cfltu((qword)rv, 32);
++			v = spu_extract(tv, 0)>>(32-7);
++
++			printf("%f %f -> %f %08lx %d\n", ru, rv, 
++				spu_extract(tru, 0),
++				spu_extract(tu, 0), u);
++
++#else
++			u = (int)(texture_width*ru);
++			v = (int)(texture_height*rv);
++
++			if (u<0) u=0;
++			if (u>texture_width-1) u=texture_width-1;
++
++			if (v<0) v=0;
++			if (v>texture_height-1) v=texture_height-1;
++
++			int block = (v>>5)*tex_blocks_wide + (u>>5);
++
++			u &= 31;
++			v &= 31;
++
++			result = (block<<16) | (u<<8) | v;
++
++		printf ("%1.3f,%1.3f -> %4x, %x,%x -> %x\n", ru, rv, block, u, v, result);
++#endif
++/*
++			unsigned long long texAddress = texture + texture_stride*v + (u<<2);
++			unsigned long ta = texAddress&~127;
++
++//			printf("Ba %f Bb %f Bc %f ar %f br %f cr %f\n ag %f bg %f cg %f\n",
++//				Ba, Bb, Bc, a->r, b->r, c->r, a->g, b->g, c->g);
++
++//			printf("tex=(%1.3f,%1.3f) (%d,%d) stride=%d size=(%d,%d) doing short blit from address %llx to %lx\n", ru, rv, u, v, texture_stride, texture_width, texture_height, texAddress, &textureTemp);
++			int tag_id = 0;
++			//mfc_get(&textureTemp, ta, 128, tag_id,0,0);
++			mfc_get(&textureTemp[u&31], texAddress, 4, tag_id,0,0);
++			mfc_write_tag_mask(1<<tag_id);
++			int mask = mfc_read_tag_status_any();
++//			printf("finished blit...\n");
++			result = textureTemp[u&31];
++			
++			*screenBuffer++ = result;
++		} else {
++*/
++			// cfltu and scale should nicely handle the clamping
++			int Cr = (int)(255*(a->colour.x * Ba + b->colour.x * Bb + c->colour.x * Bc));
++			int Cg = (int)(255*(a->colour.y * Ba + b->colour.y * Bb + c->colour.y * Bc));
++			int Cb = (int)(255*(a->colour.z * Ba + b->colour.z * Bb + c->colour.z * Bc));
++
++//	printf("rgb = %d %d %d\n", Cr, Cg, Cb);
++
++			if (Cr<0) Cr=0; if (Cr>255) Cr=255;
++			if (Cg<0) Cg=0; if (Cg>255) Cg=255;
++			if (Cb<0) Cb=0; if (Cb>255) Cb=255;
++
++			*screenBuffer++ = 0xff000000 | (Cr<<16) | (Cg<<8) | Cb;
++//		}
++	} while (length--); // length=0 means 1px
++}
++
++
++
+ static inline vertex_state pull_compat(int j, triangle* tri)
+ {
+ 	vec_uchar16 sel = tri->shuffle;
+@@ -40,7 +490,7 @@
+ }
+ 
+ 
+-void _draw_imp_triangle(triangle* tri)
++void x_draw_imp_triangle(triangle* tri)
+ {
+ //	if (triangle_out_ptr == next_triangle)
+ //		return next_triangle;
+@@ -48,8 +498,6 @@
+ //	vec_float4 v_y_cw = spu_shuffle(TRIy, TRIy, r_cw);
+ //	vec_float4 v_y_ccw = spu_shuffle(TRIy, TRIy, r_ccw);
+ 
+-	TRIANGLE_SPAN_FUNCTION* func = triangleSpan;
+-
+ 	vertex_state a = pull_compat(0, tri);
+ 	vertex_state b = pull_compat(1, tri);
+ 	vertex_state c = pull_compat(2, tri);
+@@ -60,6 +508,7 @@
+ 	int tag_id = 1;
+ 	int mask;
+ 
++	float x = a.coords.x;
+ 	float y = a.coords.y; //((int)a.coords.y) + 0.5;
+ 
+ 	float lgrad = (c.coords.x - a.coords.x) / (c.coords.y - a.coords.y);
+@@ -119,9 +568,9 @@
+ 	float Db = spu_extract(_dx, 1);
+ 	float Dc = spu_extract(_dx, 2);
+ 
+-	dSa = Da * lgrad - spu_extract(_dy, 0);
+-	dSb = Db * lgrad - spu_extract(_dy, 1);
+-	dSc = Dc * lgrad - spu_extract(_dy, 2);
++	dSa = /*Da * lgrad*/ - spu_extract(_dy, 0);
++	dSb = /*Db * lgrad*/ - spu_extract(_dy, 1);
++	dSc = /*Dc * lgrad*/ - spu_extract(_dy, 2);
+ 
+ 	float Sa = face_sum;
+ 	float Sb = 0.0f;
+@@ -164,7 +613,7 @@
+ 
+ 			int start = (int)l;
+ 			int length = (int)(r-l);
+-			(*func)(lb, start, length, &a, &b, &c, Sa, Sb, Sc, Da, Db, Dc);
++			linespan(lb, start, length, &a, &b, &c, Sa+Da*(lx-x), Sb+Db*(lx-x), Sc+Dc*(lx-x), Da, Db, Dc);
+ 			mfc_putf(lb, scrbuf, (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT), tag_id, 0, 0);
+ 			mfc_write_tag_mask(1<<tag_id);
+ 			mask = mfc_read_tag_status_any();
+@@ -240,7 +689,8 @@
+ 
+ 			int start = (int)l;
+ 			int length = (int)(r-l);
+-			(*func)(lb, start, length, &a, &b, &c, Sa, Sb, Sc, Da, Db, Dc);
++			linespan(lb, start, length, &a, &b, &c, Sa+Da*(lx-x), Sb+Db*(lx-x), Sc+Dc*(lx-x), Da, Db, Dc);
++//			linespan(lb, start, length, &a, &b, &c, Sa, Sb, Sc, Da, Db, Dc);
+ 			mfc_putf(lb, scrbuf, (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT), tag_id, 0, 0);
+ 			mfc_write_tag_mask(1<<tag_id);
+ 			mask = mfc_read_tag_status_any();
+@@ -254,3 +704,215 @@
+ 	}
+ 	free(lb);
+ }
++
++// EOF
++
++//////////////////////////////////////////////////////////////////////////////
++
++static inline void build_blit_list(
++		vec_uint4* dma_list_buffer,
++		unsigned long eal, unsigned long stride)
++{
++#ifdef DEBUG_1
++	printf("build_blit_list: eal=%lx stride=%d\n", eal, stride);
++#endif
++
++	unsigned long eal1 = eal + stride;
++	unsigned long stride2 = 2 * stride;
++	unsigned long stride8 = 8 * stride;
++	vec_uint4 block0 = { 128, eal, 128, eal1 };
++	vec_uint4 step2 = { 0, stride2, 0, stride2};
++	vec_uint4 step4 = spu_add(step2, step2);
++	vec_uint4 step6 = spu_add(step4, step2);
++	vec_uint4 step8 = { 0, stride8, 0, stride8};
++	vec_uint4 step16 = spu_add(step8, step8);
++	vec_uint4 block2 = spu_add(block0, step2);
++	vec_uint4 block4 = spu_add(block0, step4);
++	vec_uint4 block6 = spu_add(block0, step6);
++	vec_uint4 block8 = spu_add(block0, step8);
++	vec_uint4 block10 = spu_add(block8, step2);
++	vec_uint4 block12 = spu_add(block8, step4);
++	vec_uint4 block14 = spu_add(block8, step6);
++	vec_uint4 block16 = spu_add(block8, step8);
++	vec_uint4 block18 = spu_add(step16, block2);
++	vec_uint4 block20 = spu_add(step16, block4);
++	vec_uint4 block22 = spu_add(step16, block6);
++	vec_uint4 block24 = spu_add(step16, block8);
++	vec_uint4 block26 = spu_add(step16, block10);
++	vec_uint4 block28 = spu_add(step16, block12);
++	vec_uint4 block30 = spu_add(step16, block14);
++
++	dma_list_buffer[0] = block0;
++	dma_list_buffer[1] = block2;
++	dma_list_buffer[2] = block4;
++	dma_list_buffer[3] = block6;
++	dma_list_buffer[4] = block8;
++	dma_list_buffer[5] = block10;
++	dma_list_buffer[6] = block12;
++	dma_list_buffer[7] = block14;
++
++	dma_list_buffer[8] = block16;
++	dma_list_buffer[9] = block18;
++	dma_list_buffer[10] = block20;
++	dma_list_buffer[11] = block22;
++	dma_list_buffer[12] = block24;
++	dma_list_buffer[13] = block26;
++	dma_list_buffer[14] = block28;
++	dma_list_buffer[15] = block30;
++
++#ifdef DEBUG_1
++	int i,j;
++	for (i=0;i<16;i++) {
++		printf("%lx(%x): ", &dma_list_buffer[i], i);
++		for (j=0; j<4; j++) {
++			printf("%lx ", spu_extract(dma_list_buffer[i], j));
++		}
++		printf("\n");
++	}
++#endif
++}
++
++typedef struct {
++	u32 pixels[32*32];
++	vec_uint4 dma1[16];
++	vec_uint4 dma2[16];
++	vec_uint4* current_dma;
++	vec_uint4* new_dma;
++	unsigned long current_length;
++	unsigned long eah;
++	unsigned long tagid;
++} screen_block;
++
++void init_screen_block(screen_block* block, unsigned long tagid)
++{
++	block->new_dma = &block->dma1[0];
++	block->current_dma = &block->dma2[0];
++	block->current_length = 0;
++	block->tagid = tagid;
++}
++
++static inline unsigned long cmp_eq(unsigned long a, unsigned long b) {
++	vec_uint4 aa = (vec_uint4) a;
++	vec_uint4 bb = (vec_uint4) b;
++	vec_uint4 rr = spu_cmpeq(aa, bb);
++	return spu_extract(rr, 0);
++}
++
++static inline unsigned long if_then_else(unsigned long c, 
++		unsigned long a, unsigned long b) {
++	vec_uint4 aa = (vec_uint4) a;
++	vec_uint4 bb = (vec_uint4) b;
++	vec_uint4 cc = (vec_uint4) c;
++	vec_uint4 rr = spu_sel(bb, aa, cc);
++	return spu_extract(rr, 0);
++}
++	
++void flush_screen_block(screen_block* block)
++{
++	unsigned long len = block->current_length;
++
++	if (len) {
++		unsigned long eah = block->eah;
++		unsigned long eal = (unsigned long) ((void*)block->current_dma);
++		spu_mfcdma64(&block->pixels[0], eah, eal, len, block->tagid,
++			MFC_PUTLB_CMD);
++		block->current_length = 0;
++	}
++}
++
++unsigned long wait_screen_block(screen_block* block)
++{
++	mfc_write_tag_mask(1 << block->tagid);
++	unsigned long mask = mfc_read_tag_status_any();
++	return mask;
++}
++
++// BUGS: this only works if lines is a multiple of 2, and <=32
++void load_screen_block(screen_block* block, 
++		unsigned long long ea, unsigned long stride, unsigned int lines)
++{
++#ifdef DEBUG_1
++	printf("load_screen_block: block=%lx screen=%llx stride=%d lines=%d\n",
++		block, ea, stride, lines);
++#endif
++
++	unsigned long eah = ea >> 32;
++	unsigned long eal = ((unsigned long) (ea&0xffffffff));
++
++	build_blit_list(block->new_dma, eal, stride);
++
++	unsigned long old_size = block->current_length;
++	unsigned long half_new_size = lines * 4;
++	unsigned long new_size = half_new_size * 2;
++	unsigned long store_new_size = new_size;
++
++	unsigned long eal_old = (unsigned long) ((void*)block->current_dma);
++	unsigned long eal_new = (unsigned long) ((void*)block->new_dma);
++
++	// if this is an unused block, then we have no data to blit out
++	// so to avoid branches, split the read block in half
++	unsigned long is_new = cmp_eq(old_size, 0);
++	unsigned long cmd = if_then_else(is_new, MFC_GETL_CMD, MFC_PUTLB_CMD);
++	eal_old = if_then_else(is_new, eal_new+half_new_size, eal_old);
++	new_size = if_then_else(is_new, half_new_size, new_size);
++	old_size = if_then_else(is_new, half_new_size, old_size);
++	unsigned long tag = block->tagid;
++
++#ifdef DEBUG_1
++	printf("DMA[%02X]: ls=%lx eah=%lx list=%lx, size=%d, tag=%d\n",
++		cmd, &block->pixels[0],eah,eal_old,old_size,tag);
++	printf("DMA[%02X]: ls=%lx eah=%lx list=%lx, size=%d, tag=%d\n",
++		MFC_GETL_CMD, &block->pixels[0],eah,eal_new,new_size,tag);
++#endif
++
++	spu_mfcdma64(&block->pixels[0],eah,eal_old,old_size,tag, cmd);
++	spu_mfcdma64(&block->pixels[0],eah,eal_new,new_size,tag, MFC_GETL_CMD);
++
++	// update the buffer pointers
++	block->current_length = store_new_size;
++	vec_uint4* t = block->current_dma; 
++	block->current_dma = block->new_dma; 
++	block->new_dma = t;
++	block->eah = eah;
++}
++
++/* MFC list DMA
++#define mfc_putlb( ls,ea,lsa,size,tag,tid,rid) spu_mfcdma64(ls,mfc_ea2h(ea),(unsigned int)(lsa),size,tag,MFC_CMD_WORD(tid,rid,MFC_PUTLB_CMD))
++#define mfc_getl(  ls,ea,lsa,size,tag,tid,rid) spu_mfcdma64(ls,mfc_ea2h(ea),(unsigned int)(lsa),size,tag,MFC_CMD_WORD(tid,rid,MFC_GETL_CMD))
++
++	vec_uint4 v_os = (vec_uint4) old_size;
++	vec_uint4 v_ns = (vec_uint4) new_size;
++
++	vec_uint4 v_eal_old = (vec_uint4) ((void*)block->current_dma);
++	vec_uint4 v_eal_new = (vec_uint4) ((void*)block->new_dma);
++
++	vec_uint4 v_ns_2 = (vec_uint4) new_size >> 1;
++	vec_uint4 v_eal_half_b = spu_add(v_eal_new, v_ns_2);
++	vec_uint4 v_os_z = spu_cmpeq(v_os, 0);		// ones if ==0
++	v_ns = spu_sel(v_ns, v_ns_2, v_os_z);		// half if == 0
++	v_os = spu_sel(v_os, v_ns_2, v_os_z);		// half ns if==0 else os
++	v_eal_old = spu_sel(v_eal_old, v_eal_half_b, v_os_z)	// skip
++	vec_uint4 v_cmd = spu_sel(MFC_PUTLB_CMD, MFC_GETL_CMD, v_os_z);
++*/
++
++
++
++
++screen_block buffer;
++
++void _draw_imp_triangle(triangle* tri)
++{
++	init_screen_block(&buffer, 31);
++//printf("loading\n");
++	load_screen_block(&buffer, screen.address, screen.bytes_per_line, 32);
++//printf("waiting\n");
++	wait_screen_block(&buffer);
++//printf("drawing\n");
++	fast_triangle(tri, (vec_uint4*) (&buffer.pixels[0]));
++//printf("waiting\n");
++	wait_screen_block(&buffer);
++//printf("flushing\n");
++	flush_screen_block(&buffer);
++//printf("done\n");
++}
++
+Index: framebuffer.c
+===================================================================
+--- framebuffer.c	(revision 789)
++++ framebuffer.c	(working copy)
+@@ -46,7 +46,6 @@
+ 	char* current;
+ 	int drawFrame;
+ 
+-	struct timespec startPoint;
+ 	_bitmap_image image;
+ } ScreenObject;
+ 
+@@ -74,7 +73,6 @@
+ 	self->fd = -1;
+ 	self->desiredMode = -1;
+ 	self->graphicsMode = 0;
+-	clock_gettime(CLOCK_MONOTONIC,&(self->startPoint));
+ 	self->hasUnblankedScreen = 0;
+ }
+ 
+@@ -179,19 +177,6 @@
+ 	ioctl(self->fd, FBIO_WAITFORVSYNC, (unsigned long)&crt);
+ }
+ 
+-static double
+-Screen_getTime(ScreenObject* self) {
+-	struct timespec after;
+-	int resAfter = clock_gettime(CLOCK_MONOTONIC,&after);
+-
+-	if (resAfter==0) {
+-		double secs = after.tv_sec-self->startPoint.tv_sec + ((after.tv_nsec-self->startPoint.tv_nsec) / 1000000000.0);
+-		return secs;
+-	} else {
+-		return 0.0;
+-	}
+-}
+-
+ static int Screen_setMode(ScreenObject* self, int desiredMode) {
+ 	if (desiredMode<0) {
+ 		return -1;
+Index: struct.h
+===================================================================
+--- struct.h	(revision 802)
++++ struct.h	(working copy)
+@@ -11,6 +11,12 @@
+ 
+ #include "types.h"
+ 
++#define LOCAL_FRAGMENTS 40
++
++#define FRAGMENT_WIDTH 32
++#define FRAGMENT_HEIGHT 32
++#define FRAGMENT_SIZE (4*FRAGMENT_WIDTH*FRAGMENT_HEIGHT)
++
+ typedef struct {
+ 	u64 address;
+ 	u32 width;
+Index: Makefile
+===================================================================
+--- Makefile	(revision 802)
++++ Makefile	(working copy)
+@@ -29,14 +29,17 @@
+ PPU_SRCS := $(patsubst %.o,%.c,$(PPU_TEST_OBJS))
+ SPU_SRCS := $(patsubst %.0,%.c,$(SPU_OBJS))
+ 
+-GENSOURCES = $(SPU_SRCS)
+-#GENSOURCES = decode.c fragment.c
++#GENSOURCES = $(SPU_SRCS)
++GENSOURCES = decode.c fragment.c
+ 
+ all:	$(TARGETS)
+ 
+ test:	$(PPU_TEST_OBJS) $(SPU_HNDL)
+ 	gcc -m$(USERLAND) -o test $(PPU_TEST_OBJS) $(SPU_HNDL) $(LIBS)
+ 
++test.static:	$(PPU_TEST_OBJS) $(SPU_HNDL)
++	gcc -m$(USERLAND) -o test.static $(PPU_TEST_OBJS) $(SPU_HNDL) $(LIBS) -static
++
+ run:	test
+ 	./test
+ 
+Index: got.rid.of.TRIorder.based.on.789.patch
+===================================================================
+--- got.rid.of.TRIorder.based.on.789.patch	(revision 789)
++++ got.rid.of.TRIorder.based.on.789.patch	(working copy)
+@@ -1,334 +0,0 @@
+-Index: test.c
+-===================================================================
+---- test.c	(revision 789)
+-+++ test.c	(working copy)
+-@@ -52,7 +52,7 @@
+- 
+- 	float a=0.0,b=0.0,c=0.0;
+- 
+--	int f,v;
+-+	int f,v,vv;
+- 	for (;;) {
+- 		a += 0.011;
+- 		b += 0.037;
+-@@ -71,9 +71,12 @@
+- 
+- 		glspuClear();
+- 		unsigned long _start = glspuCounter();
+-+		for (f=0; f<6; f++) {
+- 		glBegin(GL_QUADS);
+--		for (f=0; f<6; f++) {
+--			for (v=0; v<4; v++) {
+-+		//glBegin(GL_QUAD_STRIP);
+-+			for (vv=0; vv<4; vv++) {
+-+				v = vv;
+-+		//		v = vv^(vv>>1); // swap 2 and 3
+- 			    if (0)
+- 				glColor3ub(faces[f][4],
+- 					   faces[f][5],
+-@@ -101,8 +104,8 @@
+- 
+- 				glVertex3f(x,y,z);
+- 			}
+-+		glEnd();	
+- 		}
+--		glEnd();	
+- 		glFlush();
+- 		glspuFlip();
+- 		unsigned long _end = glspuCounter();
+-Index: decode.c
+-===================================================================
+---- decode.c	(revision 789)
+-+++ decode.c	(working copy)
+-@@ -70,6 +70,11 @@
+- 	return from;
+- }
+- 	
+-+#define ADD_LINE	1
+-+#define ADD_TRIANGLE	2
+-+#define ADD_POINT	3
+-+#define ADD_TRIANGLE2	4
+-+
+- static int current_state = -1;
+- static struct {
+- 	unsigned char next;
+-@@ -78,7 +83,7 @@
+- 	unsigned char add;
+- } shuffle_map[] = {
+- /*0 GL_POINTS          */
+--	{ .insert = 0, .next = 0 },
+-+	{ .insert = 0, .next = 0, .add = ADD_POINT },
+- /*1 GL_LINES           */
+- 	{ .insert = 0, .next = 10 },
+- /*2 GL_LINE_LOOP       */
+-@@ -99,55 +104,67 @@
+- 	{ .insert = 0, .next = 27 },
+- 
+- /* 10 line second point */
+--	{ .insert = 1, .next = 1, .add = 1 },
+-+	{ .insert = 1, .next = 1, .add = ADD_LINE },
+- /* 11 line loop second point */
+--	{ .insert = 1, .next = 11, .add = 1, .end = 2},
+-+	{ .insert = 1, .next = 11, .add = ADD_LINE, .end = 2},
+- /* 12 line strip second point */
+--	{ .insert = 1, .next = 12, .add = 1 },
+-+	{ .insert = 1, .next = 12, .add = ADD_LINE },
+- 
+- /* 13 triangle second point */
+- 	{ .insert = 3, .next = 14 },
+- /* 14 triangle third point */
+--	{ .insert = 3, .next = 4, .add = 2 },
+-+	{ .insert = 3, .next = 4, .add = ADD_TRIANGLE },
+- 
+- /* 15 triangle strip second point */
+- 	{ .insert = 3, .next = 16 },
+- /* 16 triangle strip third point */
+--	{ .insert = 3, .next = 17, .add = 2 },
+-+	{ .insert = 3, .next = 17, .add = ADD_TRIANGLE },
+- /* 17 triangle strip fourth point */
+--	{ .insert = 4, .next = 16, .add = 2 },
+-+	{ .insert = 4, .next = 16, .add = ADD_TRIANGLE },
+- 
+- /* 18 triangle fan second point */
+- 	{ .insert = 3, .next = 19 },
+- /* 19 triangle fan third point */
+--	{ .insert = 3, .next = 20, .add = 2 },
+-+	{ .insert = 3, .next = 20, .add = ADD_TRIANGLE },
+- /* 20 triangle fan fourth point */
+--	{ .insert = 5, .next = 20, .add = 2 },
+-+	{ .insert = 5, .next = 20, .add = ADD_TRIANGLE },
+- 
+- /* 21 quad second point */
+- 	{ .insert = 6, .next = 22 },
+- /* 22 quad third point */
+- 	{ .insert = 6, .next = 23 },
+- /* 23 quad fourth point */
+--	{ .insert = 6, .next = 7, .add = 3 },
+-+	{ .insert = 6, .next = 30, .add = ADD_TRIANGLE2 },
+- 
+- /* 24 quad strip second point */
+- 	{ .insert = 6, .next = 22 },
+- /* 25 quad strip third point */
+--	{ .insert = 6, .next = 26 },
+-+	{ .insert = 6, .next = 25 },
+- /* 26 quad strip fourth point */
+--	{ .insert = 6, .next = 27, .add = 4 },
+--/* 26 quad strip fifth point */
+--	{ .insert = 6, .next = 25 },
+-+	{ .insert = 6, .next = 31, .add = ADD_TRIANGLE2 },
+- 
+- /* 27 polygon second point */
+- 	{ .insert = 3, .next = 28 },
+- /* 28 polygon third point */
+--	{ .insert = 3, .next = 4, .add = 2 },
+-+	{ .insert = 3, .next = 4, .add = ADD_TRIANGLE },
+- /* 29 polygon fourth point */
+--	{ .insert = 7, .next = 29, .add = 2, .end = 8 },
+-+	{ .insert = 7, .next = 29, .add = ADD_TRIANGLE, .end = 8 },
+-+
+-+/* 30 quad fake point, 2nd triangle */
+-+	{ .insert = 10, .next = 7, .add = ADD_TRIANGLE },
+-+
+-+/* 31 quad strip fake point */
+-+	{ .insert = 9, .next = 25, .add = ADD_TRIANGLE },
+- };
+- 
+-+/* for quad_strips, the first triangle seems to be backwards. of course
+-+ * it could just be my test data...
+-+ *
+-+ * there's also the case that quads aren't needed by GLES so i should
+-+ * probably just get rid of them entirely and only use this function for
+-+ * tris, tristrips and trifans.
+-+ */
+-+
+- /* A3 is preserved as the initial state if we need to loop */
+- static vec_uchar16 shuffles[] = {
+- { SEL_B0 SEL_B0 SEL_B0 SEL_B0 }, /* 0 = fill all elements with new */
+-@@ -158,24 +175,26 @@
+- { SEL_A0 SEL_A2 SEL_B0 SEL_A3 }, /* 5 = add triangle fan vertex 4th */
+- { SEL_A1 SEL_A2 SEL_A3 SEL_B0 }, /* 6 = add quad vertex */
+- { SEL_A0 SEL_A2 SEL_B0 SEL_A3 }, /* 7 = add polygon vertex */
+--
+- { SEL_A0 SEL_A1 SEL_A3 SEL_00 }, /* 8 = END polygon vertex finished */
+--
+--#define SHUFFLE_READ_TRI 9
+--{ SEL_A0 SEL_A1 SEL_A2 SEL_00 }, /* 9 = END triangle finished */
+--
+--#define SHUFFLE_READ_TRI2_QUAD 10
+--{ SEL_A0 SEL_A2 SEL_A3 SEL_00 }, /* 10 = END quad finished */
+--
+--#define SHUFFLE_READ_TRI2_QUAD_STRIP 11
+--{ SEL_A2 SEL_A1 SEL_A3 SEL_00 }, /* 11 = END quad strip finished */
+-+{ SEL_A2 SEL_A1 SEL_A3 SEL_A0 }, /* 9 = quad strip fake, do 1st tri second */
+-+{ SEL_A2 SEL_A3 SEL_A0 SEL_A1 }, /* 10 = quad fake, do 1st tri second */
+-+{ SEL_A2 SEL_A1 SEL_B0 SEL_A0 }, /* 11 = quad strip fourth, do 2nd tri first */
+- };
+- 
+--// thinking about this some more...
+--// these could be organised so that we ensure that triangles are always
+--// in A0 A1 A2 order and we can scrap quads entirely if we're only implementing
+--// GLES...
+--// this in turn would remove a lot of the complicated stuff from imp_tri ;)
+-+static inline void shuffle_in(vec_uchar16 inserter, float4 s, float4 col) {
+-+	TRIx = spu_shuffle(TRIx, (vec_float4) s.x, inserter);
+-+	TRIy = spu_shuffle(TRIy, (vec_float4) s.y, inserter);
+-+	TRIz = spu_shuffle(TRIz, (vec_float4) s.z, inserter);
+-+	TRIw = spu_shuffle(TRIw, (vec_float4) s.w, inserter);
+-+	TRIr = spu_shuffle(TRIr, (vec_float4) col.x, inserter);
+-+	TRIg = spu_shuffle(TRIg, (vec_float4) col.y, inserter);
+-+	TRIb = spu_shuffle(TRIb, (vec_float4) col.z, inserter);
+-+	TRIa = spu_shuffle(TRIa, (vec_float4) col.w, inserter);
+-+//	TRIs = spu_shuffle(TRIs, (vec_float4) in.s, inserter);
+-+//	TRIt = spu_shuffle(TRIt, (vec_float4) in.t, inserter);
+-+//	TRIu = spu_shuffle(TRIu, (vec_float4) in.u, inserter);
+-+//	TRIv = spu_shuffle(TRIv, (vec_float4) in.v, inserter);
+-+}
+- 
+- /*15*/void* imp_glBegin(u32* from) {
+- 	u32 state = *from++;
+-@@ -198,14 +217,13 @@
+- 	} else {
+- 		int end = shuffle_map[current_state].end;
+- 		if (end) {
+--			TRIorder = shuffles[end];
+-+			float4 x;
+-+			shuffle_in(shuffles[end], x, x);
+- 			switch (shuffle_map[current_state].add) {
+--				case 1:
+--					TRIorder = shuffles[SHUFFLE_READ_TRI];
+-+				case ADD_LINE:
+- 					imp_line();
+- 					break;
+--				case 2:
+--					TRIorder = shuffles[SHUFFLE_READ_TRI];
+-+				case ADD_TRIANGLE:
+- 					imp_triangle();
+- 					break;
+- 			}
+-@@ -266,41 +284,31 @@
+- //	float recip = 1.0/p.w;
+- //	float4 s = {.x=p.x*recip, .y = p.y*recip, .z = p.z*recip, .w = recip};
+- 
+--	TRIx = spu_shuffle(TRIx, (vec_float4) s.x, inserter);
+--	TRIy = spu_shuffle(TRIy, (vec_float4) s.y, inserter);
+--	TRIz = spu_shuffle(TRIz, (vec_float4) s.z, inserter);
+--	TRIw = spu_shuffle(TRIw, (vec_float4) s.w, inserter);
+--	TRIr = spu_shuffle(TRIr, (vec_float4) col.x, inserter);
+--	TRIg = spu_shuffle(TRIg, (vec_float4) col.y, inserter);
+--	TRIb = spu_shuffle(TRIb, (vec_float4) col.z, inserter);
+--	TRIa = spu_shuffle(TRIa, (vec_float4) col.w, inserter);
+--//	TRIu = spu_shuffle(TRIu, (vec_float4) in.u, inserter);
+--//	TRIv = spu_shuffle(TRIv, (vec_float4) in.v, inserter);
+-+	shuffle_in(inserter, s, col);
+- 
+- //////////////////////////////////////////////////////////////////////////
+- 
+- 	// check to see if we need to draw
+- 	switch (shuffle_map[current_state].add) {
+--		case 1:
+--			TRIorder = shuffles[SHUFFLE_READ_TRI];
+-+		case ADD_LINE:
+- 			imp_line();
+- 			break;
+--		case 2:
+--			TRIorder = shuffles[SHUFFLE_READ_TRI];
+-+		case ADD_TRIANGLE2:
+- 			imp_triangle();
+--			break;
+--		case 3:
+--			TRIorder = shuffles[SHUFFLE_READ_TRI];
+-+
+-+			current_state = shuffle_map[current_state].next;
+-+			ins = shuffle_map[current_state].insert;
+-+			if (ins >= sizeof(shuffles)/sizeof(shuffles[0])) {
+-+				raise_error(ERROR_VERTEX_INVALID_SHUFFLE);
+-+				return from;
+-+			}
+-+			inserter = shuffles[ins];
+-+			shuffle_in(inserter, s, col);
+-+
+-+			// fall through here
+-+		case ADD_TRIANGLE:
+- 			imp_triangle();
+--			TRIorder = shuffles[SHUFFLE_READ_TRI2_QUAD];
+--			imp_triangle();
+- 			break;
+--		case 4:
+--			TRIorder = shuffles[SHUFFLE_READ_TRI];
+--			imp_triangle();
+--			TRIorder = shuffles[SHUFFLE_READ_TRI2_QUAD_STRIP];
+--			imp_triangle();
+--			break;
+- 	}
+- 	current_state = shuffle_map[current_state].next;
+- 
+-Index: primitives.c
+-===================================================================
+---- primitives.c	(revision 789)
+-+++ primitives.c	(working copy)
+-@@ -78,6 +78,12 @@
+- 	0x00, 0x00, 0x00, 0x00,
+- };
+- 
+-+vec_uchar16 shuffle_tri_right_padded = {
+-+	SEL_00 SEL_A0 SEL_A1 SEL_A2
+-+};
+-+vec_uchar16 shuffle_tri_normal = {
+-+	SEL_A0 SEL_A1 SEL_A2 SEL_00
+-+};
+- vec_uchar16 shuffle_tri_cw = {
+- 	SEL_A1 SEL_A2 SEL_A0 SEL_00
+- };
+-@@ -91,7 +97,9 @@
+- 	// TRIorder holds the select mask for triangle as is
+- 	// these two are select masks for clockwise and counter-clockwise
+- 
+--	vec_float4 t_vy = spu_shuffle(TRIy, TRIy, TRIorder);
+-+	//TRIorder = shuffle_tri_normal;
+-+
+-+	vec_float4 t_vy = spu_shuffle(TRIy, TRIy, shuffle_tri_normal);
+- 	vec_float4 t_vy_cw = spu_shuffle(t_vy, t_vy, shuffle_tri_cw);
+- 
+- 	// all-ones if ay>by, by>cy, cy>ay, 0>0
+-@@ -99,13 +107,14 @@
+- 	u32 fcgt_bits = spu_extract(spu_gather(fcgt_y), 0);
+- 	//printf("fcgt_bits = %d\n", fcgt_bits);
+- 
+--	vec_uchar16 r_right_padded = spu_rlqwbyte(TRIorder, -4);
+-+	vec_uchar16 r_right_padded = shuffle_tri_right_padded; // spu_rlqwbyte(TRIorder, -4);
+- 	vec_uchar16 swap_mask = spu_rlqwbyte(triangle_order_data, fcgt_bits);
+- 	vec_uchar16 rep_swap_add = spu_shuffle(swap_mask, swap_mask, copy_order_data);
+- 	vec_ushort8 q1 = (vec_ushort8)rep_swap_add;
+- 	vec_ushort8 q2 = (vec_ushort8)copy_as_is;
+- 	vec_uchar16 ns_mask = (vec_uchar16) spu_add(q1,q2);
+--	vec_uchar16 r_normal = spu_shuffle(r_right_padded,TRIorder,ns_mask);
+-+	vec_uchar16 r_normal = spu_shuffle(r_right_padded,shuffle_tri_normal,ns_mask);
+-+	//vec_uchar16 r_normal = spu_shuffle(r_right_padded,TRIorder,ns_mask);
+- 	unsigned char left = spu_extract(rep_swap_add,3) & 0x20;
+- 
+- 	// new r_normal should be the mask containing a,b,c in height order
+-Index: spuregs.h
+-===================================================================
+---- spuregs.h	(revision 789)
+-+++ spuregs.h	(working copy)
+-@@ -32,7 +32,6 @@
+- //
+- // note this is used internally in the vertex transformation, the fragment
+- // shader and is updated by imp_vertex.
+--register vec_uchar16	TRIorder	asm ("100"); // shufb mask to get ABC-
+- 
+- register vec_float4	TRIx		asm ("101"); // the normalised screen
+- register vec_float4	TRIy		asm ("102"); // coordinates
+-@@ -44,8 +43,10 @@
+- register vec_float4	TRIb		asm ("107");
+- register vec_float4	TRIa		asm ("108");
+- 
+--register vec_float4	TRIu		asm ("109"); // primary tex coords
+--register vec_float4	TRIv		asm ("110");
+-+register vec_float4	TRIs		asm ("109"); // primary tex coords
+-+register vec_float4	TRIt		asm ("110");
+-+register vec_float4	TRIu		asm ("111");
+-+register vec_float4	TRIv		asm ("112");
+- 
+- #define SEL_A0 0,1,2,3,
+- #define SEL_A1 4,5,6,7,
