@@ -243,7 +243,8 @@ static inline void sub_block(vec_uint4* ptr,
 {
 	vec_uint4 left_28 = spu_cmpgt(vx_base_28, lx);
 	vec_uint4 right_28 = spu_cmpgt(rx, vx_base_28);
-	vec_uint4 pixel = spu_xor(left_28, right_28);
+	//vec_uint4 pixel = spu_xor(left_28, right_28);
+	vec_uint4 pixel = spu_nand(right_28, left_28);
 
 //	vec_uint4 colour = {0xffff00,0xff00ff,0x00ffff,0xffffff};
 	//*ptr = spu_or(spu_sel(colour, *ptr, pixel),0x404040);
@@ -287,10 +288,10 @@ static void big_block(unsigned int bx, unsigned int by,
 
 	vec_uint4* block_ptr = (vec_uint4*) ((void*)&current_block->pixels[0]);
 
-/*
 	int a;
 	for (a=0; a<32*8; a++)
 		block_ptr[a]=spu_splats(0xff0000); //a<<8);
+/*
 */
 
 	block_ptr += 8*start_line;
@@ -327,6 +328,11 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 {
 	vec_float4 vx = spu_shuffle(tri->x, tri->x, tri->shuffle);
 	vec_float4 vy = spu_shuffle(tri->y, tri->y, tri->shuffle);
+
+	printf("fast_triangle: A %f,%f B %f,%f C %f,%f\n",
+		spu_extract(vx,0),spu_extract(vy,0),
+		spu_extract(vx,1),spu_extract(vy,1),
+		spu_extract(vx,2),spu_extract(vy,2));
 
 	// these are ((int(coord)+0.5)*2)
 	vec_int4 vx_int = spu_convts(vx,0);
@@ -406,6 +412,8 @@ for (qx=1;qx<1600; qx+=128) {
 	unsigned int bottom_pos = if_then_else(right_flag, 2, 1);
 	unsigned int middle_pos = if_then_else(right_flag, 1, 2);
 
+	printf("dl %f, dr %f\n", dl, dr);
+
 	printf("blocks: A %d,%d B %d,%d C %d,%d\n\ttop: %d mid: %d bot: %d\n",
 		spu_extract(vx_block,0),spu_extract(vy_block,0),
 		spu_extract(vx_block,1),spu_extract(vy_block,1),
@@ -421,7 +429,8 @@ for (qx=1;qx<1600; qx+=128) {
 	unsigned int middle_y = spu_extract(vy_block,middle_pos);
 	unsigned int bottom_y = spu_extract(vy_block,bottom_pos);
 
-	while (by < middle_y) {
+//	while (by < middle_y)
+	{
 		big_block(
 			bx, by,
 			current_block,
