@@ -336,7 +336,7 @@ vec_float4 _base_add8 = {8.0, 8.0, 8.0, 8.0};
 vec_float4 _base_add16 = {16.0, 16.0, 16.0, 16.0};
 vec_float4 _base_add32 = {32.0, 32.0, 32.0, 32.0};
 
-void triangle_half(
+void triangle_half_blockline(
 	unsigned int start_line,
 	unsigned int end_line,
 	unsigned int bx,
@@ -354,18 +354,10 @@ void triangle_half(
 	vec_float4 vx_base_16,
 	vec_float4 vx_base_20,
 	vec_float4 vx_base_24,
-	vec_float4 vx_base_28
+	vec_float4 vx_base_28,
+	vec_uchar16 dl_sel,
+	vec_uchar16 dr_sel
 ) {
-
-	vec_uchar16 dl_inc = (vec_uchar16) spu_cmpgt(dl, spu_splats(0.0f));
-	vec_uchar16 dr_inc = (vec_uchar16) spu_cmpgt(dr, spu_splats(0.0f));
-	vec_uchar16 plus16 = spu_splats((unsigned char)0x10);
-
-	vec_uchar16 dl_sel = spu_or(copy_from_a, spu_and(dl_inc, plus16));
-	vec_uchar16 dr_sel = spu_or(copy_from_a, spu_and(dr_inc, plus16));
-
-	while (by < end_y)
-	{
 		// this should probably all be done with if_then_else as
 		// we only care about one element of the register
 		vec_float4 mult = spu_splats((float)(31-start_line));
@@ -375,19 +367,6 @@ void triangle_half(
 		vec_float4 lx_min = spu_shuffle(lx_bot, lx, dl_sel);
 		vec_float4 rx_max = spu_shuffle(rx, rx_bot, dr_sel);
 
-/*
-		printf("lx=%f,lx_bot=%f,lx_min=%f, dl_sel=%x\n",
-			spu_extract(lx,0),		
-			spu_extract(lx_bot,0),
-			spu_extract(lx_min,0), 
-			spu_extract(dl_sel,3));
-
-		printf("rx=%f,rx_bot=%f,rx_max=%f, dr_sel=%x\n\n",
-			spu_extract(rx,0),		
-			spu_extract(rx_bot,0),
-			spu_extract(rx_max,0), 
-			spu_extract(dr_sel,3));
-*/		
 		vec_int4 lx_int = spu_convts(lx_min,0);
 		vec_int4 rx_int = spu_add(spu_splats(31),spu_convts(rx_max,0));
 
@@ -397,14 +376,10 @@ void triangle_half(
 		unsigned int left_block = spu_extract(left_block_v, 0);
 		unsigned int right_block = spu_extract(right_block_v, 0);
 
-/*
- 		printf("For line %d, blocks are %d..%d\n", by,
-			left_block, right_block);
-*/
 		int cur_block;
 		vec_float4 block_x_delta = {0.0, 0.0, 0.0, 0.0};
 
-		for (cur_block = bx; cur_block>=left_block; cur_block--) {
+		for (cur_block = bx; cur_block>=0 && cur_block>=left_block; cur_block--) {
 			big_block(
 				cur_block, by,
 				current_block,
@@ -438,12 +413,63 @@ void triangle_half(
 				spu_add(block_x_delta, vx_base_28));
 			block_x_delta = spu_add(block_x_delta, _base_add32);
 		}
+}
 
+
+void triangle_half(
+	unsigned int start_line,
+	unsigned int end_line,
+	unsigned int bx,
+	unsigned int by,
+
+	unsigned int end_y,
+
+	vec_float4 lx, vec_float4 rx, vec_float4 dl, vec_float4 dr,
+	screen_block* current_block,
+
+	vec_float4 vx_base_0,
+	vec_float4 vx_base_4,
+	vec_float4 vx_base_8,
+	vec_float4 vx_base_12,
+	vec_float4 vx_base_16,
+	vec_float4 vx_base_20,
+	vec_float4 vx_base_24,
+	vec_float4 vx_base_28
+) {
+
+	vec_uchar16 dl_inc = (vec_uchar16) spu_cmpgt(dl, spu_splats(0.0f));
+	vec_uchar16 dr_inc = (vec_uchar16) spu_cmpgt(dr, spu_splats(0.0f));
+	vec_uchar16 plus16 = spu_splats((unsigned char)0x10);
+
+	vec_uchar16 dl_sel = spu_or(copy_from_a, spu_and(dl_inc, plus16));
+	vec_uchar16 dr_sel = spu_or(copy_from_a, spu_and(dr_inc, plus16));
+
+	printf("\ntop stuffs, bx=%d, by=%d, end_y=%d, start_line=%d, end_line=%d\n",
+			bx,by,end_y,start_line,end_line);
+
+	while (by < end_y)
+	{
+		triangle_half_blockline(start_line, 32, bx, by, end_y, 
+			lx, rx, dl, dr, current_block,
+			vx_base_0, vx_base_4, vx_base_8, vx_base_12,
+			vx_base_16, vx_base_20, vx_base_24, vx_base_28,
+			dl_sel, dr_sel);
 		by++;
-		lx = spu_add(lx_bot, dl);
-		rx = spu_add(rx_bot, dr);
+		vec_float4 mult = spu_splats((float)(32-start_line));
+		lx = spu_add(lx, spu_mul(dl,mult));
+		rx = spu_add(rx, spu_mul(dr,mult));
 		start_line = 0;
 	}
+
+	printf("middle stuffs, bx=%d, by=%d, end_y=%d, start_line=%d, end_line=%d\n",
+			bx,by,end_y,start_line,end_line);
+
+	triangle_half_blockline(start_line, end_line, bx, by, end_y, 
+		lx, rx, dl, dr, current_block,
+		vx_base_0, vx_base_4, vx_base_8, vx_base_12,
+		vx_base_16, vx_base_20, vx_base_24, vx_base_28,
+		dl_sel, dr_sel);
+
 }
 
 
@@ -475,13 +501,6 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 	vec_int4 vx_block = spu_rlmaska(vx_int,-5);
 	vec_int4 vy_block = spu_rlmaska(vy_int,-5);
 
-#ifdef DEBUG_3
-	printf("blocks: top %d,%d mid %d,%d bottom %d,%d\n",
-		spu_extract(vx_block,0),spu_extract(vy_block,0),
-		spu_extract(vx_block,2),spu_extract(vy_block,2),
-		spu_extract(vx_block,1),spu_extract(vy_block,1));
-#endif
-
 	vec_int4 _bases = {0,2,4,6};
 	vec_int4 vx_base_i = spu_or(spu_splats(spu_extract(vx_1,0)&~62),_bases);
 	vec_int4 vy_base_i = spu_splats(spu_extract(vy_1,0)&~62);
@@ -490,27 +509,6 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 	vec_float4 dy=spu_sub(vy,spu_splats(spu_extract(vy,0)));
 	vec_float4 dx=spu_sub(vx,spu_splats(spu_extract(vx,0)));
 	vec_float4 grad=div(dx,dy);
-
-#ifdef DEBUG_3
-	printf("da %f,%f->%f db %f,%f->%f dc %f,%f->%f\n",
-		spu_extract(dx,0),spu_extract(dy,0),spu_extract(grad,0),
-		spu_extract(dx,2),spu_extract(dy,2),spu_extract(grad,2),
-		spu_extract(dx,1),spu_extract(dy,1),spu_extract(grad,1));
-#endif
-
-int qx;
-int qy;
-
-/*
-for (qx=1;qx<1600; qx+=128) {
-	for (qy=1;qy<500; qy+=128) {
-
-	u64 scrbuf = screen.address + screen.bytes_per_line*(qy>>1)+(qx>>1);
-	vx_base_i = spu_or(spu_splats(qx),_bases);
-	vy_base_i = spu_splats(qy);
-*/
-
-/////
 
 	vec_float4 vy_base_0 = spu_convtf(vy_base_i,1);
 	vec_float4 vx_base_0 = spu_convtf(vx_base_i,1);
@@ -533,43 +531,52 @@ for (qx=1;qx<1600; qx+=128) {
 	unsigned int bottom_pos = if_then_else(right_flag, 2, 1);
 	unsigned int middle_pos = if_then_else(right_flag, 1, 2);
 
-/*
-	printf("dl %f, dr %f\n", dl, dr);
-
-	printf("blocks: A %d,%d B %d,%d C %d,%d\n\ttop: %d mid: %d bot: %d\n",
-		spu_extract(vx_block,0),spu_extract(vy_block,0),
-		spu_extract(vx_block,1),spu_extract(vy_block,1),
-		spu_extract(vx_block,2),spu_extract(vy_block,2),
-		spu_extract(vy_block,0),
-		spu_extract(vy_block,middle_pos),
-		spu_extract(vy_block,bottom_pos));
-*/
 	unsigned int start_line = spu_extract(vy_int,0) & 31;
-	unsigned int end_line = 32;
-	unsigned int bx = spu_extract(vx_block,0);
-	unsigned int by = spu_extract(vy_block,0);
+	unsigned int middle_line = spu_extract(vy_int,middle_pos) & 31;
+	unsigned int bottom_line = spu_extract(vy_int,bottom_pos) & 31;
 
+	int bx = spu_extract(vx_block,0);
+
+	unsigned int top_y = spu_extract(vy_block,0);
 	unsigned int middle_y = spu_extract(vy_block,middle_pos);
 	unsigned int bottom_y = spu_extract(vy_block,bottom_pos);
 
-	triangle_half(start_line, end_line, bx, by, middle_y, 
+	triangle_half(start_line, middle_line, bx, top_y, middle_y, 
 		lx, rx, dl, dr, current_block,
 		vx_base_0, vx_base_4, vx_base_8, vx_base_12,
 		vx_base_16, vx_base_20, vx_base_24, vx_base_28
 	);
 
-/////
-/*
+	if (right_flag) {	
+		float ndy = spu_extract(vy,2)-spu_extract(vy,1);
+		float ndx = spu_extract(vx,2)-spu_extract(vx,1);
+		float ngrad = ndx/ndy;
+		rx = spu_splats(spu_extract(vx, 1));
+		dr = spu_splats(ngrad);
+	} else {
+		float ndy = spu_extract(vy,1)-spu_extract(vy,2);
+		float ndx = spu_extract(vx,1)-spu_extract(vx,2);
+		float ngrad = ndx/ndy;
+		lx = spu_splats(spu_extract(vx, 2));
+		dl = spu_splats(ngrad);
 	}
-}
-*/
-/////
-/*
-	vec_uint4 bottom_shuffle = spu_sel(
-		spu_splats(0x10111213), spu_splats(0x00010203), right);
-	vec_uint4 middle_shuffle = spu_sel(
-		spu_splats(0x00010203), spu_splats(0x10111213), right);
-*/
+
+	int nbx = spu_extract(vx_block,middle_pos);
+	vec_float4 dbx = spu_splats((float)((nbx-bx)*32));
+	bx = nbx;
+
+	printf("\nbottom:");
+	triangle_half(middle_line, bottom_line, bx, middle_y, bottom_y, 
+		lx, rx, dl, dr, current_block,
+		spu_add(dbx, vx_base_0),
+		spu_add(dbx, vx_base_4),
+		spu_add(dbx, vx_base_8),
+		spu_add(dbx, vx_base_12),
+		spu_add(dbx, vx_base_16),
+		spu_add(dbx, vx_base_20),
+		spu_add(dbx, vx_base_24),
+		spu_add(dbx, vx_base_28)
+	);
 }
 
 
