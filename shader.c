@@ -246,11 +246,6 @@ static inline void sub_block(vec_uint4* ptr,
 	//vec_uint4 pixel = spu_xor(left_28, right_28);
 	vec_uint4 pixel = spu_nand(right_28, left_28);
 
-//	vec_uint4 colour = {0xffff00,0xff00ff,0x00ffff,0xffffff};
-	//*ptr = spu_or(spu_sel(colour, *ptr, pixel),0x404040);
-
-	//*ptr = spu_sel(spu_splats(0xffff00), spu_splats(0xff), pixel);
-
 	vec_uint4 current = *ptr;
 	vec_uint4 colour = spu_splats(0xffff00);
 	*ptr = spu_sel(colour, current, pixel);
@@ -289,8 +284,11 @@ static void big_block(unsigned int bx, unsigned int by,
 	vec_uint4* block_ptr = (vec_uint4*) ((void*)&current_block->pixels[0]);
 
 	int a;
-	for (a=0; a<32*8; a++)
-		block_ptr[a]=spu_splats(0xff0000); //a<<8);
+	unsigned long* q = (unsigned long*) block_ptr;
+	for (a=0; a<32*8*4; a++) {
+		//block_ptr[a]|=spu_splats(0xff0000);
+//		q[a] = (q[a]&0xffff)>>4 | 0xff0000;
+	}
 /*
 */
 
@@ -299,10 +297,10 @@ static void big_block(unsigned int bx, unsigned int by,
 	unsigned int line;
 //	for (line=0; line<32; line++) {
 	for (line=start_line; line<end_line; line++) {
+#ifdef DEBUG_3
 		printf("block %d,%d line %d, lx %f rx %f (%f %f)\n",
 			bx, by, line, spu_extract(lx,0), spu_extract(rx,0),
 			spu_extract(vx_base_0,0), spu_extract(vx_base_28,3));
-#ifdef DEBUG_3
 #endif
 		sub_block(&block_ptr[0], lx, rx, vx_base_0);
 		sub_block(&block_ptr[1], lx, rx, vx_base_4);
@@ -323,6 +321,13 @@ static void big_block(unsigned int bx, unsigned int by,
 	wait_screen_block(current_block);
 	flush_screen_block(current_block);
 }
+
+vec_uchar16 copy_from_a = {
+	SEL_A0 SEL_A1 SEL_A2 SEL_A3
+};
+//vec_uchar16 copy_from_b = {
+//	SEL_B0 SEL_B1 SEL_B2 SEL_B3
+//};
 
 void fast_triangle(triangle* tri, screen_block* current_block)
 {
@@ -364,7 +369,7 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 
 	vec_float4 dy=spu_sub(vy,spu_splats(spu_extract(vy,0)));
 	vec_float4 dx=spu_sub(vx,spu_splats(spu_extract(vx,0)));
-	vec_float4 grad=div(dy,dx);
+	vec_float4 grad=div(dx,dy);
 
 #ifdef DEBUG_3
 	printf("da %f,%f->%f db %f,%f->%f dc %f,%f->%f\n",
@@ -429,18 +434,92 @@ for (qx=1;qx<1600; qx+=128) {
 	unsigned int middle_y = spu_extract(vy_block,middle_pos);
 	unsigned int bottom_y = spu_extract(vy_block,bottom_pos);
 
-//	while (by < middle_y)
+	vec_uchar16 dl_inc = (vec_uchar16) spu_cmpgt(dl, spu_splats(0.0f));
+	vec_uchar16 dr_inc = (vec_uchar16) spu_cmpgt(dr, spu_splats(0.0f));
+	vec_uchar16 plus16 = spu_splats((unsigned char)0x10);
+
+	vec_uchar16 dl_sel = spu_or(copy_from_a, spu_and(dl_inc, plus16));
+	vec_uchar16 dr_sel = spu_or(copy_from_a, spu_and(dr_inc, plus16));
+
+	while (by < middle_y)
 	{
-		big_block(
-			bx, by,
-			current_block,
-			start_line, 32,
-			lx, rx, dl, dr,
-			vx_base_0, vx_base_4, vx_base_8, vx_base_12,
-			vx_base_16, vx_base_20, vx_base_24, vx_base_28);
+		// this should probably all be done with if_then_else as
+		// we only care about one element of the register
+		vec_float4 mult = spu_splats((float)(31-start_line));
+		vec_float4 lx_bot = spu_add(lx, spu_mul(dl,mult));
+		vec_float4 rx_bot = spu_add(rx, spu_mul(dr,mult));
+
+		vec_float4 lx_min = spu_shuffle(lx_bot, lx, dl_sel);
+		vec_float4 rx_max = spu_shuffle(rx, rx_bot, dr_sel);
+
+		printf("lx=%f,lx_bot=%f,lx_min=%f, dl_sel=%x\n",
+			spu_extract(lx,0),		
+			spu_extract(lx_bot,0),
+			spu_extract(lx_min,0), 
+			spu_extract(dl_sel,3));
+
+		printf("rx=%f,rx_bot=%f,rx_max=%f, dr_sel=%x\n\n",
+			spu_extract(rx,0),		
+			spu_extract(rx_bot,0),
+			spu_extract(rx_max,0), 
+			spu_extract(dr_sel,3));
+		
+		vec_int4 lx_int = spu_convts(lx_min,0);
+		vec_int4 rx_int = spu_convts(rx_max,0);
+
+		vec_int4 left_block_v = spu_rlmaska(lx_int,-5);
+		vec_int4 right_block_v = spu_rlmaska(rx_int,-5);
+
+		unsigned int left_block = spu_extract(left_block_v, 0);
+		unsigned int right_block = spu_extract(right_block_v, 0);
+
+		printf("For line %d, blocks are %d..%d\n", by,
+			left_block, right_block);
+
+		int cur_block;
+		vec_float4 block_x_delta_init = {0.0, 0.0, 0.0, 0.0};
+
+		vec_float4 block_x_delta = block_x_delta_init;
+		for (cur_block = bx; cur_block>=left_block; cur_block--) {
+		printf("%d (bx %d first)", cur_block, bx);
+			big_block(
+				cur_block, by,
+				current_block,
+				start_line, 32,
+				lx, rx, dl, dr,
+				spu_add(block_x_delta, vx_base_0),
+				spu_add(block_x_delta, vx_base_4),
+				spu_add(block_x_delta, vx_base_8),
+				spu_add(block_x_delta, vx_base_12),
+				spu_add(block_x_delta, vx_base_16),
+				spu_add(block_x_delta, vx_base_20),
+				spu_add(block_x_delta, vx_base_24),
+				spu_add(block_x_delta, vx_base_28));
+			block_x_delta = spu_sub(block_x_delta, _base_add32);
+		}
+
+		block_x_delta = block_x_delta_init;
+		for (cur_block = bx+1; cur_block<=right_block; cur_block++) {
+		printf("%d (bx %d second)", cur_block, bx);
+			big_block(
+				cur_block, by,
+				current_block,
+				start_line, 32,
+				lx, rx, dl, dr,
+				spu_add(block_x_delta, vx_base_0),
+				spu_add(block_x_delta, vx_base_4),
+				spu_add(block_x_delta, vx_base_8),
+				spu_add(block_x_delta, vx_base_12),
+				spu_add(block_x_delta, vx_base_16),
+				spu_add(block_x_delta, vx_base_20),
+				spu_add(block_x_delta, vx_base_24),
+				spu_add(block_x_delta, vx_base_28));
+			block_x_delta = spu_add(block_x_delta, _base_add32);
+		}
+
 		by++;
-		lx = spu_add(lx, spu_mul(dl,_base_add32));
-		rx = spu_add(rx, spu_mul(dr,_base_add32));
+		lx = spu_add(lx_bot, dl);
+		rx = spu_add(rx_bot, dr);
 		start_line = 0;
 	}
 
