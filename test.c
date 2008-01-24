@@ -53,6 +53,7 @@ int main(int argc, char* argv[]) {
 	float a=0.0,b=0.0,c=0.0;
 
 	int f,v;
+	int cnt = 0;
 	for (;;) {
 		a += 0.011;
 		b += 0.037;
@@ -132,8 +133,10 @@ cheat:
 		if (error)
 			printf("glGetError() returned %d\n", error);
 
-		printf("Currently idling %2.2f%% SPU capacity    \r",
-			(_end-_start), ((_end-_start)/onesec)*100.0);
+		cnt++;
+		printf("[%d] Currently idling %2.2f%% SPU capacity    \r",
+			cnt, (_end-_start));
+//((_end-_start)/onesec)*100.0, cnt);
 	}
 	usleep(250000);
 	glspuDestroy();

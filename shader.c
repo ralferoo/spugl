@@ -151,7 +151,7 @@ void flush_screen_block(screen_block* block)
 		unsigned long eah = block->eah;
 		unsigned long eal = (unsigned long) ((void*)block->current_dma);
 		spu_mfcdma64(&block->pixels[0], eah, eal, len, block->tagid,
-			MFC_PUTLB_CMD);
+			MFC_PUTLF_CMD);
 		block->current_length = 0;
 #ifdef DEBUG_1
 	printf("flush_screen_block: block=%lx eal=%llx len=%d\n",
@@ -192,8 +192,9 @@ void load_screen_block(screen_block* block,
 
 	// if this is an unused block, then we have no data to blit out
 	// so to avoid branches, split the read block in half
-	unsigned long is_new = cmp_eq(old_size, 0);
-	unsigned long cmd = if_then_else(is_new, MFC_GETL_CMD, MFC_PUTLB_CMD);
+//TODO: why do this fix work???
+	unsigned long is_new = 0; //cmp_eq(old_size, 0);
+	unsigned long cmd = if_then_else(is_new, MFC_GETL_CMD, MFC_PUTLF_CMD);
 	eal_old = if_then_else(is_new, eal_new+half_new_size, eal_old);
 	new_size = if_then_else(is_new, half_new_size, new_size);
 	old_size = if_then_else(is_new, half_new_size, old_size);
@@ -287,7 +288,8 @@ static void big_block(unsigned int bx, unsigned int by,
 	unsigned long* q = (unsigned long*) block_ptr;
 	for (a=0; a<32*8*4; a++) {
 		//block_ptr[a]|=spu_splats(0xff0000);
-		q[a] = (q[a]&0xffff)>>4 | 0xff0000;
+//		q[a] = (q[a]&0xffff)>>4 | 0xff0000;
+		q[a] |= 0xff0000;
 	}
 /*
 */
@@ -373,6 +375,7 @@ void triangle_half(
 		vec_float4 lx_min = spu_shuffle(lx_bot, lx, dl_sel);
 		vec_float4 rx_max = spu_shuffle(rx, rx_bot, dr_sel);
 
+/*
 		printf("lx=%f,lx_bot=%f,lx_min=%f, dl_sel=%x\n",
 			spu_extract(lx,0),		
 			spu_extract(lx_bot,0),
@@ -384,7 +387,7 @@ void triangle_half(
 			spu_extract(rx_bot,0),
 			spu_extract(rx_max,0), 
 			spu_extract(dr_sel,3));
-		
+*/		
 		vec_int4 lx_int = spu_convts(lx_min,0);
 		vec_int4 rx_int = spu_add(spu_splats(31),spu_convts(rx_max,0));
 
@@ -394,9 +397,10 @@ void triangle_half(
 		unsigned int left_block = spu_extract(left_block_v, 0);
 		unsigned int right_block = spu_extract(right_block_v, 0);
 
-		printf("For line %d, blocks are %d..%d\n", by,
+/*
+ 		printf("For line %d, blocks are %d..%d\n", by,
 			left_block, right_block);
-
+*/
 		int cur_block;
 		vec_float4 block_x_delta = {0.0, 0.0, 0.0, 0.0};
 
@@ -448,10 +452,12 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 	vec_float4 vx = spu_shuffle(tri->x, tri->x, tri->shuffle);
 	vec_float4 vy = spu_shuffle(tri->y, tri->y, tri->shuffle);
 
+/*
 	printf("fast_triangle: A %f,%f B %f,%f C %f,%f\n",
 		spu_extract(vx,0),spu_extract(vy,0),
 		spu_extract(vx,1),spu_extract(vy,1),
 		spu_extract(vx,2),spu_extract(vy,2));
+*/
 
 	// these are ((int(coord)+0.5)*2)
 	vec_int4 vx_int = spu_convts(vx,0);
@@ -527,6 +533,7 @@ for (qx=1;qx<1600; qx+=128) {
 	unsigned int bottom_pos = if_then_else(right_flag, 2, 1);
 	unsigned int middle_pos = if_then_else(right_flag, 1, 2);
 
+/*
 	printf("dl %f, dr %f\n", dl, dr);
 
 	printf("blocks: A %d,%d B %d,%d C %d,%d\n\ttop: %d mid: %d bot: %d\n",
@@ -536,7 +543,7 @@ for (qx=1;qx<1600; qx+=128) {
 		spu_extract(vy_block,0),
 		spu_extract(vy_block,middle_pos),
 		spu_extract(vy_block,bottom_pos));
-
+*/
 	unsigned int start_line = spu_extract(vy_int,0) & 31;
 	unsigned int end_line = 32;
 	unsigned int bx = spu_extract(vx_block,0);
