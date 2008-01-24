@@ -477,9 +477,8 @@ for (qx=1;qx<1600; qx+=128) {
 			left_block, right_block);
 
 		int cur_block;
-		vec_float4 block_x_delta_init = {0.0, 0.0, 0.0, 0.0};
+		vec_float4 block_x_delta = {0.0, 0.0, 0.0, 0.0};
 
-		vec_float4 block_x_delta = block_x_delta_init;
 		for (cur_block = bx; cur_block>=left_block; cur_block--) {
 			big_block(
 				cur_block, by,
@@ -497,7 +496,7 @@ for (qx=1;qx<1600; qx+=128) {
 			block_x_delta = spu_sub(block_x_delta, _base_add32);
 		}
 
-		block_x_delta = block_x_delta_init;
+		block_x_delta = _base_add32;
 		for (cur_block = bx+1; cur_block<=right_block; cur_block++) {
 			big_block(
 				cur_block, by,
