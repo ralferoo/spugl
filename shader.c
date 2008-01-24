@@ -287,7 +287,7 @@ static void big_block(unsigned int bx, unsigned int by,
 	unsigned long* q = (unsigned long*) block_ptr;
 	for (a=0; a<32*8*4; a++) {
 		//block_ptr[a]|=spu_splats(0xff0000);
-//		q[a] = (q[a]&0xffff)>>4 | 0xff0000;
+		q[a] = (q[a]&0xffff)>>4 | 0xff0000;
 	}
 /*
 */
@@ -464,8 +464,8 @@ for (qx=1;qx<1600; qx+=128) {
 			spu_extract(rx_max,0), 
 			spu_extract(dr_sel,3));
 		
-		vec_int4 lx_int = spu_convts(lx_min,0);
-		vec_int4 rx_int = spu_convts(rx_max,0);
+		vec_int4 lx_int = spu_add(spu_splats(31),spu_convts(lx_min,0));
+		vec_int4 rx_int = spu_add(spu_splats(31),spu_convts(rx_max,0));
 
 		vec_int4 left_block_v = spu_rlmaska(lx_int,-5);
 		vec_int4 right_block_v = spu_rlmaska(rx_int,-5);
@@ -481,7 +481,6 @@ for (qx=1;qx<1600; qx+=128) {
 
 		vec_float4 block_x_delta = block_x_delta_init;
 		for (cur_block = bx; cur_block>=left_block; cur_block--) {
-		printf("%d (bx %d first)", cur_block, bx);
 			big_block(
 				cur_block, by,
 				current_block,
@@ -500,7 +499,6 @@ for (qx=1;qx<1600; qx+=128) {
 
 		block_x_delta = block_x_delta_init;
 		for (cur_block = bx+1; cur_block<=right_block; cur_block++) {
-		printf("%d (bx %d second)", cur_block, bx);
 			big_block(
 				cur_block, by,
 				current_block,
