@@ -464,7 +464,7 @@ for (qx=1;qx<1600; qx+=128) {
 			spu_extract(rx_max,0), 
 			spu_extract(dr_sel,3));
 		
-		vec_int4 lx_int = spu_add(spu_splats(31),spu_convts(lx_min,0));
+		vec_int4 lx_int = spu_convts(lx_min,0);
 		vec_int4 rx_int = spu_add(spu_splats(31),spu_convts(rx_max,0));
 
 		vec_int4 left_block_v = spu_rlmaska(lx_int,-5);
