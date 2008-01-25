@@ -290,7 +290,7 @@ static void big_block(unsigned int bx, unsigned int by,
 	for (a=0; a<32*8*4; a++) {
 		//block_ptr[a]|=spu_splats(0xff0000);
 //		q[a] = (q[a]&0xffff)>>4 | 0xff0000;
-		q[a] |= 0x1f0000;
+		q[a] |= 0x0f0000;
 	}
 /*
 */
@@ -362,7 +362,7 @@ void triangle_half_blockline(
 ) {
 		// this should probably all be done with if_then_else as
 		// we only care about one element of the register
-		vec_float4 mult = spu_splats((float)(31-start_line));
+		vec_float4 mult = spu_splats((float)(end_line-start_line));
 		vec_float4 lx_bot = spu_add(lx, spu_mul(dl,mult));
 		vec_float4 rx_bot = spu_add(rx, spu_mul(dr,mult));
 
@@ -449,8 +449,8 @@ void triangle_half(
 	vec_uchar16 dl_sel = spu_or(copy_from_a, spu_and(dl_inc, plus16));
 	vec_uchar16 dr_sel = spu_or(copy_from_a, spu_and(dr_inc, plus16));
 
-	printf("\ntop stuffs, bx=%d, by=%d, end_y=%d, start_line=%d, end_line=%d\n",
-			bx,by,end_y,start_line,end_line);
+//	printf("\ntop stuffs, bx=%d, by=%d, end_y=%d, start_line=%d, end_line=%d\n",
+//			bx,by,end_y,start_line,end_line);
 
 	while (by < end_y)
 	{
@@ -467,8 +467,8 @@ void triangle_half(
 		start_line = 0;
 	}
 
-	printf("middle stuffs, bx=%d, by=%d, end_y=%d, start_line=%d, end_line=%d\n",
-			bx,by,end_y,start_line,end_line);
+//	printf("middle stuffs, bx=%d, by=%d, end_y=%d, start_line=%d, end_line=%d\n",
+//			bx,by,end_y,start_line,end_line);
 
 	triangle_half_blockline(start_line, end_line, bx, by, end_y, 
 		lx, rx, dl, dr, current_block,
@@ -484,6 +484,32 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 {
 	vec_float4 vx = spu_shuffle(tri->x, tri->x, tri->shuffle);
 	vec_float4 vy = spu_shuffle(tri->y, tri->y, tri->shuffle);
+
+	vec_float4 w = spu_splats(1.0f)/tri->w;
+
+	vec_uint4 red = spu_rlmask(spu_convtu(tri->r * w,32),-24);
+	vec_uint4 green = spu_rlmask(spu_convtu(tri->g * w,32),-24);
+	vec_uint4 blue = spu_rlmask(spu_convtu(tri->b * w,32),-24);
+
+	unsigned int col = (spu_extract(red,0) << 16) |
+			   (spu_extract(green,0) << 8) |
+			    spu_extract(blue,0);
+
+	vec_uint4 colour = spu_splats(col);
+	
+
+/*
+	printf("red %f green %f blue %f recip %f\n",
+		spu_extract(tri->r,0),
+		spu_extract(tri->g,0),
+		spu_extract(tri->b,0),
+		spu_extract(tri->w,0));
+
+	printf("red %d green %d blue %d\n",
+		spu_extract(red,0),
+		spu_extract(green,0),
+		spu_extract(blue,0));
+*/
 
 /*
 	printf("fast_triangle: A %f,%f B %f,%f C %f,%f\n",
@@ -550,7 +576,6 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 
 	float m = (float)(spu_extract(vy_int,middle_pos)-spu_extract(vy_int,0));
 
-	vec_uint4 colour = spu_splats(0xffff00);
 	triangle_half(start_line, middle_line, bx, top_y, middle_y, 
 		lx, rx, dl, dr, current_block,
 		vx_base_0, vx_base_4, vx_base_8, vx_base_12,
@@ -564,7 +589,7 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 		float ngrad = ndx/ndy;
 		rx = spu_splats(spu_extract(vx, 1));
 		dr = spu_splats(ngrad);
-		colour = spu_splats(0x00ff00);
+//		colour = spu_splats(0x00ff00);
 		lx = spu_add(lx, spu_mul(spu_splats(m), dl));
 	} else {
 		float ndy = spu_extract(vy,1)-spu_extract(vy,2);
@@ -572,7 +597,7 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 		float ngrad = ndx/ndy;
 		lx = spu_splats(spu_extract(vx, 2));
 		dl = spu_splats(ngrad);
-		colour = spu_splats(0x0000ff);
+//		colour = spu_splats(0x0000ff);
 		rx = spu_add(rx, spu_mul(spu_splats(m), dr));
 	}
 
@@ -580,7 +605,7 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 	vec_float4 dbx = spu_splats((float)((nbx-bx)*32));
 	bx = nbx;
 
-	printf("\nbottom:");
+//	printf("\nbottom:");
 	triangle_half(middle_line, bottom_line, bx, middle_y, bottom_y, 
 		lx, rx, dl, dr, current_block,
 		spu_add(dbx, vx_base_0),
