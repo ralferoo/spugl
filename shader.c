@@ -333,7 +333,7 @@ void triangle_half_blockline(
 		unsigned int right_block = spu_extract(right_block_v, 0);
 
 		vec_float4 block_x_delta = spu_convtf(spu_and(spu_convts(lx_min,0),~31),0);
-		printf("lx_min = %f\n", spu_extract(lx_min,0));
+//		printf("lx_min = %f\n", spu_extract(lx_min,0));
 
 		int cur_block;
 		for (cur_block = left_block; cur_block<=right_block; cur_block++) {

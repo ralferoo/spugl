@@ -59,6 +59,9 @@ int main(int argc, char* argv[]) {
 		b += 0.037;
 		c += 0.017;
 
+// for some reason, the SPU bus errors at the values created when cnt==17017
+// if (cnt<16990) goto skip;
+
 		float sa = sin(a);
 		float ca = cos(a);
 
@@ -132,9 +135,9 @@ cheat:
 		GLenum error = glGetError();
 		if (error)
 			printf("glGetError() returned %d\n", error);
-
+skip:
 		cnt++;
-		printf("[%d] Currently idling %2.2f%% SPU capacity    \r",
+		printf("[%d] Currently idling %2.2f%% SPU capacity    \n",
 			cnt, ((_end-_start)/onesec)*100.0);
 	}
 	usleep(250000);
