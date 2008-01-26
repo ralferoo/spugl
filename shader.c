@@ -14,6 +14,8 @@
 // #define DEBUG_2
 // #define DEBUG_3
 
+#define COUNT_BLOCKED_DMA
+
 extern _bitmap_image screen;
 
 u32 textureTemp[32] __attribute__((aligned(128)));
