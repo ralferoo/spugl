@@ -243,6 +243,31 @@ vec_float4 vx_base_20 = {20.5f, 21.5f, 22.5f, 23.5f};
 vec_float4 vx_base_24 = {24.5f, 25.5f, 26.5f, 27.5f};
 vec_float4 vx_base_28 = {28.5f, 29.5f, 30.5f, 31.5f};
 
+static inline void process_block(vec_uint4* block_ptr,
+		unsigned int start_line, unsigned int end_line,
+		vec_float4 lx, vec_float4 rx, 
+		vec_float4 dl, vec_float4 dr, 
+	vec_uint4 colour)
+{
+	block_ptr += 8*start_line;
+
+	unsigned int line;
+	for (line=start_line; line<end_line; line++) {
+		sub_block(&block_ptr[0], lx, rx, vx_base_0, colour);
+		sub_block(&block_ptr[1], lx, rx, vx_base_4, colour);
+		sub_block(&block_ptr[2], lx, rx, vx_base_8, colour);
+		sub_block(&block_ptr[3], lx, rx, vx_base_12, colour);
+		sub_block(&block_ptr[4], lx, rx, vx_base_16, colour);
+		sub_block(&block_ptr[5], lx, rx, vx_base_20, colour);
+		sub_block(&block_ptr[6], lx, rx, vx_base_24, colour);
+		sub_block(&block_ptr[7], lx, rx, vx_base_28, colour);
+
+		lx = spu_add(lx, dl);
+		rx = spu_add(rx, dr);
+		block_ptr += 8;
+	}
+}
+
 static void big_block(unsigned int bx, unsigned int by,
 		screen_block* current_block,
 		unsigned int start_line, unsigned int end_line,
@@ -265,23 +290,8 @@ static void big_block(unsigned int bx, unsigned int by,
 	}
 #endif
 
-	block_ptr += 8*start_line;
+	process_block(block_ptr, start_line, end_line, lx, rx, dl, dr, colour);
 
-	unsigned int line;
-	for (line=start_line; line<end_line; line++) {
-		sub_block(&block_ptr[0], lx, rx, vx_base_0, colour);
-		sub_block(&block_ptr[1], lx, rx, vx_base_4, colour);
-		sub_block(&block_ptr[2], lx, rx, vx_base_8, colour);
-		sub_block(&block_ptr[3], lx, rx, vx_base_12, colour);
-		sub_block(&block_ptr[4], lx, rx, vx_base_16, colour);
-		sub_block(&block_ptr[5], lx, rx, vx_base_20, colour);
-		sub_block(&block_ptr[6], lx, rx, vx_base_24, colour);
-		sub_block(&block_ptr[7], lx, rx, vx_base_28, colour);
-
-		lx = spu_add(lx, dl);
-		rx = spu_add(rx, dr);
-		block_ptr += 8;
-	}
 	wait_screen_block(current_block);
 	flush_screen_block(current_block);
 }

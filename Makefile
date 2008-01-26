@@ -47,6 +47,9 @@ run:	test
 edit:
 	gvim -p Makefile fragment.c primitives.c shader.c test.c struct.h
 
+source:
+	make shader.s && less shader.s
+
 ppufifo.o: Makefile .gen
 spufifo.0: Makefile .gen
 
