@@ -32,33 +32,6 @@ float mydiv(float a,float b) { return a/b; }
 
 //////////////////////////////////////////////////////////////////////////////
 
-static inline vec_float4 div(vec_float4 a, vec_float4 b) {
-	qword ra = (qword) a;
-	qword rb = (qword) b;
-	qword t0 = si_frest(rb);
-	qword t1 = si_fi(rb,t0);
-	qword t2 = si_fm(ra,t1);
-	qword t3 = si_fnms(t2,rb,ra);
-	qword res = si_fma(t3,t1,t2);
-	return (vec_float4) res;
-}
-
-static inline unsigned long cmp_eq(unsigned long a, unsigned long b) {
-	vec_uint4 aa = (vec_uint4) a;
-	vec_uint4 bb = (vec_uint4) b;
-	vec_uint4 rr = spu_cmpeq(aa, bb);
-	return spu_extract(rr, 0);
-}
-
-static inline unsigned long if_then_else(unsigned long c, 
-		unsigned long a, unsigned long b) {
-	vec_uint4 aa = (vec_uint4) a;
-	vec_uint4 bb = (vec_uint4) b;
-	vec_uint4 cc = (vec_uint4) c;
-	vec_uint4 rr = spu_sel(bb, aa, cc);
-	return spu_extract(rr, 0);
-}
-	
 static inline void build_blit_list(
 		vec_uint4* dma_list_buffer,
 		unsigned long eal, unsigned long stride)
@@ -237,14 +210,81 @@ void load_screen_block(screen_block* block,
 
 //////////////////////////////////////////////////////////////////////////////
 
+static inline vec_float4 extract(
+	vec_float4 what,
+	triangle* tri, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
+{
+	vec_float4 r_w = spu_shuffle(what, what, tri->shuffle);
+	vec_float4 t_w = spu_madd(spu_splats(spu_extract(r_w,0)),tAa,
+			 spu_madd(spu_splats(spu_extract(r_w,1)),tAb,
+			 spu_mul (spu_splats(spu_extract(r_w,2)),tAc)));
+	return t_w;
+}
+	
+
 static inline void sub_block(vec_uint4* ptr, 
 	vec_float4 lx, vec_float4 rx, vec_float4 vx_base,
-	vec_uint4 colour)
+	triangle* tri, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
 {
+	int i;
+
+#ifdef DEBUG_4
+	for (i=0; i<4; i++) {
+		printf("(tAa=%2.2f tAb=%2.2f tAc=%2.2f) ",
+			spu_extract(tAa,i),
+			spu_extract(tAb,i),
+			spu_extract(tAc,i));
+	}
+	printf("\n");
+#endif
+
 	vec_uint4 left = spu_cmpgt(vx_base, lx);
 	vec_uint4 right = spu_cmpgt(rx, vx_base);
 	vec_uint4 pixel = spu_nand(right, left);
 
+	vec_float4 t_w = extract(tri->w, tri, tAa, tAb, tAc);
+	vec_float4 w = spu_splats(1.0f)/t_w;
+
+	tAa = spu_mul(tAa,w);
+	tAb = spu_mul(tAb,w);
+	tAc = spu_mul(tAc,w);
+
+/*
+	vec_float4 r_r = spu_shuffle(tri->r, tri->r, tri->shuffle);
+	vec_float4 t_r = spu_madd(r_r,tAa,spu_madd(r_r,tAb,spu_mul(r_r,tAc)));
+
+	vec_float4 r_g = spu_shuffle(tri->g, tri->g, tri->shuffle);
+	vec_float4 t_g = spu_madd(r_g,tAa,spu_madd(r_g,tAb,spu_mul(r_g,tAc)));
+
+	vec_float4 r_b = spu_shuffle(tri->b, tri->b, tri->shuffle);
+	vec_float4 t_b = spu_madd(r_b,tAa,spu_madd(r_b,tAb,spu_mul(r_b,tAc)));
+*/
+	vec_float4 t_r = extract(tri->r, tri, tAa, tAb, tAc);
+	vec_float4 t_g = extract(tri->g, tri, tAa, tAb, tAc);
+	vec_float4 t_b = extract(tri->b, tri, tAa, tAb, tAc);
+
+#ifdef DEBUG_4
+	for (i=0; i<4; i++) {
+		printf("%2.2f->(%2.2f %2.2f %2.2f) ",
+			spu_extract(t_w,i),
+			spu_extract(t_r,i),
+			spu_extract(t_g,i),
+			spu_extract(t_b,i));
+	}
+	printf("\n");
+#endif
+
+	vec_uint4 red = spu_and(spu_rlmask(spu_convtu(t_r,32),-8), 0xff0000);
+	vec_uint4 green = spu_and(spu_rlmask(spu_convtu(t_g,32),-16), 0xff00);
+	vec_uint4 blue = spu_rlmask(spu_convtu(t_b,32),-24);
+
+	vec_uint4 colour = spu_or(spu_or(blue, green),red);
+
+//	unsigned int col = (spu_extract(red,0) << 16) |
+//			   (spu_extract(green,0) << 8) |
+//			    spu_extract(blue,0);
+//	vec_uint4 colour = spu_splats(col);
+	
 	vec_uint4 current = *ptr;
 	*ptr = spu_sel(colour, current, pixel);
 }
@@ -258,24 +298,62 @@ vec_float4 vx_base_20 = {20.5f, 21.5f, 22.5f, 23.5f};
 vec_float4 vx_base_24 = {24.5f, 25.5f, 26.5f, 27.5f};
 vec_float4 vx_base_28 = {28.5f, 29.5f, 30.5f, 31.5f};
 
+vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
+vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
+
 static inline void process_block(vec_uint4* block_ptr,
 		unsigned int start_line, unsigned int end_line,
 		vec_float4 lx, vec_float4 rx, 
 		vec_float4 dl, vec_float4 dr, 
-	vec_uint4 colour)
+		triangle* tri, vec_float4 A)
 {
 	block_ptr += 8*start_line;
 
+	vec_float4 Aa = spu_splats(spu_extract(A,0));
+	vec_float4 Ab = spu_splats(spu_extract(A,1));
+	vec_float4 Ac = spu_splats(spu_extract(A,2));
+
+	vec_float4 Aa_dx = spu_splats(spu_extract(tri->dAdx,0));
+	vec_float4 Ab_dx = spu_splats(spu_extract(tri->dAdx,1));
+	vec_float4 Ac_dx = spu_splats(spu_extract(tri->dAdx,2));
+
+	Aa = spu_madd(muls,Aa_dx,Aa);
+	Ab = spu_madd(muls,Ab_dx,Ab);
+	Ac = spu_madd(muls,Ac_dx,Ac);
+
+	vec_float4 Aa_dx4 = spu_madd(muls4,Aa_dx,Aa);
+	vec_float4 Ab_dx4 = spu_madd(muls4,Ab_dx,Ab);
+	vec_float4 Ac_dx4 = spu_madd(muls4,Ac_dx,Ac);
+
+	vec_float4 Aa_dy = spu_splats(spu_extract(tri->dAdy,0));
+	vec_float4 Ab_dy = spu_splats(spu_extract(tri->dAdy,1));
+	vec_float4 Ac_dy = spu_splats(spu_extract(tri->dAdy,2));
+
 	unsigned int line;
 	for (line=start_line; line<end_line; line++) {
-		sub_block(&block_ptr[0], lx, rx, vx_base_0, colour);
-		sub_block(&block_ptr[1], lx, rx, vx_base_4, colour);
-		sub_block(&block_ptr[2], lx, rx, vx_base_8, colour);
-		sub_block(&block_ptr[3], lx, rx, vx_base_12, colour);
-		sub_block(&block_ptr[4], lx, rx, vx_base_16, colour);
-		sub_block(&block_ptr[5], lx, rx, vx_base_20, colour);
-		sub_block(&block_ptr[6], lx, rx, vx_base_24, colour);
-		sub_block(&block_ptr[7], lx, rx, vx_base_28, colour);
+		vec_float4 tAa = Aa;
+		vec_float4 tAb = Ab;
+		vec_float4 tAc = Ac;
+
+		Aa += Aa_dy;
+		Ab += Ab_dy;
+		Ac += Ac_dy;
+
+		sub_block(&block_ptr[0], lx, rx, vx_base_0, tri, tAa,tAb,tAc);
+		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
+		sub_block(&block_ptr[1], lx, rx, vx_base_4, tri, tAa,tAb,tAc);
+		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
+		sub_block(&block_ptr[2], lx, rx, vx_base_8, tri, tAa,tAb,tAc);
+		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
+		sub_block(&block_ptr[3], lx, rx, vx_base_12, tri, tAa,tAb,tAc);
+		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
+		sub_block(&block_ptr[4], lx, rx, vx_base_16, tri, tAa,tAb,tAc);
+		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
+		sub_block(&block_ptr[5], lx, rx, vx_base_20, tri, tAa,tAb,tAc);
+		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
+		sub_block(&block_ptr[6], lx, rx, vx_base_24, tri, tAa,tAb,tAc);
+		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
+		sub_block(&block_ptr[7], lx, rx, vx_base_28, tri, tAa,tAb,tAc);
 
 		lx = spu_add(lx, dl);
 		rx = spu_add(rx, dr);
@@ -288,7 +366,7 @@ static void big_block(unsigned int bx, unsigned int by,
 		unsigned int start_line, unsigned int end_line,
 		vec_float4 lx, vec_float4 rx, 
 		vec_float4 dl, vec_float4 dr, 
-	vec_uint4 colour)
+		triangle* tri, vec_float4 A)
 {
 	u64 scrbuf = screen.address + screen.bytes_per_line*by*32+bx*128;
 
@@ -305,7 +383,7 @@ static void big_block(unsigned int bx, unsigned int by,
 	}
 #endif
 
-	process_block(block_ptr, start_line, end_line, lx, rx, dl, dr, colour);
+	process_block(block_ptr, start_line, end_line, lx, rx, dl, dr, tri, A);
 
 //	wait_screen_block(current_block);
 //	flush_screen_block(current_block);
@@ -333,7 +411,7 @@ void triangle_half_blockline(
 
 	vec_uchar16 dl_sel,
 	vec_uchar16 dr_sel,
-	vec_uint4 colour
+	triangle* tri, vec_float4 A_left
 ) {
 		// this should probably all be done with if_then_else as
 		// we only care about one element of the register
@@ -359,6 +437,9 @@ void triangle_half_blockline(
 
 		vec_float4 block_x_delta = spu_convtf(spu_and(spu_convts(lx_min,0),~31),0);
 
+		vec_float4 block_x_delta_1 = spu_convtf(spu_or(spu_and(spu_convts(lx_min,1),~62),spu_splats(1)),1);
+		vec_float4 A = spu_madd(tri->dAdx,block_x_delta_1,A_left);
+
 //		printf("lx_min = %f\n", spu_extract(lx_min,0));
 //		printf("l %d left %d right %d\n", l, left_block, right_block);
 
@@ -370,8 +451,7 @@ void triangle_half_blockline(
 				start_line, end_line,
 				spu_sub(lx, block_x_delta),
 				spu_sub(rx, block_x_delta),
-				dl, dr,
-				colour);
+				dl, dr, tri, A);
 			block_x_delta = spu_add(block_x_delta, _base_add32);
 		}
 }
@@ -388,8 +468,10 @@ void triangle_half(
 	vec_float4 lx, vec_float4 rx, vec_float4 dl, vec_float4 dr,
 	screen_block* current_block,
 
-	vec_uint4 colour
+	triangle* tri, float block_top_y
 ) {
+	vec_float4 A = spu_madd(spu_splats(block_top_y),tri->dAdy,tri->A);
+	vec_float4 dA_dy32 = spu_mul(spu_splats(32.0f),tri->dAdy);
 
 	vec_uchar16 dl_inc = (vec_uchar16) spu_cmpgt(dl, spu_splats(0.0f));
 	vec_uchar16 dr_inc = (vec_uchar16) spu_cmpgt(dr, spu_splats(0.0f));
@@ -402,19 +484,18 @@ void triangle_half(
 	{
 		triangle_half_blockline(start_line, 32, bx, by, end_y, 
 			lx, rx, dl, dr, current_block,
-			dl_sel, dr_sel,
-		colour);
+			dl_sel, dr_sel, tri, A);
 		by++;
 		vec_float4 mult = spu_splats((float)(32-start_line));
 		lx = spu_add(lx, spu_mul(dl,mult));
 		rx = spu_add(rx, spu_mul(dr,mult));
 		start_line = 0;
+		A += dA_dy32;
 	}
 
 	triangle_half_blockline(start_line, end_line, bx, by, end_y, 
 		lx, rx, dl, dr, current_block,
-		dl_sel, dr_sel,
-		colour);
+		dl_sel, dr_sel, tri, A);
 
 }
 
@@ -424,18 +505,6 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 	vec_float4 vx = spu_shuffle(tri->x, tri->x, tri->shuffle);
 	vec_float4 vy = spu_shuffle(tri->y, tri->y, tri->shuffle);
 
-	vec_float4 w = spu_splats(1.0f)/tri->w;
-
-	vec_uint4 red = spu_rlmask(spu_convtu(tri->r * w,32),-24);
-	vec_uint4 green = spu_rlmask(spu_convtu(tri->g * w,32),-24);
-	vec_uint4 blue = spu_rlmask(spu_convtu(tri->b * w,32),-24);
-
-	unsigned int col = (spu_extract(red,0) << 16) |
-			   (spu_extract(green,0) << 8) |
-			    spu_extract(blue,0);
-
-	vec_uint4 colour = spu_splats(col);
-	
 	// these are ((int(coord)+0.5)*2)
 	vec_int4 vx_int = spu_convts(vx,0);
 	vec_int4 vy_int = spu_convts(vy,0);
@@ -463,6 +532,8 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 	vec_float4 dl = spu_splats(spu_extract(grad,2));
 	vec_float4 dr = spu_splats(spu_extract(grad,1));
 
+	vec_float4 vy_block_top = spu_convtf(spu_and(vy_1,~62),1);
+
 	unsigned int right_flag = tri->right;
 	unsigned int bottom_pos = if_then_else(right_flag, 2, 1);
 	unsigned int middle_pos = if_then_else(right_flag, 1, 2);
@@ -481,7 +552,7 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 
 	triangle_half(start_line, middle_line, bx, top_y, middle_y, 
 		lx, rx, dl, dr, current_block,
-		colour
+		tri, spu_extract(vy_block_top,0)
 	);
 
 	if (right_flag) {	
@@ -506,7 +577,7 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 
 	triangle_half(middle_line, bottom_line, bx, middle_y, bottom_y, 
 		lx, rx, dl, dr, current_block,
-		colour
+		tri, spu_extract(vy_block_top,middle_pos)
 	);
 }
 

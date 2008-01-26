@@ -63,6 +63,37 @@ register vec_float4	TRIv		asm ("112");
 extern vec_uchar16 shuffle_tri_cw;
 extern vec_uchar16 shuffle_tri_ccw;
 
+
+
+
+static inline vec_float4 div(vec_float4 a, vec_float4 b) {
+	qword ra = (qword) a;
+	qword rb = (qword) b;
+	qword t0 = si_frest(rb);
+	qword t1 = si_fi(rb,t0);
+	qword t2 = si_fm(ra,t1);
+	qword t3 = si_fnms(t2,rb,ra);
+	qword res = si_fma(t3,t1,t2);
+	return (vec_float4) res;
+}
+
+static inline unsigned long cmp_eq(unsigned long a, unsigned long b) {
+	vec_uint4 aa = (vec_uint4) a;
+	vec_uint4 bb = (vec_uint4) b;
+	vec_uint4 rr = spu_cmpeq(aa, bb);
+	return spu_extract(rr, 0);
+}
+
+static inline unsigned long if_then_else(unsigned long c, 
+		unsigned long a, unsigned long b) {
+	vec_uint4 aa = (vec_uint4) a;
+	vec_uint4 bb = (vec_uint4) b;
+	vec_uint4 cc = (vec_uint4) c;
+	vec_uint4 rr = spu_sel(bb, aa, cc);
+	return spu_extract(rr, 0);
+}
+	
+
 #endif
 
 #endif // __spuregs_h
