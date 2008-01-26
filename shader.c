@@ -314,7 +314,7 @@ void triangle_half_blockline(
 		// we only care about one element of the register
 
 		signed int l = (end_line-start_line-1);
-		l = l>=0 ? l : 0;
+	if (l<0) return;
 
 		vec_float4 mult = spu_splats((float)l);
 		vec_float4 lx_bot = spu_add(lx, spu_mul(dl,mult));
@@ -329,11 +329,13 @@ void triangle_half_blockline(
 		vec_int4 left_block_v = spu_rlmaska(lx_int,-5);
 		vec_int4 right_block_v = spu_rlmaska(rx_int,-5);
 
-		unsigned int left_block = spu_extract(left_block_v, 0);
-		unsigned int right_block = spu_extract(right_block_v, 0);
+		signed int left_block = spu_extract(left_block_v, 0);
+		signed int right_block = spu_extract(right_block_v, 0);
 
 		vec_float4 block_x_delta = spu_convtf(spu_and(spu_convts(lx_min,0),~31),0);
+
 //		printf("lx_min = %f\n", spu_extract(lx_min,0));
+//		printf("l %d left %d right %d\n", l, left_block, right_block);
 
 		int cur_block;
 		for (cur_block = left_block; cur_block<=right_block; cur_block++) {

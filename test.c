@@ -59,8 +59,7 @@ int main(int argc, char* argv[]) {
 		b += 0.037;
 		c += 0.017;
 
-// for some reason, the SPU bus errors at the values created when cnt==17017
-// if (cnt<16990) goto skip;
+//if (cnt<16990) goto skip;
 
 		float sa = sin(a);
 		float ca = cos(a);
