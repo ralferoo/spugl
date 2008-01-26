@@ -136,9 +136,9 @@ cheat:
 		double uptoFlip = getTimeSince(startPoint);
 
 		glspuFlip();
+		glspuWait();
 		unsigned long _end = glspuCounter();
 		unsigned long _endBlocked = glspuBlockedCounter();
-		glspuWait();
 		GLenum error = glGetError();
 		if (error)
 			printf("glGetError() returned %d\n", error);
@@ -147,6 +147,9 @@ skip:
 
 		double uptoLoop = getTimeSince(startPoint);
 
+//		printf ("%d %d %d %2.2f%%", _end, _start, _end-_start,
+//			(float) (100.0*(_end-_start)/onesec/uptoLoop));
+
 //		printf ("%d %d %2.2f%%", _endBlocked, _startBlocked,
 //			(float) (100.0*(_endBlocked-_startBlocked)/onesec));
 
@@ -154,8 +157,8 @@ skip:
 		printf("[%d] %2.1f FPS, currently idling %2.2f%%, blocked %2.2f%% SPU    \n",
 			cnt,
 			(float) 1.0/uptoLoop,
-			(float) (100.0*(_end-_start)/onesec),
-			(float) (100.0*(_endBlocked-_startBlocked)/onesec));
+			(float) (100.0*(_end-_start)/onesec/uptoLoop),
+			(float) (100.0*(_endBlocked-_startBlocked)/onesec/uptoLoop));
 	}
 	usleep(250000);
 	glspuDestroy();
