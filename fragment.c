@@ -84,8 +84,8 @@ u32* getFragment(unsigned int id, unsigned long dma_tag)
 		u64 addr = screen.address + screen.bytes_per_line*i;
 		mfc_putf(lb, addr, (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT), 0, 0, 0);
 		mfc_write_tag_mask(1);
-		mfc_read_tag_status_any();
 	}
+	mfc_read_tag_status_any();
 	free(lb);
 	return from;
 }

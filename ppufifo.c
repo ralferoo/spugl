@@ -89,7 +89,8 @@ int _flush_3d_driver(DriverContext _context)
 //		printf("glFlush() wait...\n");
 		while (context->control->fifo_written !=
 				context->control->fifo_read) 
-			usleep(25000);
+			sched_yield();
+//			usleep(2000);
 //		printf("glFlush() done...\n");
 	}
 }

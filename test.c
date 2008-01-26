@@ -76,6 +76,7 @@ int main(int argc, char* argv[]) {
 		glspuClear();
 		unsigned long _start = glspuCounter();
 		unsigned long _startBlocked = glspuBlockedCounter();
+	if(1) {
 		glBegin(GL_TRIANGLES);
 		for (f=0; f<6; f++) {
 			float sx[5], sy[5], sz[5];
@@ -129,6 +130,7 @@ int main(int argc, char* argv[]) {
 		}
 cheat:
 		glEnd();	
+	}
 		glFlush();
 
 		double uptoFlip = getTimeSince(startPoint);
@@ -136,7 +138,7 @@ cheat:
 		glspuFlip();
 		unsigned long _end = glspuCounter();
 		unsigned long _endBlocked = glspuBlockedCounter();
-//		glspuWait();
+		glspuWait();
 		GLenum error = glGetError();
 		if (error)
 			printf("glGetError() returned %d\n", error);
