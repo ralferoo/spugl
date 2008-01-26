@@ -13,6 +13,8 @@
 #include <libspe.h>
 #include "fifo.h"
 
+// #define DOTS_WHEN_WAITING_FOR_FIFO
+
 // the size of the fragment buffer
 // it needs to be at least the size of a frame in order to be able
 // to store a z-buffer and we will need other fragments as well
@@ -155,13 +157,17 @@ u32* _begin_fifo(DriverContext _context, u32 minsize)
  		u64 end = control->fifo_host_start + control->fifo_size;
 		u32* __fifo_ptr = (u32*)_FROM_EA(written);
 		if (written + minsize + 40 < end) {
+#ifdef DOTS_WHEN_WAITING_FOR_FIFO
+			printf(".");
 //			printf("_begin_fifo: written %llx + size %d = %llx < %llx\n",
 //				written, minsize, written+minsize, end);
+#endif
 			return __fifo_ptr;
 		} else {
 			while (read==control->fifo_host_start) {
-				printf("_begin_fifo: Waiting for them to start reading... %llx\n", read);
-				usleep(10000);
+//				printf("_begin_fifo: Waiting for them to start reading... %llx\n", read);
+				sched_yield();
+				// usleep(10000);
 				read = context->control->fifo_read;
 			};
 
@@ -178,7 +184,8 @@ u32* _begin_fifo(DriverContext _context, u32 minsize)
 	while (written != control->fifo_read &&
 			written + minsize + 40 > control->fifo_read) {
 //		printf("_begin_fifo: Still not enough space... read=%llx, written=%llx, need until=%llx, want=%d\n", control->fifo_read, written, written + minsize + 40);
-		usleep(10000);
+		sched_yield();
+		//usleep(10000);
 	}
 
 //	printf("_begin_fifo: returning %llx for %d bytes\n", control->fifo_written, minsize);
