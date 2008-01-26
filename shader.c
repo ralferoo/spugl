@@ -267,15 +267,24 @@ static inline void sub_block(vec_uint4* ptr,
 #endif
 }
 
+vec_float4 vx_base_0 = {0.5f, 1.5f, 2.5f, 3.5f};
+vec_float4 vx_base_4 = {4.5f, 5.5f, 6.5f, 7.5f};
+vec_float4 vx_base_8 = {8.5f, 9.5f, 10.5f, 11.5f};
+vec_float4 vx_base_12 = {12.5f, 13.5f, 14.5f, 15.5f};
+vec_float4 vx_base_16 = {16.5f, 17.5f, 18.5f, 19.5f};
+vec_float4 vx_base_20 = {20.5f, 21.5f, 22.5f, 23.5f};
+vec_float4 vx_base_24 = {24.5f, 25.5f, 26.5f, 27.5f};
+vec_float4 vx_base_28 = {28.5f, 29.5f, 30.5f, 31.5f};
+
 static void big_block(unsigned int bx, unsigned int by,
 		screen_block* current_block,
 		unsigned int start_line, unsigned int end_line,
 		vec_float4 lx, vec_float4 rx, 
 		vec_float4 dl, vec_float4 dr, 
-		vec_float4 vx_base_0, vec_float4 vx_base_4,
-		vec_float4 vx_base_8, vec_float4 vx_base_12,
-		vec_float4 vx_base_16, vec_float4 vx_base_20,
-		vec_float4 vx_base_24, vec_float4 vx_base_28,
+//		vec_float4 vx_base_0, vec_float4 vx_base_4,
+//		vec_float4 vx_base_8, vec_float4 vx_base_12,
+//		vec_float4 vx_base_16, vec_float4 vx_base_20,
+//		vec_float4 vx_base_24, vec_float4 vx_base_28,
 	vec_uint4 colour)
 {
 	u64 scrbuf = screen.address + screen.bytes_per_line*by*32+bx*128;
@@ -290,7 +299,7 @@ static void big_block(unsigned int bx, unsigned int by,
 	for (a=0; a<32*8*4; a++) {
 		//block_ptr[a]|=spu_splats(0xff0000);
 //		q[a] = (q[a]&0xffff)>>4 | 0xff0000;
-		q[a] |= 0x0f0000;
+//		q[a] += 0x060000;
 	}
 /*
 */
@@ -362,7 +371,11 @@ void triangle_half_blockline(
 ) {
 		// this should probably all be done with if_then_else as
 		// we only care about one element of the register
-		vec_float4 mult = spu_splats((float)(end_line-start_line));
+
+		signed int l = (end_line-start_line-1);
+		l = l>=0 ? l : 0;
+
+		vec_float4 mult = spu_splats((float)l);
 		vec_float4 lx_bot = spu_add(lx, spu_mul(dl,mult));
 		vec_float4 rx_bot = spu_add(rx, spu_mul(dr,mult));
 
@@ -378,42 +391,28 @@ void triangle_half_blockline(
 		unsigned int left_block = spu_extract(left_block_v, 0);
 		unsigned int right_block = spu_extract(right_block_v, 0);
 
+		vec_float4 block_x_delta = spu_convtf(spu_and(spu_convts(lx_min,0),~31),0);
+		printf("lx_min = %f\n", spu_extract(lx_min,0));
+
 		int cur_block;
-		vec_float4 block_x_delta = {0.0, 0.0, 0.0, 0.0};
+//		vec_float4 block_x_delta = {0.0, 0.0, 0.0, 0.0};
 
-		for (cur_block = bx; cur_block>=0 && cur_block>=left_block; cur_block--) {
+		for (cur_block = left_block; cur_block<=right_block; cur_block++) {
 			big_block(
 				cur_block, by,
 				current_block,
 				start_line, end_line,
-				lx, rx, dl, dr,
-				spu_add(block_x_delta, vx_base_0),
-				spu_add(block_x_delta, vx_base_4),
-				spu_add(block_x_delta, vx_base_8),
-				spu_add(block_x_delta, vx_base_12),
-				spu_add(block_x_delta, vx_base_16),
-				spu_add(block_x_delta, vx_base_20),
-				spu_add(block_x_delta, vx_base_24),
-				spu_add(block_x_delta, vx_base_28),
-				colour);
-			block_x_delta = spu_sub(block_x_delta, _base_add32);
-		}
-
-		block_x_delta = _base_add32;
-		for (cur_block = bx+1; cur_block<=right_block; cur_block++) {
-			big_block(
-				cur_block, by,
-				current_block,
-				start_line, end_line,
-				lx, rx, dl, dr,
-				spu_add(block_x_delta, vx_base_0),
-				spu_add(block_x_delta, vx_base_4),
-				spu_add(block_x_delta, vx_base_8),
-				spu_add(block_x_delta, vx_base_12),
-				spu_add(block_x_delta, vx_base_16),
-				spu_add(block_x_delta, vx_base_20),
-				spu_add(block_x_delta, vx_base_24),
-				spu_add(block_x_delta, vx_base_28),
+				spu_sub(lx, block_x_delta),
+				spu_sub(rx, block_x_delta),
+				dl, dr,
+//				spu_add(block_x_delta, vx_base_0),
+//				spu_add(block_x_delta, vx_base_4),
+//				spu_add(block_x_delta, vx_base_8),
+//				spu_add(block_x_delta, vx_base_12),
+//				spu_add(block_x_delta, vx_base_16),
+//				spu_add(block_x_delta, vx_base_20),
+//				spu_add(block_x_delta, vx_base_24),
+//				spu_add(block_x_delta, vx_base_28),
 				colour);
 			block_x_delta = spu_add(block_x_delta, _base_add32);
 		}
