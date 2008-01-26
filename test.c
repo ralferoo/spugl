@@ -135,8 +135,7 @@ cheat:
 
 		cnt++;
 		printf("[%d] Currently idling %2.2f%% SPU capacity    \r",
-			cnt, (_end-_start));
-//((_end-_start)/onesec)*100.0, cnt);
+			cnt, ((_end-_start)/onesec)*100.0);
 	}
 	usleep(250000);
 	glspuDestroy();

@@ -9,7 +9,8 @@
 TARGETS = test
 
 LIBDIRS = -L/usr/lib
-LIBS = -lstdc++ -lm -lc -lspe -lpthread
+LIBS = -lm -lspe -lpthread
+#LIBS = -lm -lc -lspe -lpthread
 
 USERLAND = 32
 #USERLAND = 64
