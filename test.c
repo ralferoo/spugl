@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 #include <GL/gl.h>
 #include <GL/glspu.h>
@@ -34,27 +35,27 @@ int faces[6][7] = {
 	{ 3,2,6,7, 128,0,128},
 };
 
+static inline double getTimeSince(struct timespec startPoint) {
+	struct timespec endPoint;
+	clock_gettime(CLOCK_MONOTONIC,&endPoint);
+	double secs = endPoint.tv_sec-startPoint.tv_sec +
+		((endPoint.tv_nsec-startPoint.tv_nsec)/1000000000.0);
+	return secs;
+}
+
 int main(int argc, char* argv[]) {
 	glspuSetup();
 
-/*
-	printf("Calibrating SPU speed...\n");
-	unsigned long start = glspuCounter();
-	sleep(1);
-//	unsigned long one = glspuCounter();
-//	sleep(1);
-	unsigned long two = glspuCounter();
-	float onesec = (two-start); // /2;
-//	printf("Time taken: %d, %d: avg %f\n", one-start, two-one, onesec);
-	printf("Time taken: %f\n", onesec);
-*/
-	float onesec = 42670000;
+	float onesec = 42670000.0;
 
 	float a=0.0,b=0.0,c=0.0;
 
 	int f,v;
 	int cnt = 0;
 	for (;;) {
+		struct timespec startPoint;
+		clock_gettime(CLOCK_MONOTONIC,&startPoint);
+
 		a += 0.011;
 		b += 0.037;
 		c += 0.017;
@@ -74,6 +75,7 @@ int main(int argc, char* argv[]) {
 
 		glspuClear();
 		unsigned long _start = glspuCounter();
+		unsigned long _startBlocked = glspuBlockedCounter();
 		glBegin(GL_TRIANGLES);
 		for (f=0; f<6; f++) {
 			float sx[5], sy[5], sz[5];
@@ -128,16 +130,30 @@ int main(int argc, char* argv[]) {
 cheat:
 		glEnd();	
 		glFlush();
+
+		double uptoFlip = getTimeSince(startPoint);
+
 		glspuFlip();
 		unsigned long _end = glspuCounter();
+		unsigned long _endBlocked = glspuBlockedCounter();
 //		glspuWait();
 		GLenum error = glGetError();
 		if (error)
 			printf("glGetError() returned %d\n", error);
 skip:
 		cnt++;
-		printf("[%d] Currently idling %2.2f%% SPU capacity    \n",
-			cnt, ((_end-_start)/onesec)*100.0);
+
+		double uptoLoop = getTimeSince(startPoint);
+
+//		printf ("%d %d %2.2f%%", _endBlocked, _startBlocked,
+//			(float) (100.0*(_endBlocked-_startBlocked)/onesec));
+
+//		printf("%f %f\n", uptoFlip, uptoLoop);
+		printf("[%d] %2.1f FPS, currently idling %2.2f%%, blocked %2.2f%% SPU    \n",
+			cnt,
+			(float) 1.0/uptoLoop,
+			(float) (100.0*(_end-_start)/onesec),
+			(float) (100.0*(_endBlocked-_startBlocked)/onesec));
 	}
 	usleep(250000);
 	glspuDestroy();

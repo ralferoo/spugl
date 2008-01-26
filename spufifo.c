@@ -88,6 +88,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 
 	control.last_count = 0;
 	control.idle_count = 0;
+	control.block_count = 0;
 	spu_write_out_mbox((u32)&control);
 
 	int running = 1;

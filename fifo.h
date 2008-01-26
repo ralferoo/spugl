@@ -106,7 +106,8 @@ typedef struct {
 	volatile u32 idle_count;	// this is our count of idle cycles
 	volatile u32 last_count;	// last value of counter we saw
 	volatile u32 error;		// the error code, if any
-	volatile u32 pad2[32-7];
+	volatile u32 block_count;	// this is our count of blocked cycles
+	volatile u32 pad2[32-8];
 } SPU_CONTROL;
 
 extern DriverContext _init_3d_driver(int master);

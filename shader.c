@@ -161,11 +161,24 @@ void flush_screen_block(screen_block* block)
 	}
 }
 
+extern SPU_CONTROL control;
+
 unsigned long wait_screen_block(screen_block* block)
 {
+#ifndef COUNT_BLOCKED_DMA
 	mfc_write_tag_mask(1 << block->tagid);
 	unsigned long mask = mfc_read_tag_status_any();
 	return mask;
+#else
+	unsigned long mask = 1 << block->tagid;
+	unsigned long done;
+	do {
+		mfc_write_tag_mask(mask);
+		done = mfc_read_tag_status_any();
+		control.block_count++;
+	} while (!(done&mask));
+	return done&mask;
+#endif
 }
 
 // BUGS: this only works if lines is a multiple of 2, and <=32
@@ -292,8 +305,8 @@ static void big_block(unsigned int bx, unsigned int by,
 
 	process_block(block_ptr, start_line, end_line, lx, rx, dl, dr, colour);
 
-	wait_screen_block(current_block);
-	flush_screen_block(current_block);
+//	wait_screen_block(current_block);
+//	flush_screen_block(current_block);
 }
 
 vec_uchar16 copy_from_a = {

@@ -30,6 +30,11 @@ GLAPI unsigned long GLAPIENTRY glspuCounter(void)
 	return _3d_idle_count(ctx);
 }
 
+GLAPI unsigned long GLAPIENTRY glspuBlockedCounter(void)
+{
+	return _3d_blocked_count(ctx);
+}
+
 static void updateScreenPointer(void) 
 {
 	FIFO_PROLOGUE(ctx,10);
