@@ -6,7 +6,8 @@
  *
  ****************************************************************************/
 
-// #define SYNC_WITH_FRAME
+#define SYNC_WITH_FRAME
+// #define BLACK_MIDDLES
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -125,8 +126,11 @@ int main(int argc, char* argv[]) {
 					   vertices[faces[f][(v+1)%4]][3]);
 				glVertex3f(sx[(v+1)%4],sy[(v+1)%4],sz[(v+1)%4]);
 
+#ifdef BLACK_MIDDLES
+				glColor3ub(0,0,0);
+#else
 				glColor3ub(tr/4, tg/4, tb/4);
-				// glColor3ub(0,0,0);
+#endif
 				glVertex3f(tx/4, ty/4, tz/4);
 //goto cheat;
 			}

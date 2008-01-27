@@ -11,7 +11,7 @@
 #include "struct.h"
 
 // #define DEBUG_1
-// #define DEBUG_2
+// #define DEBUG_2		// corrupt each block we load in
 // #define DEBUG_3
 
 #define COUNT_BLOCKED_DMA
@@ -375,7 +375,7 @@ static void big_block(unsigned int bx, unsigned int by,
 	int a;
 	unsigned long* q = (unsigned long*) block_ptr;
 	for (a=0; a<32*8*4; a++) {
-		q[a] += 0x060000;
+		q[a] += 0x090000;
 	}
 #endif
 
