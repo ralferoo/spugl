@@ -154,11 +154,15 @@ skip:
 //			(float) (100.0*(_endBlocked-_startBlocked)/onesec));
 
 //		printf("%f %f\n", uptoFlip, uptoLoop);
-		printf("[%d] %2.1f FPS, currently idling %2.2f%%, blocked %2.2f%% SPU    \n",
+
+		// bah humbug, stdio buffering, bah!
+		char buffer[256];
+		sprintf(buffer,"[%d] %2.1f FPS, currently idling %2.2f%%, blocked %2.2f%% SPU    \r",
 			cnt,
 			(float) 1.0/uptoLoop,
 			(float) (100.0*(_end-_start)/onesec/uptoLoop),
 			(float) (100.0*(_endBlocked-_startBlocked)/onesec/uptoLoop));
+		write(1,buffer,strlen(buffer));
 	}
 	usleep(250000);
 	glspuDestroy();

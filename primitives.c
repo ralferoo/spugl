@@ -172,18 +172,19 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 //	triangle_out_ptr -> dx = v_by_to_cy;
 //	triangle_out_ptr -> dy = v_bx_to_cx;
 
-/*
 	if (face_sum<0) {
 	int i;
 	for (i=0; i<3; i++) {
-		printf("face_sum: %f, A(%c): %f, dAdx(%c)=%f dAdy(%c)=%f\n",
+		printf("face_sum: %f, A(%c): %f->%f, dAdx(%c)=%f dAdy(%c)=%f\n",
 			face_sum,
-			i+'a', spu_extract(triangle_out_ptr->A,i),
+			i+'a', spu_extract(base_area,i),
+			spu_extract(triangle_out_ptr->A,i),
 			i+'a', spu_extract(triangle_out_ptr->dAdx,i),
 			i+'a', spu_extract(triangle_out_ptr->dAdy,i));
 	}
 	printf("\n");
 	}
+/*
 */
 
 ///////////////////////////////////////////////////////////////////////////////

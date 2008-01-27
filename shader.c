@@ -249,16 +249,6 @@ static inline void sub_block(vec_uint4* ptr,
 	tAb = spu_mul(tAb,w);
 	tAc = spu_mul(tAc,w);
 
-/*
-	vec_float4 r_r = spu_shuffle(tri->r, tri->r, tri->shuffle);
-	vec_float4 t_r = spu_madd(r_r,tAa,spu_madd(r_r,tAb,spu_mul(r_r,tAc)));
-
-	vec_float4 r_g = spu_shuffle(tri->g, tri->g, tri->shuffle);
-	vec_float4 t_g = spu_madd(r_g,tAa,spu_madd(r_g,tAb,spu_mul(r_g,tAc)));
-
-	vec_float4 r_b = spu_shuffle(tri->b, tri->b, tri->shuffle);
-	vec_float4 t_b = spu_madd(r_b,tAa,spu_madd(r_b,tAb,spu_mul(r_b,tAc)));
-*/
 	vec_float4 t_r = extract(tri->r, tri, tAa, tAb, tAc);
 	vec_float4 t_g = extract(tri->g, tri, tAa, tAb, tAc);
 	vec_float4 t_b = extract(tri->b, tri, tAa, tAb, tAc);
@@ -321,13 +311,19 @@ static inline void process_block(vec_uint4* block_ptr,
 	Ab = spu_madd(muls,Ab_dx,Ab);
 	Ac = spu_madd(muls,Ac_dx,Ac);
 
-	vec_float4 Aa_dx4 = spu_madd(muls4,Aa_dx,Aa);
-	vec_float4 Ab_dx4 = spu_madd(muls4,Ab_dx,Ab);
-	vec_float4 Ac_dx4 = spu_madd(muls4,Ac_dx,Ac);
+	vec_float4 Aa_dx4 = spu_mul(muls4,Aa_dx);
+	vec_float4 Ab_dx4 = spu_mul(muls4,Ab_dx);
+	vec_float4 Ac_dx4 = spu_mul(muls4,Ac_dx);
 
 	vec_float4 Aa_dy = spu_splats(spu_extract(tri->dAdy,0));
 	vec_float4 Ab_dy = spu_splats(spu_extract(tri->dAdy,1));
 	vec_float4 Ac_dy = spu_splats(spu_extract(tri->dAdy,2));
+
+	vec_float4 muldy = spu_convtf(spu_splats(start_line),0);
+	
+	Aa = spu_madd(muldy,Aa_dy,Aa);
+	Ab = spu_madd(muldy,Ab_dy,Ab);
+	Ac = spu_madd(muldy,Ac_dy,Ac);
 
 	unsigned int line;
 	for (line=start_line; line<end_line; line++) {
@@ -439,6 +435,7 @@ void triangle_half_blockline(
 
 		vec_float4 block_x_delta_1 = spu_convtf(spu_or(spu_and(spu_convts(lx_min,1),~62),spu_splats(1)),1);
 		vec_float4 A = spu_madd(tri->dAdx,block_x_delta_1,A_left);
+		vec_float4 dA_dx32 = spu_mul(spu_splats(32.0f),tri->dAdx);
 
 //		printf("lx_min = %f\n", spu_extract(lx_min,0));
 //		printf("l %d left %d right %d\n", l, left_block, right_block);
@@ -453,6 +450,7 @@ void triangle_half_blockline(
 				spu_sub(rx, block_x_delta),
 				dl, dr, tri, A);
 			block_x_delta = spu_add(block_x_delta, _base_add32);
+			A += dA_dx32;
 		}
 }
 
