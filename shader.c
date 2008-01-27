@@ -214,7 +214,7 @@ static inline vec_float4 extract(
 	vec_float4 what,
 	triangle* tri, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
 {
-	vec_float4 r_w = spu_shuffle(what, what, tri->shuffle);
+	vec_float4 r_w = what; //spu_shuffle(what, what, tri->shuffle);
 	vec_float4 t_w = spu_madd(spu_splats(spu_extract(r_w,0)),tAa,
 			 spu_madd(spu_splats(spu_extract(r_w,1)),tAb,
 			 spu_mul (spu_splats(spu_extract(r_w,2)),tAc)));
@@ -500,8 +500,8 @@ void triangle_half(
 
 void fast_triangle(triangle* tri, screen_block* current_block)
 {
-	vec_float4 vx = spu_shuffle(tri->x, tri->x, tri->shuffle);
-	vec_float4 vy = spu_shuffle(tri->y, tri->y, tri->shuffle);
+	vec_float4 vx = tri->x; //spu_shuffle(tri->x, tri->x, tri->shuffle);
+	vec_float4 vy = tri->y; //spu_shuffle(tri->y, tri->y, tri->shuffle);
 
 	// these are ((int(coord)+0.5)*2)
 	vec_int4 vx_int = spu_convts(vx,0);

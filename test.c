@@ -6,6 +6,8 @@
  *
  ****************************************************************************/
 
+// #define SYNC_WITH_FRAME
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -124,6 +126,7 @@ int main(int argc, char* argv[]) {
 				glVertex3f(sx[(v+1)%4],sy[(v+1)%4],sz[(v+1)%4]);
 
 				glColor3ub(tr/4, tg/4, tb/4);
+				// glColor3ub(0,0,0);
 				glVertex3f(tx/4, ty/4, tz/4);
 //goto cheat;
 			}
@@ -136,7 +139,9 @@ cheat:
 		double uptoFlip = getTimeSince(startPoint);
 
 		glspuFlip();
+#ifdef SYNC_WITH_FRAME
 		glspuWait();
+#endif
 		unsigned long _end = glspuCounter();
 		unsigned long _endBlocked = glspuBlockedCounter();
 		GLenum error = glGetError();

@@ -40,7 +40,7 @@ typedef struct {
 #include <spu_intrinsics.h>
 
 typedef struct {
-	vec_uchar16	shuffle;	// standard shuffle
+//	vec_uchar16	shuffle;	// standard shuffle
 	vec_float4	x,y,z,w;	// coords
 	vec_float4	r,g,b,a;	// primary colour
 	vec_float4	s,t,u,v;	// primary texture

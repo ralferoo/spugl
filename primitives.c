@@ -124,8 +124,8 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 	vec_float4 base_area = spu_insert(face_sum, cast_zero, 0);
 	vec_uint4 fcgt_area = spu_cmpgt(cast_zero, base_area);
 
-	vec_float4 area_dx = spu_sub(v_y_cw, v_y_ccw); // cy -> by
-	vec_float4 area_dy = spu_sub(v_x_ccw, v_x_cw); // bx -> cx
+	vec_float4 area_dx = spu_sub(v_y_ccw, v_y_cw); // cy -> by
+	vec_float4 area_dy = spu_sub(v_x_cw, v_x_ccw); // bx -> cx
 
 //	vec_float4 area_recip = div(spu_splats(1.0f), spu_splats(face_sum));
 //	vec_float4 area_dx = spu_mul(area_recip, spu_sub(v_y_cw, v_y_ccw)); // cy -> by
@@ -133,29 +133,28 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 //	vec_float4 area = (vec_float4) {1.0f, 0.0f, 0.0f, 0.0f};
 
 
-
-	vec_float4 area_ofs = spu_madd(spu_splats(spu_extract(TRIx,0)),area_dx,
-			spu_mul(spu_splats(spu_extract(TRIy,0)),area_dy));
+	vec_float4 area_ofs = spu_madd(spu_splats(spu_extract(vx,0)),area_dx,
+			spu_mul(spu_splats(spu_extract(vy,0)),area_dy));
 
 	unsigned long advance_ptr_mask = spu_extract(fcgt_area, 0);
 	triangle* next_triangle = (triangle*) ( ((void*)triangle_out_ptr) +
 			(advance_ptr_mask&sizeof(triangle)) );
 
-	triangle_out_ptr -> shuffle = r_normal;
-	triangle_out_ptr -> x = TRIx;
-	triangle_out_ptr -> y = TRIy;
-	triangle_out_ptr -> z = TRIz;
-	triangle_out_ptr -> w = TRIw;
+//	triangle_out_ptr -> shuffle = r_normal;
+	triangle_out_ptr -> x = spu_shuffle(TRIx, TRIx, r_normal);
+	triangle_out_ptr -> y = spu_shuffle(TRIy, TRIy, r_normal);
+	triangle_out_ptr -> z = spu_shuffle(TRIz, TRIz, r_normal);
+	triangle_out_ptr -> w = spu_shuffle(TRIw, TRIw, r_normal);
 	
-	triangle_out_ptr -> r = TRIr;
-	triangle_out_ptr -> g = TRIg;
-	triangle_out_ptr -> b = TRIb;
-	triangle_out_ptr -> a = TRIa;
+	triangle_out_ptr -> r = spu_shuffle(TRIr, TRIr, r_normal);
+	triangle_out_ptr -> g = spu_shuffle(TRIg, TRIg, r_normal);
+	triangle_out_ptr -> b = spu_shuffle(TRIb, TRIb, r_normal);
+	triangle_out_ptr -> a = spu_shuffle(TRIa, TRIa, r_normal);
 	
-	triangle_out_ptr -> s = TRIs;
-	triangle_out_ptr -> t = TRIt;
-	triangle_out_ptr -> u = TRIu;
-	triangle_out_ptr -> v = TRIv;
+	triangle_out_ptr -> s = spu_shuffle(TRIs, TRIs, r_normal);
+	triangle_out_ptr -> t = spu_shuffle(TRIt, TRIt, r_normal);
+	triangle_out_ptr -> u = spu_shuffle(TRIu, TRIu, r_normal);
+	triangle_out_ptr -> v = spu_shuffle(TRIv, TRIv, r_normal);
 	
 	triangle_out_ptr -> A = spu_sub(base_area, area_ofs);
 	triangle_out_ptr -> dAdx = area_dx;
@@ -172,6 +171,7 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 //	triangle_out_ptr -> dx = v_by_to_cy;
 //	triangle_out_ptr -> dy = v_bx_to_cx;
 
+/*
 	if (face_sum<0) {
 	int i;
 	for (i=0; i<3; i++) {
@@ -184,7 +184,6 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 	}
 	printf("\n");
 	}
-/*
 */
 
 ///////////////////////////////////////////////////////////////////////////////
