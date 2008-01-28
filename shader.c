@@ -15,10 +15,14 @@
 // #define DEBUG_3
 
 #define COUNT_BLOCKED_DMA
+#define TEXTURE_MAPPED
 
 extern _bitmap_image screen;
 
-u32 textureTemp[32] __attribute__((aligned(128)));
+u32 textureTemp0[32] __attribute__((aligned(128)));
+u32 textureTemp1[32] __attribute__((aligned(128)));
+u32 textureTemp2[32] __attribute__((aligned(128)));
+u32 textureTemp3[32] __attribute__((aligned(128)));
 
 
 vec_int4 _a[10];
@@ -138,14 +142,13 @@ void flush_screen_block(screen_block* block)
 
 extern SPU_CONTROL control;
 
-unsigned long wait_screen_block(screen_block* block)
+unsigned long wait_for_dma(unsigned long mask)
 {
 #ifndef COUNT_BLOCKED_DMA
-	mfc_write_tag_mask(1 << block->tagid);
+	mfc_write_tag_mask(mask);
 	unsigned long mask = mfc_read_tag_status_any();
 	return mask;
 #else
-	unsigned long mask = 1 << block->tagid;
 	unsigned long done;
 	do {
 		mfc_write_tag_mask(mask);
@@ -155,6 +158,11 @@ unsigned long wait_screen_block(screen_block* block)
 	return done&mask;
 #endif
 }
+unsigned long wait_screen_block(screen_block* block)
+{
+	return wait_for_dma(1 << block->tagid);
+}
+
 
 // BUGS: this only works if lines is a multiple of 2, and <=32
 void load_screen_block(screen_block* block, 
@@ -211,58 +219,96 @@ void load_screen_block(screen_block* block,
 //////////////////////////////////////////////////////////////////////////////
 
 static inline vec_float4 extract(
-	vec_float4 what,
-	triangle* tri, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
+	vec_float4 what, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
 {
-	vec_float4 r_w = what; //spu_shuffle(what, what, tri->shuffle);
-	vec_float4 t_w = spu_madd(spu_splats(spu_extract(r_w,0)),tAa,
-			 spu_madd(spu_splats(spu_extract(r_w,1)),tAb,
-			 spu_mul (spu_splats(spu_extract(r_w,2)),tAc)));
-	return t_w;
+	return	spu_madd(spu_splats(spu_extract(what,0)),tAa,
+		spu_madd(spu_splats(spu_extract(what,1)),tAb,
+		spu_mul (spu_splats(spu_extract(what,2)),tAc)));
 }
 	
 
+const vec_uchar16 rgba_argb = {
+	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
+
+#ifdef TEXTURE_MAPPED
 static inline void sub_block(vec_uint4* ptr, 
 	vec_float4 lx, vec_float4 rx, vec_float4 vx_base,
 	triangle* tri, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
 {
-	int i;
-
-#ifdef DEBUG_4
-	for (i=0; i<4; i++) {
-		printf("(tAa=%2.2f tAb=%2.2f tAc=%2.2f) ",
-			spu_extract(tAa,i),
-			spu_extract(tAb,i),
-			spu_extract(tAc,i));
-	}
-	printf("\n");
-#endif
-
 	vec_uint4 left = spu_cmpgt(vx_base, lx);
 	vec_uint4 right = spu_cmpgt(rx, vx_base);
 	vec_uint4 pixel = spu_nand(right, left);
 
-	vec_float4 t_w = extract(tri->w, tri, tAa, tAb, tAc);
+	vec_float4 t_w = extract(tri->w, tAa, tAb, tAc);
 	vec_float4 w = spu_splats(1.0f)/t_w;
 
 	tAa = spu_mul(tAa,w);
 	tAb = spu_mul(tAb,w);
 	tAc = spu_mul(tAc,w);
 
-	vec_float4 t_r = extract(tri->r, tri, tAa, tAb, tAc);
-	vec_float4 t_g = extract(tri->g, tri, tAa, tAb, tAc);
-	vec_float4 t_b = extract(tri->b, tri, tAa, tAb, tAc);
+	vec_float4 t_s = extract(tri->s, tAa, tAb, tAc);
+	vec_float4 t_t = extract(tri->t, tAa, tAb, tAc);
 
-#ifdef DEBUG_4
-	for (i=0; i<4; i++) {
-		printf("%2.2f->(%2.2f %2.2f %2.2f) ",
-			spu_extract(t_w,i),
-			spu_extract(t_r,i),
-			spu_extract(t_g,i),
-			spu_extract(t_b,i));
-	}
-	printf("\n");
-#endif
+	vec_uint4 s = spu_and(spu_rlmask(spu_convtu(t_s,32),-14), 0x3fc00);
+	vec_uint4 t = spu_and(spu_rlmask(spu_convtu(t_t,32),-22), 0x3fc);
+	vec_uint4 offset = spu_or(s,t);
+
+//	printf("offset is %lx,%lx,%lx,%lx, texture at %llx\n", 
+//			spu_extract(offset,0),
+//			spu_extract(offset,1),
+//			spu_extract(offset,2),
+//			spu_extract(offset,3),
+//			control.texture_hack);
+
+	unsigned long texAddrBase = control.texture_hack[tri->texture];
+
+	int tag_id=3;
+	u32* pixels = (u32*)ptr;
+	unsigned long texAddr0 = texAddrBase + spu_extract(offset,0);
+	unsigned long texAddr1 = texAddrBase + spu_extract(offset,1);
+	unsigned long texAddr2 = texAddrBase + spu_extract(offset,2);
+	unsigned long texAddr3 = texAddrBase + spu_extract(offset,3);
+	if (!spu_extract(pixel,0))
+		mfc_get(textureTemp0, texAddr0 & ~127, 128, tag_id, 0, 0);
+	if (!spu_extract(pixel,1))
+		mfc_get(textureTemp1, texAddr1 & ~127, 128, tag_id, 0, 0);
+	if (!spu_extract(pixel,2))
+		mfc_get(textureTemp2, texAddr2 & ~127, 128, tag_id, 0, 0);
+	if (!spu_extract(pixel,3))
+		mfc_get(textureTemp3, texAddr3 & ~127, 128, tag_id, 0, 0);
+	wait_for_dma(1<<tag_id);
+
+	vec_uint4 colour = {
+		textureTemp0[(texAddr0&127)>>2],
+		textureTemp1[(texAddr1&127)>>2],
+		textureTemp2[(texAddr2&127)>>2],
+		textureTemp3[(texAddr3&127)>>2]};
+
+//	colour = spu_and(colour, spu_splats((unsigned int)0xff));
+	colour = spu_shuffle(colour, colour, rgba_argb);
+
+	vec_uint4 current = *ptr;
+	*ptr = spu_sel(colour, current, pixel);
+}
+#else
+static inline void sub_block(vec_uint4* ptr, 
+	vec_float4 lx, vec_float4 rx, vec_float4 vx_base,
+	triangle* tri, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
+{
+	vec_uint4 left = spu_cmpgt(vx_base, lx);
+	vec_uint4 right = spu_cmpgt(rx, vx_base);
+	vec_uint4 pixel = spu_nand(right, left);
+
+	vec_float4 t_w = extract(tri->w, tAa, tAb, tAc);
+	vec_float4 w = spu_splats(1.0f)/t_w;
+
+	tAa = spu_mul(tAa,w);
+	tAb = spu_mul(tAb,w);
+	tAc = spu_mul(tAc,w);
+
+	vec_float4 t_r = extract(tri->r, tAa, tAb, tAc);
+	vec_float4 t_g = extract(tri->g, tAa, tAb, tAc);
+	vec_float4 t_b = extract(tri->b, tAa, tAb, tAc);
 
 	vec_uint4 red = spu_and(spu_rlmask(spu_convtu(t_r,32),-8), 0xff0000);
 	vec_uint4 green = spu_and(spu_rlmask(spu_convtu(t_g,32),-16), 0xff00);
@@ -270,26 +316,22 @@ static inline void sub_block(vec_uint4* ptr,
 
 	vec_uint4 colour = spu_or(spu_or(blue, green),red);
 
-//	unsigned int col = (spu_extract(red,0) << 16) |
-//			   (spu_extract(green,0) << 8) |
-//			    spu_extract(blue,0);
-//	vec_uint4 colour = spu_splats(col);
-	
 	vec_uint4 current = *ptr;
 	*ptr = spu_sel(colour, current, pixel);
 }
+#endif
 
-vec_float4 vx_base_0 = {0.5f, 1.5f, 2.5f, 3.5f};
-vec_float4 vx_base_4 = {4.5f, 5.5f, 6.5f, 7.5f};
-vec_float4 vx_base_8 = {8.5f, 9.5f, 10.5f, 11.5f};
-vec_float4 vx_base_12 = {12.5f, 13.5f, 14.5f, 15.5f};
-vec_float4 vx_base_16 = {16.5f, 17.5f, 18.5f, 19.5f};
-vec_float4 vx_base_20 = {20.5f, 21.5f, 22.5f, 23.5f};
-vec_float4 vx_base_24 = {24.5f, 25.5f, 26.5f, 27.5f};
-vec_float4 vx_base_28 = {28.5f, 29.5f, 30.5f, 31.5f};
+const vec_float4 vx_base_0 = {0.5f, 1.5f, 2.5f, 3.5f};
+const vec_float4 vx_base_4 = {4.5f, 5.5f, 6.5f, 7.5f};
+const vec_float4 vx_base_8 = {8.5f, 9.5f, 10.5f, 11.5f};
+const vec_float4 vx_base_12 = {12.5f, 13.5f, 14.5f, 15.5f};
+const vec_float4 vx_base_16 = {16.5f, 17.5f, 18.5f, 19.5f};
+const vec_float4 vx_base_20 = {20.5f, 21.5f, 22.5f, 23.5f};
+const vec_float4 vx_base_24 = {24.5f, 25.5f, 26.5f, 27.5f};
+const vec_float4 vx_base_28 = {28.5f, 29.5f, 30.5f, 31.5f};
 
-vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
-vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
+const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
+const vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
 
 static inline void process_block(vec_uint4* block_ptr,
 		unsigned int start_line, unsigned int end_line,

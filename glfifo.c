@@ -150,3 +150,43 @@ GLAPI void GLAPIENTRY glColor4ub (GLubyte r, GLubyte g, GLubyte b, GLubyte a)
 	OUT_RINGf(a/255.0);
 	FIFO_EPILOGUE();
 }
+
+GLAPI void GLAPIENTRY glTexCoord2f (GLfloat s, GLfloat t)
+{
+	FIFO_PROLOGUE(ctx,10);
+	BEGIN_RING(SPU_COMMAND_GL_TEX_COORD2,2);
+	OUT_RINGf(s);
+	OUT_RINGf(t);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glTexCoord3f (GLfloat s, GLfloat t, GLfloat u)
+{
+	FIFO_PROLOGUE(ctx,10);
+	BEGIN_RING(SPU_COMMAND_GL_TEX_COORD3,3);
+	OUT_RINGf(s);
+	OUT_RINGf(t);
+	OUT_RINGf(u);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glTexCoord4f (GLfloat s, GLfloat t, GLfloat u, GLfloat v)
+{
+	FIFO_PROLOGUE(ctx,10);
+	BEGIN_RING(SPU_COMMAND_GL_TEX_COORD4,4);
+	OUT_RINGf(s);
+	OUT_RINGf(t);
+	OUT_RINGf(u);
+	OUT_RINGf(v);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
+{
+	FIFO_PROLOGUE(ctx,10);
+	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,2);
+	OUT_RING(target);
+	OUT_RING(texture);
+	FIFO_EPILOGUE();
+}
+

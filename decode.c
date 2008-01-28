@@ -21,6 +21,8 @@ extern void* imp_vertex(void* from, float4 in);
 extern int imp_validate_state(int state);
 
 float4 current_colour = {.x=1.0,.y=1.0,.z=1.0,.w=1.0};
+float4 current_texcoord = {.x=0.0,.y=0.0,.z=0.0,.w=1.0};
+u32 current_texture = 0;
 
 /*0*/void* imp_nop(void* p) {
 	return p;
@@ -87,14 +89,39 @@ float4 current_colour = {.x=1.0,.y=1.0,.z=1.0,.w=1.0};
 	return imp_vertex(&from[4], a);
 }
 
-/*20*/void* imp_glColor3(float* col) {
-	float4 a = {.x=col[0],.y=col[1],.z=col[2],.w=1.0f};
+/*20*/void* imp_glColor3(float* from) {
+	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=1.0f};
 	current_colour = a;
-	return &col[3];
+	return &from[3];
 }
 	
-/*21*/void* imp_glColor4(float* col) {
-	float4 a = {.x=col[0],.y=col[1],.z=col[2],.w=col[3]};
+/*21*/void* imp_glColor4(float* from) {
+	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=from[3]};
 	current_colour = a;
-	return &col[4];
+	return &from[4];
+}
+
+/*22*/void* imp_glTexCoord2(float* from) {
+	float4 a = {.x=from[0],.y=from[1],.z=0.0f,.w=1.0f};
+	current_texcoord = a;
+	return &from[2];
+}
+	
+/*23*/void* imp_glTexCoord3(float* from) {
+	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=1.0f};
+	current_texcoord = a;
+	return &from[3];
+}
+	
+/*24*/void* imp_glTexCoord4(float* from) {
+	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=from[3]};
+	current_texcoord = a;
+	return &from[4];
+}
+
+/*25*/void* imp_glBindTexture(u32* from) {
+	u32 target = *from++;
+	u32 texture = *from++;
+	current_texture = texture;
+	return from;
 }

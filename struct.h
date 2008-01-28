@@ -40,17 +40,21 @@ typedef struct {
 #include <spu_intrinsics.h>
 
 typedef struct {
-//	vec_uchar16	shuffle;	// standard shuffle
 	vec_float4	x,y,z,w;	// coords
 	vec_float4	r,g,b,a;	// primary colour
 	vec_float4	s,t,u,v;	// primary texture
-
 	vec_float4	A,dAdx,dAdy;	// weight information
 
-	void *		texture;
+	u32 		texture;
 	void *		shader;
 	unsigned long	right;		// flag if bulge is on right or not
 } triangle;
+
+typedef struct {
+	
+} deferred;
+
+
 
 #endif
 

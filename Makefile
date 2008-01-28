@@ -22,7 +22,7 @@ SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS
 SPUCCFLAGS = -O6 -I. -DSPU_REGS
 
 SPU_OBJS = spufifo.0 decode.0 primitives.0 triangleColourSpan.0 fragment.0 shader.0
-PPU_OBJS = ppufifo.o glfifo.o framebuffer.o
+PPU_OBJS = ppufifo.o glfifo.o framebuffer.o textures/berlin.o textures/ralf.o textures/mim.o textures/space.o textures/tongariro.o textures/gate.o
 
 SPU_HNDL = spu_3d.handle.o
 PPU_TEST_OBJS = $(PPU_OBJS) test.o

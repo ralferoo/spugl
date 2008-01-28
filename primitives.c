@@ -14,6 +14,11 @@
 
 extern void _draw_imp_triangle(triangle* tri);
 
+extern float4 current_colour;
+extern float4 current_texcoord;
+extern u32 current_texture;
+extern _bitmap_image screen;
+
 static void imp_point()
 {
 }
@@ -32,7 +37,7 @@ static void imp_line()
 // none(0), cw(1), ccw(2) is encoded as 0 word, -2 word, -1 word respectively
 // which is itself used as a shuffle mask on a shuffle delta mask.
 // sadly, most of the working out of this is on paper rather than computer. :(
-vec_uchar16 triangle_order_data = {
+const vec_uchar16 triangle_order_data = {
 	0,0,		/*  0 - impossible */
 	0x10,0x10,	/*  2 - 0 0 1 => 0 1 (R0) */
 	0x0c,0x0c,	/*  4 - 0 1 0 => 0 1 (R2) */
@@ -42,29 +47,29 @@ vec_uchar16 triangle_order_data = {
 	0x2c,0x2c,	/* 12 - 1 1 0 => 0 1 (L2) */
 	0,0		/* 14 - impossible */
 };
-vec_uchar16 copy_order_data = {
+const vec_uchar16 copy_order_data = {
 	1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1
 };
-vec_uchar16 copy_as_is = {
+const vec_uchar16 copy_as_is = {
 	SEL_A0 SEL_A1 SEL_A2 SEL_A3
 };
-static vec_uchar16 make_rhs_0 = {
+const static vec_uchar16 make_rhs_0 = {
 	0xff, 0xff, 0xff, 0xff, 
 	0xff, 0xff, 0xff, 0xff, 
 	0xff, 0xff, 0xff, 0xff, 
 	0x00, 0x00, 0x00, 0x00,
 };
 
-vec_uchar16 shuffle_tri_right_padded = {
+const vec_uchar16 shuffle_tri_right_padded = {
 	SEL_00 SEL_A0 SEL_A1 SEL_A2
 };
-vec_uchar16 shuffle_tri_normal = {
+const vec_uchar16 shuffle_tri_normal = {
 	SEL_A0 SEL_A1 SEL_A2 SEL_00
 };
-vec_uchar16 shuffle_tri_cw = {
+const vec_uchar16 shuffle_tri_cw = {
 	SEL_A1 SEL_A2 SEL_A0 SEL_00
 };
-vec_uchar16 shuffle_tri_ccw = {
+const vec_uchar16 shuffle_tri_ccw = {
 	SEL_A2 SEL_A0 SEL_A1 SEL_00
 };
 
@@ -160,7 +165,7 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 	triangle_out_ptr -> dAdx = area_dx;
 	triangle_out_ptr -> dAdy = area_dy;
 	
-	triangle_out_ptr -> texture = 0;
+	triangle_out_ptr -> texture = current_texture;
 	triangle_out_ptr -> shader = 0;
 	triangle_out_ptr -> right = right_and;
 
@@ -208,7 +213,7 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 #define ADD_TRIANGLE2	4
 
 int current_state = -1;
-static struct {
+const static struct {
 	unsigned char next;
 	unsigned char insert;
 	unsigned char end;
@@ -298,7 +303,7 @@ static struct {
  */
 
 /* A3 is preserved as the initial state if we need to loop */
-static vec_uchar16 shuffles[] = {
+const static vec_uchar16 shuffles[] = {
 { SEL_B0 SEL_B0 SEL_B0 SEL_B0 }, /* 0 = fill all elements with new */
 { SEL_A1 SEL_B0 SEL_B0 SEL_A3 }, /* 1 = add line vertex */
 { SEL_A1 SEL_A3 SEL_00 SEL_00 }, /* 2 = END line loop finished */
@@ -313,7 +318,7 @@ static vec_uchar16 shuffles[] = {
 { SEL_A2 SEL_A1 SEL_B0 SEL_A0 }, /* 11 = quad strip fourth, do 2nd tri first */
 };
 
-static inline void shuffle_in(vec_uchar16 inserter, float4 s, float4 col) {
+static inline void shuffle_in(vec_uchar16 inserter, float4 s, float4 col, float4 tex) {
 	TRIx = spu_shuffle(TRIx, (vec_float4) s.x, inserter);
 	TRIy = spu_shuffle(TRIy, (vec_float4) s.y, inserter);
 	TRIz = spu_shuffle(TRIz, (vec_float4) s.z, inserter);
@@ -322,10 +327,10 @@ static inline void shuffle_in(vec_uchar16 inserter, float4 s, float4 col) {
 	TRIg = spu_shuffle(TRIg, (vec_float4) col.y, inserter);
 	TRIb = spu_shuffle(TRIb, (vec_float4) col.z, inserter);
 	TRIa = spu_shuffle(TRIa, (vec_float4) col.w, inserter);
-//	TRIs = spu_shuffle(TRIs, (vec_float4) in.s, inserter);
-//	TRIt = spu_shuffle(TRIt, (vec_float4) in.t, inserter);
-//	TRIu = spu_shuffle(TRIu, (vec_float4) in.u, inserter);
-//	TRIv = spu_shuffle(TRIv, (vec_float4) in.v, inserter);
+	TRIs = spu_shuffle(TRIs, (vec_float4) tex.x, inserter);
+	TRIt = spu_shuffle(TRIt, (vec_float4) tex.y, inserter);
+	TRIu = spu_shuffle(TRIu, (vec_float4) tex.z, inserter);
+	TRIv = spu_shuffle(TRIv, (vec_float4) tex.w, inserter);
 }
 
 static triangle* imp_triangle()
@@ -336,9 +341,6 @@ static triangle* imp_triangle()
 		_draw_imp_triangle(&dummy[0]);
 	return next;
 }
-
-extern float4 current_colour;
-extern _bitmap_image screen;
 
 void* imp_vertex(void* from, float4 in)
 {
@@ -368,6 +370,8 @@ void* imp_vertex(void* from, float4 in)
 
 	float4 c= current_colour;
 	float4 col = {.x=c.x*recip, .y = c.y*recip, .z = c.z*recip, .w = c.w*recip};
+	float4 t = current_texcoord;
+	float4 tex = {.x=t.x*recip, .y = t.y*recip, .z = t.z*recip, .w = t.w*recip};
 
 //	printf("tran (%.2f,%.2f,%.2f,%.2f)\n", s.x, s.y, s.z, s.w);
 
@@ -375,7 +379,7 @@ void* imp_vertex(void* from, float4 in)
 //	float recip = 1.0/p.w;
 //	float4 s = {.x=p.x*recip, .y = p.y*recip, .z = p.z*recip, .w = recip};
 
-	shuffle_in(inserter, s, col);
+	shuffle_in(inserter, s, col, tex);
 
 	// check to see if we need to draw
 	switch (shuffle_map[current_state].add) {
@@ -394,7 +398,7 @@ void* imp_vertex(void* from, float4 in)
 			}
 #endif
 			inserter = shuffles[ins];
-			shuffle_in(inserter, s, col);
+			shuffle_in(inserter, s, col, tex);
 
 			// fall through here
 		case ADD_TRIANGLE:
@@ -418,7 +422,7 @@ void imp_close_segment()
 	int end = shuffle_map[current_state].end;
 	if (end) {
 		float4 x;
-		shuffle_in(shuffles[end], x, x);
+		shuffle_in(shuffles[end], x, x, x);
 		switch (shuffle_map[current_state].add) {
 			case ADD_LINE:
 				imp_line();

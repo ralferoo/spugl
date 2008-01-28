@@ -82,6 +82,7 @@ int main(int argc, char* argv[]) {
 	if(1) {
 		glBegin(GL_TRIANGLES);
 		for (f=0; f<6; f++) {
+			glBindTexture(0,f);
 			float sx[5], sy[5], sz[5];
 			float tx=0, ty=0, tz=0;
 			float tr=0, tg=0, tb=0;
@@ -116,16 +117,21 @@ int main(int argc, char* argv[]) {
 			}
 
 			for (v=0; v<4; v++) {
+				glTexCoord2f( (v^(v>>1))&1?1.0f:0.0f,
+						(v&2)?0.0f:1.0f);
 				glColor3ub(vertices[faces[f][v]][4],
 					   vertices[faces[f][v]][5],
 					   vertices[faces[f][v]][3]);
 				glVertex3f(sx[v],sy[v],sz[v]);
 
+				glTexCoord2f( ((v+1)^((v+1)>>1))&1?1.0f:0.0f,
+						((v+1)&2)?0.0f:1.0f);
 				glColor3ub(vertices[faces[f][(v+1)%4]][4],
 					   vertices[faces[f][(v+1)%4]][5],
 					   vertices[faces[f][(v+1)%4]][3]);
 				glVertex3f(sx[(v+1)%4],sy[(v+1)%4],sz[(v+1)%4]);
 
+				glTexCoord2f(0.5f, 0.5f);
 #ifdef BLACK_MIDDLES
 				glColor3ub(0,0,0);
 #else

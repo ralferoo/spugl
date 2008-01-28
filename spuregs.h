@@ -60,8 +60,8 @@ register vec_float4	TRIv		asm ("112");
 #define SEL_FF 0xC0,0xC0,0xC0,0xC0,
 #define SEL_80 0xE0,0xE0,0xE0,0xE0,
 
-extern vec_uchar16 shuffle_tri_cw;
-extern vec_uchar16 shuffle_tri_ccw;
+extern const vec_uchar16 shuffle_tri_cw;
+extern const vec_uchar16 shuffle_tri_ccw;
 
 
 
