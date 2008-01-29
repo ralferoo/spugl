@@ -239,6 +239,25 @@ static inline void sub_block(vec_uint4* ptr,
 	vec_uint4 right = spu_cmpgt(rx, vx_base);
 	vec_uint4 pixel = spu_nand(right, left);
 
+	vec_uint4 uAa = (vec_uint4) tAa;
+	vec_uint4 uAb = (vec_uint4) tAb;
+	vec_uint4 uAc = (vec_uint4) tAc;
+
+	vec_uint4 allNeg = spu_and(spu_and(uAa,uAb),uAc);
+	//vec_uint4 pixelMask = spu_and(allNeg, spu_splats(0x80000000));
+	vec_uint4 pixelMask = spu_rlmaska(allNeg,-31);
+
+	pixel = spu_nor(pixelMask,pixelMask);
+
+/*
+	printf("pixel %03d, pixelMask %8x, tAa=%06.2f, tAb=%06.2f, tAc=%06.2f, tA=%06.2f\n",
+		spu_extract(pixel,0),
+		spu_extract(pixelMask,0),
+		spu_extract(tAa,0),
+		spu_extract(tAb,0),
+		spu_extract(tAc,0),
+		spu_extract(tAa,0)+spu_extract(tAb,0)+spu_extract(tAc,0));
+*/
 	vec_float4 t_w = extract(tri->w, tAa, tAb, tAc);
 	vec_float4 w = spu_splats(1.0f)/t_w;
 
