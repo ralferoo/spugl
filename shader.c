@@ -232,22 +232,15 @@ const vec_uchar16 rgba_argb = {
 
 #ifdef TEXTURE_MAPPED
 static inline void sub_block(vec_uint4* ptr, 
-	vec_float4 lx, vec_float4 rx, vec_float4 vx_base,
 	triangle* tri, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
 {
-	vec_uint4 left = spu_cmpgt(vx_base, lx);
-	vec_uint4 right = spu_cmpgt(rx, vx_base);
-	vec_uint4 pixel = spu_nand(right, left);
-
 	vec_uint4 uAa = (vec_uint4) tAa;
 	vec_uint4 uAb = (vec_uint4) tAb;
 	vec_uint4 uAc = (vec_uint4) tAc;
 
 	vec_uint4 allNeg = spu_and(spu_and(uAa,uAb),uAc);
-	//vec_uint4 pixelMask = spu_and(allNeg, spu_splats(0x80000000));
 	vec_uint4 pixelMask = spu_rlmaska(allNeg,-31);
-
-	pixel = spu_nor(pixelMask,pixelMask);
+	vec_uint4 pixel = spu_nor(pixelMask,pixelMask);
 
 /*
 	printf("pixel %03d, pixelMask %8x, tAa=%06.2f, tAb=%06.2f, tAc=%06.2f, tA=%06.2f\n",
@@ -311,12 +304,15 @@ static inline void sub_block(vec_uint4* ptr,
 }
 #else
 static inline void sub_block(vec_uint4* ptr, 
-	vec_float4 lx, vec_float4 rx, vec_float4 vx_base,
 	triangle* tri, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
 {
-	vec_uint4 left = spu_cmpgt(vx_base, lx);
-	vec_uint4 right = spu_cmpgt(rx, vx_base);
-	vec_uint4 pixel = spu_nand(right, left);
+	vec_uint4 uAa = (vec_uint4) tAa;
+	vec_uint4 uAb = (vec_uint4) tAb;
+	vec_uint4 uAc = (vec_uint4) tAc;
+
+	vec_uint4 allNeg = spu_and(spu_and(uAa,uAb),uAc);
+	vec_uint4 pixelMask = spu_rlmaska(allNeg,-31);
+	vec_uint4 pixel = spu_nor(pixelMask,pixelMask);
 
 	vec_float4 t_w = extract(tri->w, tAa, tAb, tAc);
 	vec_float4 w = spu_splats(1.0f)/t_w;
@@ -340,22 +336,11 @@ static inline void sub_block(vec_uint4* ptr,
 }
 #endif
 
-const vec_float4 vx_base_0 = {0.5f, 1.5f, 2.5f, 3.5f};
-const vec_float4 vx_base_4 = {4.5f, 5.5f, 6.5f, 7.5f};
-const vec_float4 vx_base_8 = {8.5f, 9.5f, 10.5f, 11.5f};
-const vec_float4 vx_base_12 = {12.5f, 13.5f, 14.5f, 15.5f};
-const vec_float4 vx_base_16 = {16.5f, 17.5f, 18.5f, 19.5f};
-const vec_float4 vx_base_20 = {20.5f, 21.5f, 22.5f, 23.5f};
-const vec_float4 vx_base_24 = {24.5f, 25.5f, 26.5f, 27.5f};
-const vec_float4 vx_base_28 = {28.5f, 29.5f, 30.5f, 31.5f};
-
 const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
 const vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
 
 static inline void process_block(vec_uint4* block_ptr,
 		unsigned int start_line, unsigned int end_line,
-		vec_float4 lx, vec_float4 rx, 
-		vec_float4 dl, vec_float4 dr, 
 		triangle* tri, vec_float4 A)
 {
 	block_ptr += 8*start_line;
@@ -396,24 +381,22 @@ static inline void process_block(vec_uint4* block_ptr,
 		Ab += Ab_dy;
 		Ac += Ac_dy;
 
-		sub_block(&block_ptr[0], lx, rx, vx_base_0, tri, tAa,tAb,tAc);
+		sub_block(&block_ptr[0], tri, tAa,tAb,tAc);
 		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
-		sub_block(&block_ptr[1], lx, rx, vx_base_4, tri, tAa,tAb,tAc);
+		sub_block(&block_ptr[1], tri, tAa,tAb,tAc);
 		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
-		sub_block(&block_ptr[2], lx, rx, vx_base_8, tri, tAa,tAb,tAc);
+		sub_block(&block_ptr[2], tri, tAa,tAb,tAc);
 		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
-		sub_block(&block_ptr[3], lx, rx, vx_base_12, tri, tAa,tAb,tAc);
+		sub_block(&block_ptr[3], tri, tAa,tAb,tAc);
 		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
-		sub_block(&block_ptr[4], lx, rx, vx_base_16, tri, tAa,tAb,tAc);
+		sub_block(&block_ptr[4], tri, tAa,tAb,tAc);
 		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
-		sub_block(&block_ptr[5], lx, rx, vx_base_20, tri, tAa,tAb,tAc);
+		sub_block(&block_ptr[5], tri, tAa,tAb,tAc);
 		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
-		sub_block(&block_ptr[6], lx, rx, vx_base_24, tri, tAa,tAb,tAc);
+		sub_block(&block_ptr[6], tri, tAa,tAb,tAc);
 		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
-		sub_block(&block_ptr[7], lx, rx, vx_base_28, tri, tAa,tAb,tAc);
+		sub_block(&block_ptr[7], tri, tAa,tAb,tAc);
 
-		lx = spu_add(lx, dl);
-		rx = spu_add(rx, dr);
 		block_ptr += 8;
 	}
 }
@@ -421,8 +404,6 @@ static inline void process_block(vec_uint4* block_ptr,
 static void big_block(unsigned int bx, unsigned int by,
 		screen_block* current_block,
 		unsigned int start_line, unsigned int end_line,
-		vec_float4 lx, vec_float4 rx, 
-		vec_float4 dl, vec_float4 dr, 
 		triangle* tri, vec_float4 A)
 {
 	u64 scrbuf = screen.address + screen.bytes_per_line*by*32+bx*128;
@@ -440,7 +421,7 @@ static void big_block(unsigned int bx, unsigned int by,
 	}
 #endif
 
-	process_block(block_ptr, start_line, end_line, lx, rx, dl, dr, tri, A);
+	process_block(block_ptr, start_line, end_line, tri, A);
 
 //	wait_screen_block(current_block);
 //	flush_screen_block(current_block);
@@ -507,9 +488,7 @@ void triangle_half_blockline(
 				cur_block, by,
 				current_block,
 				start_line, end_line,
-				spu_sub(lx, block_x_delta),
-				spu_sub(rx, block_x_delta),
-				dl, dr, tri, A);
+				tri, A);
 			block_x_delta = spu_add(block_x_delta, _base_add32);
 			A += dA_dx32;
 		}
