@@ -239,8 +239,7 @@ static inline void sub_block(vec_uint4* ptr,
 	vec_uint4 uAc = (vec_uint4) tAc;
 
 	vec_uint4 allNeg = spu_and(spu_and(uAa,uAb),uAc);
-	vec_uint4 pixelMask = spu_rlmaska(allNeg,-31);
-	vec_uint4 pixel = spu_nor(pixelMask,pixelMask);
+	vec_uint4 pixel = spu_rlmaska(allNeg,-31);
 
 /*
 	printf("pixel %03d, pixelMask %8x, tAa=%06.2f, tAb=%06.2f, tAc=%06.2f, tA=%06.2f\n",
@@ -280,13 +279,13 @@ static inline void sub_block(vec_uint4* ptr,
 	unsigned long texAddr1 = texAddrBase + spu_extract(offset,1);
 	unsigned long texAddr2 = texAddrBase + spu_extract(offset,2);
 	unsigned long texAddr3 = texAddrBase + spu_extract(offset,3);
-	if (!spu_extract(pixel,0))
+	if (spu_extract(pixel,0))
 		mfc_get(textureTemp0, texAddr0 & ~127, 128, tag_id, 0, 0);
-	if (!spu_extract(pixel,1))
+	if (spu_extract(pixel,1))
 		mfc_get(textureTemp1, texAddr1 & ~127, 128, tag_id, 0, 0);
-	if (!spu_extract(pixel,2))
+	if (spu_extract(pixel,2))
 		mfc_get(textureTemp2, texAddr2 & ~127, 128, tag_id, 0, 0);
-	if (!spu_extract(pixel,3))
+	if (spu_extract(pixel,3))
 		mfc_get(textureTemp3, texAddr3 & ~127, 128, tag_id, 0, 0);
 	wait_for_dma(1<<tag_id);
 
@@ -300,7 +299,7 @@ static inline void sub_block(vec_uint4* ptr,
 	colour = spu_shuffle(colour, colour, rgba_argb);
 
 	vec_uint4 current = *ptr;
-	*ptr = spu_sel(colour, current, pixel);
+	*ptr = spu_sel(current, colour, pixel);
 }
 #else
 static inline void sub_block(vec_uint4* ptr, 
@@ -311,8 +310,7 @@ static inline void sub_block(vec_uint4* ptr,
 	vec_uint4 uAc = (vec_uint4) tAc;
 
 	vec_uint4 allNeg = spu_and(spu_and(uAa,uAb),uAc);
-	vec_uint4 pixelMask = spu_rlmaska(allNeg,-31);
-	vec_uint4 pixel = spu_nor(pixelMask,pixelMask);
+	vec_uint4 pixel = spu_rlmaska(allNeg,-31);
 
 	vec_float4 t_w = extract(tri->w, tAa, tAb, tAc);
 	vec_float4 w = spu_splats(1.0f)/t_w;
@@ -332,7 +330,7 @@ static inline void sub_block(vec_uint4* ptr,
 	vec_uint4 colour = spu_or(spu_or(blue, green),red);
 
 	vec_uint4 current = *ptr;
-	*ptr = spu_sel(colour, current, pixel);
+	*ptr = spu_sel(current, colour, pixel);
 }
 #endif
 
@@ -431,9 +429,6 @@ vec_uchar16 copy_from_a = {
 	SEL_A0 SEL_A1 SEL_A2 SEL_A3
 };
 
-vec_float4 _base_add4 = {4.0, 4.0, 4.0, 4.0};
-vec_float4 _base_add8 = {8.0, 8.0, 8.0, 8.0};
-vec_float4 _base_add16 = {16.0, 16.0, 16.0, 16.0};
 vec_float4 _base_add32 = {32.0, 32.0, 32.0, 32.0};
 
 void triangle_half_blockline(
