@@ -226,6 +226,24 @@ static inline vec_float4 extract(
 		spu_mul (spu_splats(spu_extract(what,2)),tAc)));
 }
 	
+/*
+ * the vectors below contain Aa, Ab, Ac for each of the 4 corners of the block
+ *
+ * only the first element of the result is set, and will be all ones if
+ * the block should be displayed, all zeros if not
+ */
+static inline vec_uint4 block_test(
+	vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
+{
+	vec_uint4 uAa = (vec_uint4) tAa;
+	vec_uint4 uAb = (vec_uint4) tAb;
+	vec_uint4 uAc = (vec_uint4) tAc;
+
+	vec_uint4 allNeg = spu_and(spu_and(spu_orx(uAa),spu_orx(uAb)),
+				   spu_orx(uAc));
+	vec_uint4 pixel = spu_rlmaska(allNeg,-31);
+	return pixel;
+}
 
 const vec_uchar16 rgba_argb = {
 	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
