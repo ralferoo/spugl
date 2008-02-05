@@ -16,16 +16,18 @@ USERLAND = 32
 #USERLAND = 64
 
 PPUCC = gcc
-PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I.
+PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I. -Wno-trigraphs
 
 SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS
 SPUCCFLAGS = -O6 -I. -DSPU_REGS
 
 SPU_OBJS = spufifo.0 decode.0 primitives.0 triangleColourSpan.0 fragment.0 shader.0
-PPU_OBJS = ppufifo.o glfifo.o framebuffer.o textures/berlin.o textures/ralf.o textures/mim.o textures/space.o textures/tongariro.o textures/gate.o
+PPU_OBJS = ppufifo.o glfifo.o framebuffer.o
 
+TEXTURES_C := $(wildcard textures/*.c)
+TEXTURES := $(patsubst %.c,%.o,$(TEXTURES_C))
 SPU_HNDL = spu_3d.handle.o
-PPU_TEST_OBJS = $(PPU_OBJS) test.o
+PPU_TEST_OBJS = $(PPU_OBJS) test.o $(TEXTURES)
 
 PPU_SRCS := $(patsubst %.o,%.c,$(PPU_TEST_OBJS))
 SPU_SRCS := $(patsubst %.0,%.c,$(SPU_OBJS))
@@ -80,6 +82,8 @@ clean:
 	rm -f *.spe *.0
 	rm -rf build dist
 	rm -f .gen test
+	rm -f textures/*.o
+
 # gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h
 
 ###############################################################################
