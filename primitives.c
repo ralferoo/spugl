@@ -90,7 +90,6 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 	vec_float4 area_ofs = spu_madd(spu_splats(spu_extract(TRIx,0)),area_dx,
 			spu_mul(spu_splats(spu_extract(TRIy,0)),area_dy));
 
-	triangle_out_ptr -> minmax = minmax;
 	triangle_out_ptr -> x = TRIx;
 	triangle_out_ptr -> y = TRIy;
 	triangle_out_ptr -> z = TRIz;
@@ -106,6 +105,7 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 	triangle_out_ptr -> u = TRIu;
 	triangle_out_ptr -> v = TRIv;
 	
+	triangle_out_ptr -> minmax = minmax;
 	triangle_out_ptr -> A = spu_sub(base_area, area_ofs);
 	triangle_out_ptr -> dAdx = area_dx;
 	triangle_out_ptr -> dAdy = area_dy;
