@@ -443,41 +443,39 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 	vec_float4 A = spu_madd(spu_splats(spu_extract(minmax_block_topleft,0)),tri->dAdx,
 		       spu_madd(spu_splats(spu_extract(minmax_block_topleft,1)),tri->dAdy,tri->A));
 
-//	vec_float4 dA_dx32 = spu_mul(spu_splats(32.0f),tri->dAdx);
-//	vec_float4 dA_dy32 = spu_mul(spu_splats(32.0f),tri->dAdy);
-
 	int block_left = spu_extract(minmax_block,0);
 	int block_top = spu_extract(minmax_block,1);
 	int block_right = spu_extract(minmax_block,2);
 	int block_bottom = spu_extract(minmax_block,3);
 
-	vec_float4 Aa = spu_splats(spu_extract(A,0));
-	vec_float4 Ab = spu_splats(spu_extract(A,1));
-	vec_float4 Ac = spu_splats(spu_extract(A,2));
+////////////////////////////////////////////
 
 	vec_float4 Aa_dx = spu_splats(spu_extract(tri->dAdx,0));
 	vec_float4 Ab_dx = spu_splats(spu_extract(tri->dAdx,1));
 	vec_float4 Ac_dx = spu_splats(spu_extract(tri->dAdx,2));
 
-	Aa = spu_madd(muls,Aa_dx,Aa);
-	Ab = spu_madd(muls,Ab_dx,Ab);
-	Ac = spu_madd(muls,Ac_dx,Ac);
-
-	vec_float4 Aa_dx4 = spu_mul(muls4,Aa_dx);
-	vec_float4 Ab_dx4 = spu_mul(muls4,Ab_dx);
-	vec_float4 Ac_dx4 = spu_mul(muls4,Ac_dx);
-
 	vec_float4 Aa_dy = spu_splats(spu_extract(tri->dAdy,0));
 	vec_float4 Ab_dy = spu_splats(spu_extract(tri->dAdy,1));
 	vec_float4 Ac_dy = spu_splats(spu_extract(tri->dAdy,2));
 
-	vec_float4 Aa_dx32 = spu_mul(muls32,Aa_dx);
-	vec_float4 Ab_dx32 = spu_mul(muls32,Ab_dx);
-	vec_float4 Ac_dx32 = spu_mul(muls32,Ac_dx);
+	vec_float4 A_dx4 = spu_mul(muls4,tri->dAdx);
+	vec_float4 Aa_dx4 = spu_splats(spu_extract(A_dx4,0));
+	vec_float4 Ab_dx4 = spu_splats(spu_extract(A_dx4,1));
+	vec_float4 Ac_dx4 = spu_splats(spu_extract(A_dx4,2));
 
-	vec_float4 Aa_dy32 = spu_mul(muls32,Aa_dy);
-	vec_float4 Ab_dy32 = spu_mul(muls32,Ab_dy);
-	vec_float4 Ac_dy32 = spu_mul(muls32,Ac_dy);
+	vec_float4 A_dx32 = spu_mul(muls32,tri->dAdx);
+	vec_float4 Aa_dx32 = spu_splats(spu_extract(A_dx32,0));
+	vec_float4 Ab_dx32 = spu_splats(spu_extract(A_dx32,1));
+	vec_float4 Ac_dx32 = spu_splats(spu_extract(A_dx32,2));
+
+	vec_float4 A_dy32 = spu_mul(muls32,tri->dAdy);
+	vec_float4 Aa_dy32 = spu_splats(spu_extract(A_dy32,0));
+	vec_float4 Ab_dy32 = spu_splats(spu_extract(A_dy32,1));
+	vec_float4 Ac_dy32 = spu_splats(spu_extract(A_dy32,2));
+
+	vec_float4 Aa = spu_madd(muls,Aa_dx,spu_splats(spu_extract(A,0)));
+	vec_float4 Ab = spu_madd(muls,Ab_dx,spu_splats(spu_extract(A,1)));
+	vec_float4 Ac = spu_madd(muls,Ac_dx,spu_splats(spu_extract(A,2)));
 
 	int bx,by;
 	for (by=block_top; by<= block_bottom; by++) {
