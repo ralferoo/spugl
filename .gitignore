@@ -1,0 +1,6 @@
+# object files, PPU and SPU
+*.[o0]
+# embeddable SPU executable
+*.spe
+.gen
+test
