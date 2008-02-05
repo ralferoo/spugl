@@ -27,39 +27,6 @@ static void imp_line()
 {
 }
 
-// this is tricky... 
-// basically, this is a table representing vertex y orders and how to
-// translate them to the correct order.
-// bit 0 represents ya>yb, bit 1 repr. yc>yb and bit 2 rep. ya>yc
-// the "unused" entries are because its impossible for all 3 conditions to be
-// true or false... ;)
-// L/R is set by bit L=0x20, R=0x00 - this determines which is the lumpy side.
-// none(0), cw(1), ccw(2) is encoded as 0 word, -2 word, -1 word respectively
-// which is itself used as a shuffle mask on a shuffle delta mask.
-// sadly, most of the working out of this is on paper rather than computer. :(
-const vec_uchar16 triangle_order_data = {
-	0,0,		/*  0 - impossible */
-	0x10,0x10,	/*  2 - 0 0 1 => 0 1 (R0) */
-	0x0c,0x0c,	/*  4 - 0 1 0 => 0 1 (R2) */
-	0x30,0x30,	/*  6 - 0 1 1 => 1 1 (L0) */
-	0x08,0x08,	/*  8 - 1 0 0 => 0 0 (R1) */
-	0x28,0x28,	/* 10 - 1 0 1 => 0 1 (L1) */
-	0x2c,0x2c,	/* 12 - 1 1 0 => 0 1 (L2) */
-	0,0		/* 14 - impossible */
-};
-const vec_uchar16 copy_order_data = {
-	0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 
-};
-const vec_uchar16 copy_as_is = {
-	SEL_A0 SEL_A1 SEL_A2 SEL_A3
-};
-const static vec_uchar16 make_rhs_0 = {
-	0xff, 0xff, 0xff, 0xff, 
-	0xff, 0xff, 0xff, 0xff, 
-	0xff, 0xff, 0xff, 0xff, 
-	0x00, 0x00, 0x00, 0x00,
-};
-
 const vec_uchar16 shuffle_tri_right_padded = {
 	SEL_00 SEL_A0 SEL_A1 SEL_A2
 };
@@ -86,13 +53,6 @@ const vec_uchar16 minimax_add = {
 
 static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 {
-/*
-	printf("(%3.2f,%3.2f) (%3.2f,%3.2f) (%3.2f,%3.2f)\n",	
-		spu_extract(TRIx, 0), spu_extract(TRIy, 0), 
-		spu_extract(TRIx, 1), spu_extract(TRIy, 1), 
-		spu_extract(TRIx, 2), spu_extract(TRIy, 2));
-*/
-
 	vec_float4 t_vx_cw = spu_shuffle(TRIx, TRIx, shuffle_tri_cw);
 	vec_uint4 fcgt_x = spu_cmpgt(TRIx, t_vx_cw);	// all-ones if ax>bx, bx>cx, cx>ax, ???
 	u32 fcgt_bits_x = spu_extract(spu_gather(fcgt_x), 0) & ~1;
@@ -106,55 +66,16 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 	vec_uchar16 shuf_minmax_base = spu_shuffle(shuf_x, shuf_y, minimax_merge);
 	vec_uchar16 shuf_minmax = spu_or(shuf_minmax_base, minimax_add);
 	vec_float4 minmax = spu_shuffle(TRIx, TRIy, shuf_minmax);
-/*
-	printf("min (%3.2f,%3.2f) - max (%3.2f,%3.2f) ",	
-		spu_extract(minmax, 0), spu_extract(minmax, 1), 
-		spu_extract(minmax, 2), spu_extract(minmax, 3));
-	printf("%02X:%02X:%02X:%02X ",
-		spu_extract(shuf_minmax,0), 
-		spu_extract(shuf_minmax,4), 
-		spu_extract(shuf_minmax,8), 
-		spu_extract(shuf_minmax,12));
-	printf("[%d,%d]\n\n", fcgt_bits_x, fcgt_bits_y);
-*/
 
-//	vec_float4 t_vy_cw = spu_shuffle(TRIy, TRIy, shuffle_tri_cw);
+	vec_float4 v_x_cw = spu_shuffle(TRIx, TRIx, shuffle_tri_cw);
+	vec_float4 v_x_ccw = spu_shuffle(TRIx, TRIx, shuffle_tri_ccw);
 
-//	vec_uint4 fcgt_y = spu_cmpgt(TRIy, t_vy_cw);	// all-ones if ay>by, by>cy, cy>ay, ???
-	u32 fcgt_bits = spu_extract(spu_gather(fcgt_y), 0);
-	vec_uchar16 swap_mask = spu_rlqwbyte(triangle_order_data, fcgt_bits);
-	vec_uchar16 rep_swap_add = spu_shuffle(swap_mask, swap_mask, copy_order_data);
-	vec_ushort8 q1 = (vec_ushort8)rep_swap_add;
-	vec_ushort8 q2 = (vec_ushort8)copy_as_is;
-	vec_uchar16 ns_mask = (vec_uchar16) spu_add(q1,q2);
-	vec_uchar16 r_normal = spu_shuffle(shuffle_tri_right_padded,shuffle_tri_normal,ns_mask);
-///	
-	//vec_uchar16 r_normal = spu_shuffle(r_right_padded,TRIorder,ns_mask);
-	vec_uint4 cast_left = (vec_uint4) rep_swap_add;
-	vec_uint4 cast_left_mask = spu_and(cast_left,0x20);
-	vec_uint4 right_full = spu_cmpeq(cast_left_mask, (vec_uint4) 0);
-	unsigned long right_and = spu_extract(right_full,0);
-	
-	// new r_normal should be the mask containing a,b,c in height order
-	// and left_flag should be 0x20 if the bulge is on the left edge
-
-//	vec_uchar16 r_cw = spu_shuffle(r_normal, r_normal, shuffle_tri_cw);
-//	vec_uchar16 r_ccw = spu_shuffle(r_normal, r_normal, shuffle_tri_ccw);
-
-	// we now have new shuffle normals again (yay!)
-
-	vec_float4 vx = spu_shuffle(TRIx, TRIx, r_normal);
-	vec_float4 vy = spu_shuffle(TRIy, TRIy, r_normal);
-
-	vec_float4 v_x_cw = spu_shuffle(vx, vx, shuffle_tri_cw);
-	vec_float4 v_x_ccw = spu_shuffle(vx, vx, shuffle_tri_ccw);
-
-	vec_float4 v_y_cw = spu_shuffle(vy, vy, shuffle_tri_cw);
-	vec_float4 v_y_ccw = spu_shuffle(vy, vy, shuffle_tri_ccw);
+	vec_float4 v_y_cw = spu_shuffle(TRIy, TRIy, shuffle_tri_cw);
+	vec_float4 v_y_ccw = spu_shuffle(TRIy, TRIy, shuffle_tri_ccw);
 
 	vec_float4 v_by_to_cy = spu_sub(v_y_ccw, v_y_cw);
 
-	vec_float4 face_mul = spu_mul(vx, v_by_to_cy);
+	vec_float4 face_mul = spu_mul(TRIx, v_by_to_cy);
 	float face_sum = spu_extract(face_mul, 0) +
 			 spu_extract(face_mul, 1) +
 			 spu_extract(face_mul, 2);
@@ -166,35 +87,24 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 	vec_float4 area_dx = spu_sub(v_y_ccw, v_y_cw); // cy -> by
 	vec_float4 area_dy = spu_sub(v_x_cw, v_x_ccw); // bx -> cx
 
-//	vec_float4 area_recip = div(spu_splats(1.0f), spu_splats(face_sum));
-//	vec_float4 area_dx = spu_mul(area_recip, spu_sub(v_y_cw, v_y_ccw)); // cy -> by
-//	vec_float4 area_dy = spu_mul(area_recip, spu_sub(v_x_ccw, v_x_cw)); // bx -> cx
-//	vec_float4 area = (vec_float4) {1.0f, 0.0f, 0.0f, 0.0f};
-
-
-	vec_float4 area_ofs = spu_madd(spu_splats(spu_extract(vx,0)),area_dx,
-			spu_mul(spu_splats(spu_extract(vy,0)),area_dy));
-
-	unsigned long advance_ptr_mask = spu_extract(fcgt_area, 0);
-	triangle* next_triangle = (triangle*) ( ((void*)triangle_out_ptr) +
-			(advance_ptr_mask&sizeof(triangle)) );
+	vec_float4 area_ofs = spu_madd(spu_splats(spu_extract(TRIx,0)),area_dx,
+			spu_mul(spu_splats(spu_extract(TRIy,0)),area_dy));
 
 	triangle_out_ptr -> minmax = minmax;
-//	triangle_out_ptr -> shuffle = r_normal;
-	triangle_out_ptr -> x = spu_shuffle(TRIx, TRIx, r_normal);
-	triangle_out_ptr -> y = spu_shuffle(TRIy, TRIy, r_normal);
-	triangle_out_ptr -> z = spu_shuffle(TRIz, TRIz, r_normal);
-	triangle_out_ptr -> w = spu_shuffle(TRIw, TRIw, r_normal);
+	triangle_out_ptr -> x = TRIx;
+	triangle_out_ptr -> y = TRIy;
+	triangle_out_ptr -> z = TRIz;
+	triangle_out_ptr -> w = TRIw;
 	
-	triangle_out_ptr -> r = spu_shuffle(TRIr, TRIr, r_normal);
-	triangle_out_ptr -> g = spu_shuffle(TRIg, TRIg, r_normal);
-	triangle_out_ptr -> b = spu_shuffle(TRIb, TRIb, r_normal);
-	triangle_out_ptr -> a = spu_shuffle(TRIa, TRIa, r_normal);
+	triangle_out_ptr -> r = TRIr;
+	triangle_out_ptr -> g = TRIg;
+	triangle_out_ptr -> b = TRIb;
+	triangle_out_ptr -> a = TRIa;
 	
-	triangle_out_ptr -> s = spu_shuffle(TRIs, TRIs, r_normal);
-	triangle_out_ptr -> t = spu_shuffle(TRIt, TRIt, r_normal);
-	triangle_out_ptr -> u = spu_shuffle(TRIu, TRIu, r_normal);
-	triangle_out_ptr -> v = spu_shuffle(TRIv, TRIv, r_normal);
+	triangle_out_ptr -> s = TRIs;
+	triangle_out_ptr -> t = TRIt;
+	triangle_out_ptr -> u = TRIu;
+	triangle_out_ptr -> v = TRIv;
 	
 	triangle_out_ptr -> A = spu_sub(base_area, area_ofs);
 	triangle_out_ptr -> dAdx = area_dx;
@@ -202,40 +112,15 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 	
 	triangle_out_ptr -> texture = current_texture;
 	triangle_out_ptr -> shader = 0;
-	triangle_out_ptr -> right = right_and;
 
-//	vec_float4 v_x_cw = spu_shuffle(vx, vx, shuffle_tri_cw);
-//	vec_float4 v_x_ccw = spu_shuffle(vx, vx, shuffle_tri_ccw);
-//	vec_float4 v_bx_to_cx = spu_sub(v_x_ccw, v_x_cw);
+// if the triangle is visible (i.e. area>0), then we increment the triangle
+// out ptr to just past the triangle data we've just written to memory.
+// if the triangle is invisible (i.e. area<0) then leave the pointer in the
+// same place so that we re-use the triangle slot on the next triangle.
 
-//	triangle_out_ptr -> dx = v_by_to_cy;
-//	triangle_out_ptr -> dy = v_bx_to_cx;
-
-/*
-	if (face_sum<0) {
-	int i;
-	for (i=0; i<3; i++) {
-		printf("face_sum: %f, A(%c): %f->%f, dAdx(%c)=%f dAdy(%c)=%f\n",
-			face_sum,
-			i+'a', spu_extract(base_area,i),
-			spu_extract(triangle_out_ptr->A,i),
-			i+'a', spu_extract(triangle_out_ptr->dAdx,i),
-			i+'a', spu_extract(triangle_out_ptr->dAdy,i));
-	}
-	printf("\n");
-	}
-*/
-
-///////////////////////////////////////////////////////////////////////////////
-//
-// this is a convenient break point. we have now satisfied ourselves that the
-// triangle is visible (face_sum>0) and we have the correctly ordered shuffle
-// mask as well as the flag to describe how to render the triangle. this is
-// probably the official end of the transformation phase and should be passed
-// on at this point.
-//
-// also... face_sum is -ve and the same as the ideal Sa and the ideal Sb and
-// Sc are both 0 (except we actually calculate Sa,Sb,Sc from mid-pixel)
+	unsigned long advance_ptr_mask = spu_extract(fcgt_area, 0);
+	triangle* next_triangle = (triangle*) ( ((void*)triangle_out_ptr) +
+			(advance_ptr_mask&sizeof(triangle)) );
 
 	return next_triangle;
 }

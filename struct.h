@@ -48,7 +48,6 @@ typedef struct {
 
 	u32 		texture;
 	void *		shader;
-	unsigned long	right;		// flag if bulge is on right or not
 } triangle;
 
 typedef struct {
