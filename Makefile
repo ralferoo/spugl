@@ -52,6 +52,9 @@ edit:
 source:
 	make shader.s && less shader.s
 
+backup:
+	git push ssh://git@ai/~/spugl.git
+	
 ppufifo.o: Makefile .gen
 spufifo.0: Makefile .gen
 
