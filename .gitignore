@@ -1,3 +1,5 @@
+# gvim temporary files
+.*.swp
 # object files, PPU and SPU
 *.[o0]
 # embeddable SPU executable
