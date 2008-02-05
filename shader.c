@@ -232,9 +232,14 @@ static inline vec_float4 extract(
  * only the first element of the result is set, and will be all ones if
  * the block should be displayed, all zeros if not
  */
+/*
 static inline vec_uint4 block_test(
-	vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
+	vec_float4 A0, vec_float4 A1, vec_float4 A2, vec_float4 A3) 
 {
+	vec_float4 Aa = spu_splats(spu_extract(A,0));
+	vec_float4 Ab = spu_splats(spu_extract(A,1));
+	vec_float4 Ac = spu_splats(spu_extract(A,2));
+
 	vec_uint4 uAa = (vec_uint4) tAa;
 	vec_uint4 uAb = (vec_uint4) tAb;
 	vec_uint4 uAc = (vec_uint4) tAc;
@@ -244,6 +249,7 @@ static inline vec_uint4 block_test(
 	vec_uint4 pixel = spu_rlmaska(allNeg,-31);
 	return pixel;
 }
+*/
 
 const vec_uchar16 rgba_argb = {
 	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
@@ -354,37 +360,12 @@ static inline void sub_block(vec_uint4* ptr,
 }
 #endif
 
-const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
-const vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
-
 static inline void process_block(vec_uint4* block_ptr,
-		triangle* tri, vec_float4 A)
+		triangle* tri,
+		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac,
+		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4,
+		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy)
 {
-	vec_float4 Aa = spu_splats(spu_extract(A,0));
-	vec_float4 Ab = spu_splats(spu_extract(A,1));
-	vec_float4 Ac = spu_splats(spu_extract(A,2));
-
-	vec_float4 Aa_dx = spu_splats(spu_extract(tri->dAdx,0));
-	vec_float4 Ab_dx = spu_splats(spu_extract(tri->dAdx,1));
-	vec_float4 Ac_dx = spu_splats(spu_extract(tri->dAdx,2));
-
-	Aa = spu_madd(muls,Aa_dx,Aa);
-	Ab = spu_madd(muls,Ab_dx,Ab);
-	Ac = spu_madd(muls,Ac_dx,Ac);
-
-	vec_float4 Aa_dx4 = spu_mul(muls4,Aa_dx);
-	vec_float4 Ab_dx4 = spu_mul(muls4,Ab_dx);
-	vec_float4 Ac_dx4 = spu_mul(muls4,Ac_dx);
-
-	vec_float4 Aa_dy = spu_splats(spu_extract(tri->dAdy,0));
-	vec_float4 Ab_dy = spu_splats(spu_extract(tri->dAdy,1));
-	vec_float4 Ac_dy = spu_splats(spu_extract(tri->dAdy,2));
-
-//	vec_float4 muldy = spu_convtf(spu_splats(start_line),0);
-//	Aa = spu_madd(muldy,Aa_dy,Aa);
-//	Ab = spu_madd(muldy,Ab_dy,Ab);
-//	Ac = spu_madd(muldy,Ac_dy,Ac);
-
 	unsigned int line;
 	for (line=0; line<32; line++) {
 		vec_float4 tAa = Aa;
@@ -417,7 +398,10 @@ static inline void process_block(vec_uint4* block_ptr,
 
 static void big_block(unsigned int bx, unsigned int by,
 		screen_block* current_block,
-		triangle* tri, vec_float4 A)
+		triangle* tri,
+		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac,
+		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4,
+		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy)
 {
 	u64 scrbuf = screen.address + screen.bytes_per_line*by*32+bx*128;
 
@@ -434,11 +418,16 @@ static void big_block(unsigned int bx, unsigned int by,
 	}
 #endif
 
-	process_block(block_ptr, tri, A);
+	process_block(block_ptr, tri, 
+		Aa, Ab,Ac, Aa_dx4,Ab_dx4,Ac_dx4, Aa_dy,Ab_dy,Ac_dy);
 
 //	wait_screen_block(current_block);
 //	flush_screen_block(current_block);
 }
+
+const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
+const vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
+const vec_float4 muls32 = {32.0f, 32.0f, 32.0f, 32.0f};
 
 void fast_triangle(triangle* tri, screen_block* current_block)
 {
@@ -454,24 +443,59 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 	vec_float4 A = spu_madd(spu_splats(spu_extract(minmax_block_topleft,0)),tri->dAdx,
 		       spu_madd(spu_splats(spu_extract(minmax_block_topleft,1)),tri->dAdy,tri->A));
 
-	vec_float4 dA_dx32 = spu_mul(spu_splats(32.0f),tri->dAdx);
-	vec_float4 dA_dy32 = spu_mul(spu_splats(32.0f),tri->dAdy);
+//	vec_float4 dA_dx32 = spu_mul(spu_splats(32.0f),tri->dAdx);
+//	vec_float4 dA_dy32 = spu_mul(spu_splats(32.0f),tri->dAdy);
 
 	int block_left = spu_extract(minmax_block,0);
 	int block_top = spu_extract(minmax_block,1);
 	int block_right = spu_extract(minmax_block,2);
 	int block_bottom = spu_extract(minmax_block,3);
 
+	vec_float4 Aa = spu_splats(spu_extract(A,0));
+	vec_float4 Ab = spu_splats(spu_extract(A,1));
+	vec_float4 Ac = spu_splats(spu_extract(A,2));
+
+	vec_float4 Aa_dx = spu_splats(spu_extract(tri->dAdx,0));
+	vec_float4 Ab_dx = spu_splats(spu_extract(tri->dAdx,1));
+	vec_float4 Ac_dx = spu_splats(spu_extract(tri->dAdx,2));
+
+	Aa = spu_madd(muls,Aa_dx,Aa);
+	Ab = spu_madd(muls,Ab_dx,Ab);
+	Ac = spu_madd(muls,Ac_dx,Ac);
+
+	vec_float4 Aa_dx4 = spu_mul(muls4,Aa_dx);
+	vec_float4 Ab_dx4 = spu_mul(muls4,Ab_dx);
+	vec_float4 Ac_dx4 = spu_mul(muls4,Ac_dx);
+
+	vec_float4 Aa_dy = spu_splats(spu_extract(tri->dAdy,0));
+	vec_float4 Ab_dy = spu_splats(spu_extract(tri->dAdy,1));
+	vec_float4 Ac_dy = spu_splats(spu_extract(tri->dAdy,2));
+
+	vec_float4 Aa_dx32 = spu_mul(muls32,Aa_dx);
+	vec_float4 Ab_dx32 = spu_mul(muls32,Ab_dx);
+	vec_float4 Ac_dx32 = spu_mul(muls32,Ac_dx);
+
+	vec_float4 Aa_dy32 = spu_mul(muls32,Aa_dy);
+	vec_float4 Ab_dy32 = spu_mul(muls32,Ab_dy);
+	vec_float4 Ac_dy32 = spu_mul(muls32,Ac_dy);
+
 	int bx,by;
 	for (by=block_top; by<= block_bottom; by++) {
-		vec_float4 tA = A;
-
+		vec_float4 tAa = Aa;
+		vec_float4 tAb = Ab;
+		vec_float4 tAc = Ac;
 		for (bx=block_left; bx<=block_right; bx++) {
-			big_block(bx, by, current_block, tri, tA);
-			tA += dA_dx32;
+			big_block(bx, by, current_block, tri,
+				tAa,tAb,tAc,
+				Aa_dx4,Ab_dx4,Ac_dx4,
+				Aa_dy,Ab_dy,Ac_dy);
+			tAa += Aa_dx32;
+			tAb += Ab_dx32;
+			tAc += Ac_dx32;
 		}
-
-		A += dA_dy32;
+		Aa += Aa_dy32;
+		Ab += Ab_dy32;
+		Ac += Ac_dy32;
 	}
 }
 
@@ -494,7 +518,7 @@ void _draw_imp_triangle(triangle* tri)
 	// this shouldn't be necessary... AND... it sometimes causes duff
 	// stuff to be blitted to screen, but i haven't sorted out the block
 	// cache stuff yet
-	wait_screen_block(&buffer);
 	flush_screen_block(&buffer);
+	wait_screen_block(&buffer);
 }
 
