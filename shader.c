@@ -16,6 +16,7 @@
 
 #define COUNT_BLOCKED_DMA
 #define TEXTURE_MAPPED
+//#define TRY_TO_CULL_BLOCKS
 
 extern _bitmap_image screen;
 
@@ -399,10 +400,30 @@ static inline void process_block(vec_uint4* block_ptr,
 static void big_block(unsigned int bx, unsigned int by,
 		screen_block* current_block,
 		triangle* tri,
+#ifdef TRY_TO_CULL_BLOCKS
+		vec_float4 Aa_corners,
+		vec_float4 Ab_corners,
+		vec_float4 Ac_corners,
+#endif
 		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac,
 		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4,
 		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy)
 {
+#ifdef TRY_TO_CULL_BLOCKS
+	vec_uint4 uAa = (vec_uint4) Aa_corners;
+	vec_uint4 uAb = (vec_uint4) Ab_corners;
+	vec_uint4 uAc = (vec_uint4) Ac_corners;
+
+	vec_uint4 allNeg = spu_or(spu_or(uAa,uAb),uAc);
+	vec_uint4 pixel = spu_rlmaska(allNeg,-31);
+
+	vec_uint4 bail = spu_orx(pixel);
+	if (!spu_extract(bail,0)) {
+		printf("!\n");
+		return;
+	}
+#endif
+
 	u64 scrbuf = screen.address + screen.bytes_per_line*by*32+bx*128;
 
 	load_screen_block(current_block, scrbuf, screen.bytes_per_line, 32);
@@ -428,6 +449,9 @@ static void big_block(unsigned int bx, unsigned int by,
 const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
 const vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
 const vec_float4 muls32 = {32.0f, 32.0f, 32.0f, 32.0f};
+
+const vec_float4 muls31x = {0.0f, 31.0f, 0.0f, 31.0f};
+const vec_float4 muls31y = {0.0f, 0.0f, 31.0f, 31.0f};
 
 void fast_triangle(triangle* tri, screen_block* current_block)
 {
@@ -477,23 +501,53 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 	vec_float4 Ab = spu_madd(muls,Ab_dx,spu_splats(spu_extract(A,1)));
 	vec_float4 Ac = spu_madd(muls,Ac_dx,spu_splats(spu_extract(A,2)));
 
+#ifdef TRY_TO_CULL_BLOCKS
+	vec_float4 Aa_corners = spu_madd(muls31y,Aa_dy,
+				spu_madd(muls31x,tri->dAdx,Aa));
+	vec_float4 Ab_corners = spu_madd(muls31y,Ab_dy,
+				spu_madd(muls31x,tri->dAdx,Ab));
+	vec_float4 Ac_corners = spu_madd(muls31y,Ac_dy,
+				spu_madd(muls31x,tri->dAdx,Ac));
+#endif
+
 	int bx,by;
 	for (by=block_top; by<= block_bottom; by++) {
 		vec_float4 tAa = Aa;
 		vec_float4 tAb = Ab;
 		vec_float4 tAc = Ac;
+
+#ifdef TRY_TO_CULL_BLOCKS
+		vec_float4 tAa_corners = Aa_corners;
+		vec_float4 tAb_corners = Ab_corners;
+		vec_float4 tAc_corners = Ac_corners;
+#endif
 		for (bx=block_left; bx<=block_right; bx++) {
 			big_block(bx, by, current_block, tri,
+#ifdef TRY_TO_CULL_BLOCKS
+				tAa_corners,tAb_corners,tAc_corners,
+#endif
 				tAa,tAb,tAc,
 				Aa_dx4,Ab_dx4,Ac_dx4,
 				Aa_dy,Ab_dy,Ac_dy);
 			tAa += Aa_dx32;
 			tAb += Ab_dx32;
 			tAc += Ac_dx32;
+
+#ifdef TRY_TO_CULL_BLOCKS
+			tAa_corners += Aa_dx32;
+			tAb_corners += Ab_dx32;
+			tAc_corners += Ac_dx32;
+#endif
 		}
 		Aa += Aa_dy32;
 		Ab += Ab_dy32;
 		Ac += Ac_dy32;
+
+#ifdef TRY_TO_CULL_BLOCKS
+		Aa_corners += Aa_dy32;
+		Ab_corners += Ab_dy32;
+		Ac_corners += Ac_dy32;
+#endif
 	}
 }
 
