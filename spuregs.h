@@ -48,6 +48,11 @@ register vec_float4	TRIt		asm ("110");
 register vec_float4	TRIu		asm ("111");
 register vec_float4	TRIv		asm ("112");
 
+// these track the loaded texture block IDs
+
+register vec_ushort8	TEXcache1	asm ("113");
+register vec_ushort8	TEXcache2	asm ("114");
+
 #define SEL_A0 0,1,2,3,
 #define SEL_A1 4,5,6,7,
 #define SEL_A2 8,9,10,11,

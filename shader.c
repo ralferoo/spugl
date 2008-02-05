@@ -15,7 +15,8 @@
 // #define DEBUG_3
 
 #define COUNT_BLOCKED_DMA
-#define TEXTURE_MAPPED
+#define NEW_TEXTURE_MAPPED
+//#define TEXTURE_MAPPED
 //#define TRY_TO_CULL_BLOCKS
 
 extern _bitmap_image screen;
@@ -255,6 +256,124 @@ static inline vec_uint4 block_test(
 const vec_uchar16 rgba_argb = {
 	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
 
+#ifdef NEW_TEXTURE_MAPPED
+static inline void sub_block(vec_uint4* ptr, 
+	triangle* tri, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
+{
+	vec_uint4 uAa = (vec_uint4) tAa;
+	vec_uint4 uAb = (vec_uint4) tAb;
+	vec_uint4 uAc = (vec_uint4) tAc;
+
+	vec_uint4 allNeg = spu_and(spu_and(uAa,uAb),uAc);
+	vec_uint4 pixel = spu_rlmaska(allNeg,-31);
+
+	vec_uint4 bail = spu_orx(pixel);
+	if (!spu_extract(bail,0)) return;
+
+/*
+	printf("pixel %03d, tAa=%06.2f, tAb=%06.2f, tAc=%06.2f, tA=%06.2f\n",
+		spu_extract(pixel,0),
+		spu_extract(tAa,0),
+		spu_extract(tAb,0),
+		spu_extract(tAc,0),
+		spu_extract(tAa,0)+spu_extract(tAb,0)+spu_extract(tAc,0));
+*/
+	vec_float4 t_w = extract(tri->w, tAa, tAb, tAc);
+	vec_float4 w = spu_splats(1.0f)/t_w;
+
+	tAa = spu_mul(tAa,w);
+	tAb = spu_mul(tAb,w);
+	tAc = spu_mul(tAc,w);
+
+	vec_float4 t_s = extract(tri->s, tAa, tAb, tAc);
+	vec_float4 t_t = extract(tri->t, tAa, tAb, tAc);
+
+	vec_uint4 s_sub = spu_and(spu_rlmask(spu_convtu(t_s,32),-14), 0x3fc00);
+	vec_uint4 t_sub = spu_and(spu_rlmask(spu_convtu(t_t,32),-22), 0x3fc);
+	vec_uint4 offset = spu_or(s_sub,t_sub);
+
+	vec_uint4 sub_block_pixel = spu_and(offset, 0xffc); // 10+2 bits
+	vec_uint4 block_id = spu_rlmask(offset,-12);
+
+	vec_uchar16 shuf_cmp_0 = spu_splats((unsigned short)0x203);
+	vec_ushort8 copy_cmp_0 = spu_shuffle(block_id,block_id,shuf_cmp_0);
+	vec_ushort8 matches1_0 = spu_cmpeq(TEXcache1,copy_cmp_0);
+	vec_ushort8 matches2_0 = spu_cmpeq(TEXcache2,copy_cmp_0);
+	vec_uint4 gather1_0 = spu_gather((vec_uchar16)matches1_0);
+	vec_uint4 gather2_0 = spu_gather((vec_uchar16)matches2_0);
+
+	vec_uchar16 shuf_cmp_1 = spu_splats((unsigned short)0x607);
+	vec_ushort8 copy_cmp_1 = spu_shuffle(block_id,block_id,shuf_cmp_1);
+	vec_ushort8 matches1_1 = spu_cmpeq(TEXcache1,copy_cmp_1);
+	vec_ushort8 matches2_1 = spu_cmpeq(TEXcache2,copy_cmp_1);
+	vec_uint4 gather1_1 = spu_gather((vec_uchar16)matches1_1);
+	vec_uint4 gather2_1 = spu_gather((vec_uchar16)matches2_1);
+
+	vec_uchar16 shuf_cmp_2 = spu_splats((unsigned short)0xa0b);
+	vec_ushort8 copy_cmp_2 = spu_shuffle(block_id,block_id,shuf_cmp_2);
+	vec_ushort8 matches1_2 = spu_cmpeq(TEXcache1,copy_cmp_2);
+	vec_ushort8 matches2_2 = spu_cmpeq(TEXcache2,copy_cmp_2);
+	vec_uint4 gather1_2 = spu_gather((vec_uchar16)matches1_2);
+	vec_uint4 gather2_2 = spu_gather((vec_uchar16)matches2_2);
+
+	vec_uchar16 shuf_cmp_3 = spu_splats((unsigned short)0xe0f);
+	vec_ushort8 copy_cmp_3 = spu_shuffle(block_id,block_id,shuf_cmp_3);
+	vec_ushort8 matches1_3 = spu_cmpeq(TEXcache1,copy_cmp_3);
+	vec_ushort8 matches2_3 = spu_cmpeq(TEXcache2,copy_cmp_3);
+	vec_uint4 gather1_3 = spu_gather((vec_uchar16)matches1_3);
+	vec_uint4 gather2_3 = spu_gather((vec_uchar16)matches2_3);
+
+	vec_uint4 gather_merge=spu_splats((unsigned short)0x5555);
+
+	vec_uint4 gather_0 = spu_sel(gather1_0, gather2_0, gather_merge);
+	vec_uint4 gather_2 = spu_sel(gather1_2, gather2_2, gather_merge);
+	vec_uint4 gather_1 = spu_sel(gather1_1, gather2_1, gather_merge);
+	vec_uint4 gather_3 = spu_sel(gather1_3, gather2_3, gather_merge);
+
+//	vec_uint4 gather_01 = spu_shuffle(gather_0,gather_1,shuf_gath_01);
+//	vec_uint4 gather_23 = spu_shuffle(gather_2,gather_3,shuf_gath_23);
+//	vec_uint4 gather = spu_shuffle(gather_01,gather_23,shuf_gath_0123);
+
+	unsigned int cache_index_0 = spu_extract(spu_cntlz(gather_0),0);
+	unsigned int cache_index_1 = spu_extract(spu_cntlz(gather_1),0);
+	unsigned int cache_index_2 = spu_extract(spu_cntlz(gather_2),0);
+	unsigned int cache_index_3 = spu_extract(spu_cntlz(gather_3),0);
+
+	tri->dummy = cache_index_0 | cache_index_1 | cache_index_2 | cache_index_3;
+//	printf("%d %d %d %d\n",
+//		cache_index_0, cache_index_1, cache_index_2, cache_index_3); 
+
+	unsigned long texAddrBase = control.texture_hack[tri->texture];
+
+	int tag_id=3;
+	u32* pixels = (u32*)ptr;
+	unsigned long texAddr0 = texAddrBase + spu_extract(offset,0);
+	unsigned long texAddr1 = texAddrBase + spu_extract(offset,1);
+	unsigned long texAddr2 = texAddrBase + spu_extract(offset,2);
+	unsigned long texAddr3 = texAddrBase + spu_extract(offset,3);
+	if (spu_extract(pixel,0))
+		mfc_get(textureTemp0, texAddr0 & ~127, 128, tag_id, 0, 0);
+	if (spu_extract(pixel,1))
+		mfc_get(textureTemp1, texAddr1 & ~127, 128, tag_id, 0, 0);
+	if (spu_extract(pixel,2))
+		mfc_get(textureTemp2, texAddr2 & ~127, 128, tag_id, 0, 0);
+	if (spu_extract(pixel,3))
+		mfc_get(textureTemp3, texAddr3 & ~127, 128, tag_id, 0, 0);
+	wait_for_dma(1<<tag_id);
+
+	vec_uint4 colour = {
+		textureTemp0[(texAddr0&127)>>2],
+		textureTemp1[(texAddr1&127)>>2],
+		textureTemp2[(texAddr2&127)>>2],
+		textureTemp3[(texAddr3&127)>>2]};
+
+//	colour = spu_and(colour, spu_splats((unsigned int)0xff));
+	colour = spu_shuffle(colour, colour, rgba_argb);
+
+	vec_uint4 current = *ptr;
+	*ptr = spu_sel(current, colour, pixel);
+}
+#else
 #ifdef TEXTURE_MAPPED
 static inline void sub_block(vec_uint4* ptr, 
 	triangle* tri, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
@@ -359,6 +478,7 @@ static inline void sub_block(vec_uint4* ptr,
 	vec_uint4 current = *ptr;
 	*ptr = spu_sel(current, colour, pixel);
 }
+#endif
 #endif
 
 static inline void process_block(vec_uint4* block_ptr,
@@ -555,6 +675,18 @@ void fast_triangle(triangle* tri, screen_block* current_block)
 
 //////////////////////////////////////////////////////////////////////////////
 
+#define NUMBER_TEX_MAPS 24
+
+unsigned int freeTextureMaps = 0;
+
+void _init_buffers()
+{
+	freeTextureMaps = (1<<NUMBER_TEX_MAPS)-1;
+	TEXcache1 = TEXcache2 = spu_splats((unsigned short)-1);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
 
 
 
@@ -563,6 +695,7 @@ screen_block buffer __attribute__((aligned(128)));
 
 void _draw_imp_triangle(triangle* tri)
 {
+	_init_buffers();
 	init_screen_block(&buffer, 31);
 
 	fast_triangle(tri, &buffer);

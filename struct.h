@@ -48,6 +48,7 @@ typedef struct {
 
 	u32 		texture;
 	void *		shader;
+	unsigned int dummy;
 } triangle;
 
 typedef struct {
