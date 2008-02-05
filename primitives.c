@@ -48,7 +48,7 @@ const vec_uchar16 triangle_order_data = {
 	0,0		/* 14 - impossible */
 };
 const vec_uchar16 copy_order_data = {
-	1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1
+	0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, 
 };
 const vec_uchar16 copy_as_is = {
 	SEL_A0 SEL_A1 SEL_A2 SEL_A3
@@ -73,28 +73,62 @@ const vec_uchar16 shuffle_tri_ccw = {
 	SEL_A2 SEL_A0 SEL_A1 SEL_00
 };
 
+const vec_uchar16 minimax_x = {
+0xff,0xff, 0x00,0x08, 0x08,0x04, 0x00,0x04, 0x04,0x00, 0x04,0x08, 0x08,0x00, 0xff,0xff,
+};
+const vec_uchar16 minimax_y = {
+0xff,0xff, 0x10,0x18, 0x18,0x14, 0x10,0x14, 0x14,0x10, 0x14,0x18, 0x18,0x10, 0xff,0xff,
+};
+const vec_uchar16 minimax_merge = {
+0,0,0,0, 16,16,16,16, 1,1,1,1, 17,17,17,17};
+const vec_uchar16 minimax_add = {
+0,1,2,3, 0,1,2,3, 0,1,2,3, 0,1,2,3};
+
 static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 {
-	// TRIorder holds the select mask for triangle as is
-	// these two are select masks for clockwise and counter-clockwise
+/*
+	printf("(%3.2f,%3.2f) (%3.2f,%3.2f) (%3.2f,%3.2f)\n",	
+		spu_extract(TRIx, 0), spu_extract(TRIy, 0), 
+		spu_extract(TRIx, 1), spu_extract(TRIy, 1), 
+		spu_extract(TRIx, 2), spu_extract(TRIy, 2));
+*/
 
-	//TRIorder = shuffle_tri_normal;
+	vec_float4 t_vx_cw = spu_shuffle(TRIx, TRIx, shuffle_tri_cw);
+	vec_uint4 fcgt_x = spu_cmpgt(TRIx, t_vx_cw);	// all-ones if ax>bx, bx>cx, cx>ax, ???
+	u32 fcgt_bits_x = spu_extract(spu_gather(fcgt_x), 0) & ~1;
+	vec_uchar16 shuf_x = spu_slqwbyte(minimax_x, fcgt_bits_x);
 
-	vec_float4 t_vy = spu_shuffle(TRIy, TRIy, shuffle_tri_normal);
-	vec_float4 t_vy_cw = spu_shuffle(t_vy, t_vy, shuffle_tri_cw);
+	vec_float4 t_vy_cw = spu_shuffle(TRIy, TRIy, shuffle_tri_cw);
+	vec_uint4 fcgt_y = spu_cmpgt(TRIy, t_vy_cw);	// all-ones if ay>by, by>cy, cy>ay, ???
+	u32 fcgt_bits_y = spu_extract(spu_gather(fcgt_y), 0) & ~1;
+	vec_uchar16 shuf_y = spu_slqwbyte(minimax_y, fcgt_bits_y);
 
-	// all-ones if ay>by, by>cy, cy>ay, 0>0
-	vec_uint4 fcgt_y = spu_cmpgt(t_vy, t_vy_cw);
+	vec_uchar16 shuf_minmax_base = spu_shuffle(shuf_x, shuf_y, minimax_merge);
+	vec_uchar16 shuf_minmax = spu_or(shuf_minmax_base, minimax_add);
+	vec_float4 minmax = spu_shuffle(TRIx, TRIy, shuf_minmax);
+/*
+	printf("min (%3.2f,%3.2f) - max (%3.2f,%3.2f) ",	
+		spu_extract(minmax, 0), spu_extract(minmax, 1), 
+		spu_extract(minmax, 2), spu_extract(minmax, 3));
+	printf("%02X:%02X:%02X:%02X ",
+		spu_extract(shuf_minmax,0), 
+		spu_extract(shuf_minmax,4), 
+		spu_extract(shuf_minmax,8), 
+		spu_extract(shuf_minmax,12));
+	printf("[%d,%d]\n\n", fcgt_bits_x, fcgt_bits_y);
+*/
+
+//	vec_float4 t_vy_cw = spu_shuffle(TRIy, TRIy, shuffle_tri_cw);
+
+//	vec_uint4 fcgt_y = spu_cmpgt(TRIy, t_vy_cw);	// all-ones if ay>by, by>cy, cy>ay, ???
 	u32 fcgt_bits = spu_extract(spu_gather(fcgt_y), 0);
-	//printf("fcgt_bits = %d\n", fcgt_bits);
-
-	vec_uchar16 r_right_padded = shuffle_tri_right_padded; // spu_rlqwbyte(TRIorder, -4);
 	vec_uchar16 swap_mask = spu_rlqwbyte(triangle_order_data, fcgt_bits);
 	vec_uchar16 rep_swap_add = spu_shuffle(swap_mask, swap_mask, copy_order_data);
 	vec_ushort8 q1 = (vec_ushort8)rep_swap_add;
 	vec_ushort8 q2 = (vec_ushort8)copy_as_is;
 	vec_uchar16 ns_mask = (vec_uchar16) spu_add(q1,q2);
-	vec_uchar16 r_normal = spu_shuffle(r_right_padded,shuffle_tri_normal,ns_mask);
+	vec_uchar16 r_normal = spu_shuffle(shuffle_tri_right_padded,shuffle_tri_normal,ns_mask);
+///	
 	//vec_uchar16 r_normal = spu_shuffle(r_right_padded,TRIorder,ns_mask);
 	vec_uint4 cast_left = (vec_uint4) rep_swap_add;
 	vec_uint4 cast_left_mask = spu_and(cast_left,0x20);
@@ -145,6 +179,7 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 	triangle* next_triangle = (triangle*) ( ((void*)triangle_out_ptr) +
 			(advance_ptr_mask&sizeof(triangle)) );
 
+	triangle_out_ptr -> minmax = minmax;
 //	triangle_out_ptr -> shuffle = r_normal;
 	triangle_out_ptr -> x = spu_shuffle(TRIx, TRIx, r_normal);
 	triangle_out_ptr -> y = spu_shuffle(TRIy, TRIy, r_normal);

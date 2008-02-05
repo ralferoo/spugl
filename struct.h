@@ -44,6 +44,7 @@ typedef struct {
 	vec_float4	r,g,b,a;	// primary colour
 	vec_float4	s,t,u,v;	// primary texture
 	vec_float4	A,dAdx,dAdy;	// weight information
+	vec_float4	minmax;		// bounding box (xmin,ymin,xmax,ymax)
 
 	u32 		texture;
 	void *		shader;
