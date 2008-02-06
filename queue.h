@@ -12,6 +12,8 @@
 #include "types.h"
 #include <spu_intrinsics.h>
 
+#define NUMBER_OF_QUEUE_JOBS 32
+
 typedef struct __QUEUE Queue;
 
 struct __QUEUE {
@@ -57,6 +59,11 @@ struct __QUEUE {
 // If you get an error on the next line, you need to increase the size of
 // QUEUE_PADDING at the top of this file...
 typedef char constraint_violated[1 - 2*(sizeof(struct __QUEUE) != 16*(1+QUEUE_PADDING))];
+
+///////////////////////////////////////////////////////////////////////////////
+
+extern Queue job_queue[];
+extern unsigned int free_job_queues;
 
 ///////////////////////////////////////////////////////////////////////////////
 

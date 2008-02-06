@@ -21,7 +21,7 @@ PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I. -Wno-trigrap
 SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS
 SPUCCFLAGS = -O6 -I. -DSPU_REGS
 
-SPU_OBJS = spufifo.0 decode.0 primitives.0 triangleColourSpan.0 fragment.0 shader.0
+SPU_OBJS = spufifo.0 decode.0 primitives.0 triangleColourSpan.0 fragment.0 shader.0 queue.0
 PPU_OBJS = ppufifo.o glfifo.o framebuffer.o
 
 TEXTURES_C := $(wildcard textures/*.c)
