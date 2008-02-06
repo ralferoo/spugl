@@ -244,4 +244,4 @@ fragment.0: /usr/include/stdint.h /usr/include/bits/wchar.h
 shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
-shader.0: gen_spu_command_defs.h struct.h spuregs.h
+shader.0: gen_spu_command_defs.h struct.h spuregs.h queue.h

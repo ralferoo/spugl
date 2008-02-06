@@ -9,8 +9,6 @@
 #ifndef __queue_h
 #define __queue_h
 
-#define QUEUE_PADDING 17
-
 #include "types.h"
 #include <spu_intrinsics.h>
 
@@ -23,6 +21,7 @@ struct __QUEUE {
 	unsigned int	dmamask;		// the DMA mask (if any) of this command
 		
 	union {	
+		// this holds a triangle, i.e. something that creates blocks to be rendered
 		struct {
 			vec_float4	x,y,z,w;	// coords
 			vec_float4	r,g,b,a;	// primary colour
@@ -30,15 +29,29 @@ struct __QUEUE {
 			vec_float4	A,dAdx,dAdy;	// weight information
 			vec_float4	minmax;		// bounding box (xmin,ymin,xmax,ymax)
 
-			u32 		texture;
-			void *		shader;
-			unsigned int dummy;
+			unsigned int	count;		// count of blocks that still have reference
+			void		(*init)(Queue*);// the dispatch that can initialise itself
+			unsigned short	texture_base;	// the base texture ID for block(0,0)
+			unsigned short	texture_y_shift;// log2(texture_width_in_blocks)
 		} triangle;
+
+		// this holds a block waiting to be rendered, in whatever state it is in
+		struct {
+			vec_float4	Aa,Ab,Ac;
+			vec_float4	Aa_dx4,Ab_dx4,Ac_dx4;
+			vec_float4	Aa_dy,Ab_dy,Ac_dy;
+			
+			Queue*		triangle;
+			vec_float4*	z_buffer;
+			vec_uint4*	pixels;
+			vec_ushort8*	tex_temp;
+		} block;
+
+#define QUEUE_PADDING 17
+		// padding, number above must be at least as big as number of qwords in any struct
 		vec_uchar16 padding[QUEUE_PADDING];
 	};
 } ;
-
-
 // http://www.thescripts.com/forum/thread220022.html
 //
 // If you get an error on the next line, you need to increase the size of

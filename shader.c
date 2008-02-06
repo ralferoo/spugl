@@ -169,7 +169,7 @@ unsigned long wait_for_dma(unsigned long mask)
 	do {
 		mfc_write_tag_mask(mask);
 		done = mfc_read_tag_status_any();
-		control.block_count++;
+		control.block_count+=9;		// guesstimate how much longer this takes than nop
 	} while (!(done&mask));
 	return done&mask;
 #endif
