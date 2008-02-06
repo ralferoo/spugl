@@ -562,8 +562,8 @@ static void big_block(unsigned int bx, unsigned int by,
 	process_block(block_ptr, tri, 
 		Aa, Ab,Ac, Aa_dx4,Ab_dx4,Ac_dx4, Aa_dy,Ab_dy,Ac_dy);
 
-//	wait_screen_block(current_block);
 //	flush_screen_block(current_block);
+//	wait_screen_block(current_block);
 }
 
 const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
