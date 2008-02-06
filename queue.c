@@ -24,15 +24,16 @@ void debug_queue(void)
 	for (i=0; i<NUMBER_OF_QUEUE_JOBS; i++, mask<<=1) {
 		Queue* q = &job_queue[i];
 		if (!(free_job_queues&mask)) {
-			printf("job %2d(%c): dispatcher %05lx DMA %08lx next %2d\n", 
-				i, ready_job_queues&mask?'R':'S', q->handler, q->dmamask, q->next);
+			printf("job %2d(%c): dispatcher %05lx DMA %08lx next %2d \"%s\"\n", 
+				i, ready_job_queues&mask?'R':'S', q->handler, q->dmamask, q->next,
+				q->name);
 		}
 	}
 }
 
 void dummy_handler(Queue* queue)
 {
-	QUEUE_JOB(queue,0);
+	printf("Dummy handler invoked\n");
 }
 
 void init_queue(void)
@@ -50,5 +51,20 @@ void init_queue(void)
 
 void process_queue(void)
 {
-//	debug_queue();
+	while (ready_job_queues) {
+		int id = FIRST_JOB(ready_job_queues);
+		printf("Job %d waiting...\n", id);
+		Queue* q = &job_queue[id];
+		void (*handler)(Queue*) = q->handler;
+		unsigned int mask = 1<<id;
+		//BLOCK_JOB(q);
+		ready_job_queues &= ~mask;
+		//QUEUE_JOB(q,0);
+		q->handler = 0;
+		q->name = "processed";
+		handler(q);
+		if (!(q->handler)) {
+			free_job_queues |= mask;
+		}
+	}
 }

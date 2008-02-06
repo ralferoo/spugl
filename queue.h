@@ -73,7 +73,15 @@ extern void process_queue(void);
 #define QUEUE_JOB(q,h) do {Queue* a=(q); a->handler=h; a->name=(#h); \
 if (a->handler) free_job_queues&=~(1<<a->id); else free_job_queues|=(1<<a->id); \
 } while(0)
+#define QUEUE_JOB(q,h) do {Queue* a=(q); a->handler=h; a->name=(#h);} while(0)
 #define READY_JOB(q) (ready_job_queues|=1<<(q)->id)
+#define BLOCK_JOB(q) (ready_job_queues&=~(1<<(q)->id))
+
+static inline int FIRST_JOB(unsigned int x) {
+	vec_uint4 xx = (vec_uint4) x;
+	vec_uint4 clz = spu_cntlz(xx);
+	return (int) 31-spu_extract(clz,0);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
