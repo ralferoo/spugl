@@ -9,6 +9,7 @@
 #include "spuregs.h" // all SPU files must include spuregs.h
 #include <spu_mfcio.h>
 #include "fifo.h"
+#include "queue.h"
 
 SPU_CONTROL control __CACHE_ALIGNED__;
 
@@ -91,10 +92,13 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 	control.block_count = 0;
 	spu_write_out_mbox((u32)&control);
 
+	init_queue();
+
 	int running = 1;
 	while (running) {
 //		int zzz = 0;
 		while (spu_stat_in_mbox() == 0) {
+			process_queue();
 			control.idle_count ++;
 			// check to see if there's any data waiting on FIFO
 			u64 read = control.fifo_read;

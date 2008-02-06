@@ -18,8 +18,9 @@ typedef struct __QUEUE Queue;
 
 struct __QUEUE {
 	void		(*handler)(Queue*);	// the dispatch that knows how to 
-	unsigned int	id;			// the id of this command
-	unsigned int	next;			// the command to process after this one is finished
+	char*		name;			// the debug name
+	unsigned short	id;			// the command ID
+		 short	next;			// the command to process after this one is finished
 	unsigned int	dmamask;		// the DMA mask (if any) of this command
 		
 	union {	
@@ -64,6 +65,15 @@ typedef char constraint_violated[1 - 2*(sizeof(struct __QUEUE) != 16*(1+QUEUE_PA
 
 extern Queue job_queue[];
 extern unsigned int free_job_queues;
+extern unsigned int ready_job_queues;
+
+extern void debug_queue(void);
+extern void process_queue(void);
+
+#define QUEUE_JOB(q,h) do {Queue* a=(q); a->handler=h; a->name=(#h); \
+if (a->handler) free_job_queues&=~(1<<a->id); else free_job_queues|=(1<<a->id); \
+} while(0)
+#define READY_JOB(q) (ready_job_queues|=1<<(q)->id)
 
 ///////////////////////////////////////////////////////////////////////////////
 
