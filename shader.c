@@ -9,6 +9,7 @@
 #include <spu_mfcio.h>
 #include "fifo.h"
 #include "struct.h"
+#include "queue.h"
 
 // #define DEBUG_1
 // #define DEBUG_2		// corrupt each block we load in
@@ -25,6 +26,19 @@ u32 textureTemp0[32] __attribute__((aligned(128)));
 u32 textureTemp1[32] __attribute__((aligned(128)));
 u32 textureTemp2[32] __attribute__((aligned(128)));
 u32 textureTemp3[32] __attribute__((aligned(128)));
+
+
+void block_handler(Queue* queue)
+{
+	queue->triangle.y = queue->triangle.b;
+	queue->handler = 0;
+}
+
+void triangle_handler(Queue* queue)
+{
+	queue->triangle.x = queue->triangle.a;
+	queue->handler = &block_handler;
+}
 
 
 vec_int4 _a[10];

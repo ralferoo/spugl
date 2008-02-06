@@ -51,6 +51,7 @@ edit:
 source:
 	make shader.s && less shader.s
 
+shader.s: queue.h
 ppufifo.o: Makefile .gen
 spufifo.0: Makefile .gen
 
@@ -68,7 +69,7 @@ gen_spu_command_table.h: .gen
 depend: .gen
 	@echo checking dependencies
 	@makedepend -I/usr/include/python2.4/ -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(PPU_SRCS) -DUSERLAND_$(USERLAND)_BITS
-	@makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.0 $(SPU_SRCS) -DUSERLAND_$(USERLAND)_BITS
+	@makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.0 $(SPU_SRCS) -DSPU_REGS -DUSERLAND_$(USERLAND)_BITS
 	@rm -f Makefile.bak
 	@for i in $(SPU_OBJS) ; do grep $$i:.*spuregs.h Makefile >/dev/null || (echo ERROR: $$i does not refer to spuregs.h && false) ; done
 
@@ -209,9 +210,9 @@ test.o: ./GL/gl.h ./GL/glext.h /usr/include/inttypes.h /usr/include/stdint.h
 test.o: ./GL/glspu.h
 
 spufifo.0: spuregs.h struct.h types.h
-spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
-spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h
+spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
+spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h fifo.h
 spufifo.0: gen_spu_command_defs.h gen_spu_command_exts.h
 spufifo.0: gen_spu_command_table.h
 decode.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
