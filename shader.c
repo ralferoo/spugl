@@ -41,8 +41,6 @@ void triangle_handler(Queue* queue)
 }
 
 
-vec_int4 _a[10];
-
 int qs(int a) { return a>>5; }
 
 unsigned int qu(unsigned int a) { return a>>5; }
