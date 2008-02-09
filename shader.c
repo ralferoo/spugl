@@ -601,6 +601,7 @@ void finish_triangle_handler(Queue* tri)
 	}
 }
 
+// TODO: the continuation mechanism here sucks... need to rework it to save all the looping
 void triangle_handler(Queue* tri)
 {
 	int slots = COUNT_ONES(free_job_queues);
