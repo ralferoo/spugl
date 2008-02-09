@@ -83,9 +83,22 @@ static inline int FIRST_JOB(unsigned int x) {
 	return (int) 31-spu_extract(clz,0);
 }
 
+static inline int COUNT_ONES(unsigned int x)
+{
+	vec_uchar16 xx = (vec_uchar16) ((vec_uint4)x);
+	vec_uchar16 yy = spu_cntb(xx);
+	vec_ushort8 zz = (vec_ushort8) spu_sumb(yy,yy);
+	return spu_extract(zz,1);
+}
+
 // we want to keep the FIFO jobs from filling up the entire queue, so reserve
 // a few slots for other things...
 #define FIFO_VALID_QUEUE_MASK (~0xff)
+
+// this rather convuluted expression is just (1<<n)-1 but rearranged to 
+// get rid of the warnings :(
+//= (1<<NUMBER_OF_QUEUE_JOBS)-1;
+#define ALL_QUEUE_JOBS ((((1<<(NUMBER_OF_QUEUE_JOBS-2))-1)<<2)|3)
 
 ///////////////////////////////////////////////////////////////////////////////
 

@@ -69,7 +69,7 @@ GLAPI void GLAPIENTRY glspuFlip(void)
 
 GLAPI void GLAPIENTRY glspuClear(void)
 {
-	FIFO_PROLOGUE(ctx,10);
+	FIFO_PROLOGUE(ctx,2);
 	BEGIN_RING(SPU_COMMAND_CLEAR_SCREEN,1);
 	FIFO_EPILOGUE();
 }
@@ -81,12 +81,15 @@ GLAPI void GLAPIENTRY glspuWait(void)
 
 GLAPI void GLAPIENTRY glFlush()
 {
+	FIFO_PROLOGUE(ctx,2);
+	BEGIN_RING(SPU_COMMAND_SYNC,1);
+	FIFO_EPILOGUE();
 	_flush_3d_driver(ctx);
 }
 
 GLAPI void GLAPIENTRY glBegin(GLuint type)
 {
-	FIFO_PROLOGUE(ctx,10);
+	FIFO_PROLOGUE(ctx,2);
 	BEGIN_RING(SPU_COMMAND_GL_BEGIN,1);
 	OUT_RING(type);
 	FIFO_EPILOGUE();

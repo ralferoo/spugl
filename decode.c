@@ -19,6 +19,7 @@ extern SPU_CONTROL control;
 extern int current_state;
 extern void* imp_vertex(void* from, float4 in);
 extern int imp_validate_state(int state);
+extern int has_finished();
 
 float4 current_colour = {.x=1.0,.y=1.0,.z=1.0,.w=1.0};
 float4 current_texcoord = {.x=0.0,.y=0.0,.z=0.0,.w=1.0};
@@ -125,3 +126,18 @@ u32 current_texture = 0;
 	current_texture = texture;
 	return from;
 }
+
+extern unsigned int free_job_queues;
+extern unsigned int ready_job_queues;
+extern void debug_queue(void);
+
+/*26*/void* imp_sync(u32* from) {
+	if (has_finished())
+		return &from[0];
+	else {
+//		printf("imp_sync, free jobs=%lx, ready=%lx\n", free_job_queues, ready_job_queues);
+//		debug_queue();
+		return 0;
+	}
+}
+

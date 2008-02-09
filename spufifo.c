@@ -52,8 +52,8 @@ SPU_COMMAND* spu_commands[] = {
 
 /* Process commands on the FIFO */
 void process_fifo(u32* from, u32* to) {
-//	printf("from %lx to %lx, free_job_queues=%lx\n", from, to,free_job_queues);
-	while (from != to && (free_job_queues&FIFO_VALID_QUEUE_MASK)) {
+	//printf("from %lx to %lx, free_job_queues=%lx\n", from, to,free_job_queues);
+	while (from != to && (COUNT_ONES(free_job_queues)>8)) {
 		u32* addr = from;
 
 		u32 command = *from++;
@@ -71,9 +71,9 @@ void process_fifo(u32* from, u32* to) {
 			from++;
 //			printf("from %lx to %lx\n", from, to);
 		}
+		u64 ls = control.my_local_address;
+		control.fifo_read = ls+((u64)((u32)from));
 	}
-	u64 ls = control.my_local_address;
-	control.fifo_read = ls+((u64)((u32)from));
 }
 
 /* I'm deliberately going to ignore the arguments passed in as early versions

@@ -13,5 +13,6 @@ extern SPU_COMMAND imp_glTexCoord2;
 extern SPU_COMMAND imp_glTexCoord3;
 extern SPU_COMMAND imp_glTexCoord4;
 extern SPU_COMMAND imp_glBindTexture;
+extern SPU_COMMAND imp_sync;
 extern SPU_COMMAND impScreenInfo;
 extern SPU_COMMAND impClearScreen;

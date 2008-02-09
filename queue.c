@@ -10,12 +10,14 @@
 
 Queue job_queue[NUMBER_OF_QUEUE_JOBS];
 
-// this rather convuluted expression is just (1<<n)-1 but rearranged to 
-// get rid of the warnings :(
-unsigned int free_job_queues = (((1<<(NUMBER_OF_QUEUE_JOBS-2))-1)<<2)|3;
-//unsigned int free_job_queues = (1<<NUMBER_OF_QUEUE_JOBS)-1;
+unsigned int free_job_queues = ALL_QUEUE_JOBS;
 
 unsigned int ready_job_queues = 0;
+
+int has_finished()
+{
+	return free_job_queues == ALL_QUEUE_JOBS;
+}
 
 void debug_queue(void)
 {
