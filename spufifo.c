@@ -20,7 +20,6 @@ void raise_error(int error) {
 
 int init_fifo(int fifo_size) {
 	u64 ls = control.my_local_address;
-//	printf("init_fifo local address %llx\n", ls);
 
 	if (control.fifo_start)
 		free(control.fifo_start);
@@ -29,12 +28,7 @@ int init_fifo(int fifo_size) {
 	if (fifo_size>0 && control.fifo_start == 0UL)
 		return 1;
 
-//	printf("Allocated FIFO of %d bytes at %lx ctrl %lx\n",
-//		fifo_size, control.fifo_start, &control);
-
 	u64 ea = fifo_size > 0 ? ls + ((u64)control.fifo_start) : 0;
-
-//	printf("FIFO ea = %llx\n", ea);
 
 	control.fifo_size = fifo_size;
 	control.fifo_read = ea;
@@ -52,7 +46,6 @@ SPU_COMMAND* spu_commands[] = {
 
 /* Process commands on the FIFO */
 void process_fifo(u32* from, u32* to) {
-	//printf("from %lx to %lx, free_job_queues=%lx\n", from, to,free_job_queues);
 	while (from != to && (COUNT_ONES(free_job_queues)>8)) {
 		u32* addr = from;
 
@@ -61,15 +54,12 @@ void process_fifo(u32* from, u32* to) {
 					? spu_commands[command] : 0;
 
 		if (func) {
-//			printf("%06lx: running command %lx\n", addr, command);
 			from = (*func)(from);
-//			printf("from is %lx\n", from);
 			if (!from)
 				return;
 		} else {
 			printf("%06lx: command %lx\n", addr, command);
 			from++;
-//			printf("from %lx to %lx\n", from, to);
 		}
 		u64 ls = control.my_local_address;
 		control.fifo_read = ls+((u64)((u32)from));
@@ -80,8 +70,6 @@ void process_fifo(u32* from, u32* to) {
  * of libspe2 have the upper and lower 32 bits swapped.
  */
 int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned long long env) {
-//	printf("spumain running on spe %lx\n", spe_id);
-
 	control.fifo_start = 0;
 	control.fifo_size = 0;
 	control.fifo_written = 0;
@@ -97,10 +85,9 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 
 	int running = 1;
 	while (running) {
-//		int zzz = 0;
 		while (spu_stat_in_mbox() == 0) {
 			process_queue();
-			control.idle_count += 3;
+			control.idle_count += 2;
 			// check to see if there's any data waiting on FIFO
 			u64 read = control.fifo_read;
 			u64 written = control.fifo_written;
@@ -110,17 +97,10 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 				u32* from = (u32*) ((u32)(read-ls));
 				process_fifo(from, to);
 				u64 new_read = control.fifo_read;
-//				printf("Processed FIFO from %llx to %llx "
-//					"(ends %llx)\n", read,new_read,written);
-//				zzz = 0;
-//			} else if (zzz==0) {
-//				zzz = 1;
-//				printf("SPU waiting... %llx,%llx\n", written, read);
 			}
 		}
 
 		unsigned long msg = spu_read_in_mbox();
-//		printf("received message %ld\n", msg);
 		switch (msg) {
 			case SPU_MBOX_3D_TERMINATE:
 				running = 0;
@@ -149,5 +129,4 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 		}
 	}
 
-//	printf("spumain exiting\n");
 }
