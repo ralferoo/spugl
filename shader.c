@@ -31,15 +31,19 @@ u32 textureTemp3[32] __attribute__((aligned(128)));
 void block_handler(Queue* queue)
 {
 	queue->triangle.y = queue->triangle.b;
-	queue->handler = 0;
+//	queue->handler = 0;
+	printf("Dummy block invoked\n");
+	QUEUE_JOB(queue,0);
 }
 
 void triangle_handler(Queue* queue)
 {
 	queue->triangle.x = queue->triangle.a;
-	queue->handler = &block_handler;
+	//queue->handler = &block_handler;
+	printf("Dummy triangle invoked\n");
+	QUEUE_JOB(queue,block_handler);
+	READY_JOB(queue);
 }
-
 
 int qs(int a) { return a>>5; }
 

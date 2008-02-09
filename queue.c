@@ -51,9 +51,11 @@ void init_queue(void)
 
 void process_queue(void)
 {
+	if (ready_job_queues) {
 	while (ready_job_queues) {
+//		debug_queue();
 		int id = FIRST_JOB(ready_job_queues);
-		printf("Job %d waiting...\n", id);
+//		printf("Job %d waiting...\n", id);
 		Queue* q = &job_queue[id];
 		void (*handler)(Queue*) = q->handler;
 		unsigned int mask = 1<<id;
@@ -62,9 +64,16 @@ void process_queue(void)
 		//QUEUE_JOB(q,0);
 		q->handler = 0;
 		q->name = "processed";
+//		printf("calling %lx\n", handler);
 		handler(q);
+//		printf("returned from %lx\n", handler);
 		if (!(q->handler)) {
 			free_job_queues |= mask;
+//			printf("freeing job %lx\n", mask);
 		}
+	}
+//	printf("No more ready jobs...\n");
+//	debug_queue();
+//	printf("...\n");
 	}
 }

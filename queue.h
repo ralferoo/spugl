@@ -70,7 +70,7 @@ extern unsigned int ready_job_queues;
 extern void debug_queue(void);
 extern void process_queue(void);
 
-#define QUEUE_JOB(q,h) do {Queue* a=(q); a->handler=h; a->name=(#h); \
+#define ENQUEUE_JOB(q,h) do {Queue* a=(q); a->handler=h; a->name=(#h); \
 if (a->handler) free_job_queues&=~(1<<a->id); else free_job_queues|=(1<<a->id); \
 } while(0)
 #define QUEUE_JOB(q,h) do {Queue* a=(q); a->handler=h; a->name=(#h);} while(0)
@@ -82,6 +82,10 @@ static inline int FIRST_JOB(unsigned int x) {
 	vec_uint4 clz = spu_cntlz(xx);
 	return (int) 31-spu_extract(clz,0);
 }
+
+// we want to keep the FIFO jobs from filling up the entire queue, so reserve
+// a few slots for other things...
+#define FIFO_VALID_QUEUE_MASK (~0xff)
 
 ///////////////////////////////////////////////////////////////////////////////
 

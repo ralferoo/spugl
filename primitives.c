@@ -9,6 +9,7 @@
 #include <spu_mfcio.h>
 #include "fifo.h"
 #include "struct.h"
+#include "queue.h"
 
 //#define CHECK_STATE_TABLE
 
@@ -18,6 +19,8 @@ extern float4 current_colour;
 extern float4 current_texcoord;
 extern u32 current_texture;
 extern _bitmap_image screen;
+
+extern void triangle_handler(Queue* queue);
 
 static void imp_point()
 {
@@ -51,8 +54,20 @@ const vec_uchar16 minimax_merge = {
 const vec_uchar16 minimax_add = {
 0,1,2,3, 0,1,2,3, 0,1,2,3, 0,1,2,3};
 
-static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
+static void imp_triangle()
 {
+//	static triangle dummy[1];
+//	triangle* triangle_out_ptr = &dummy[0];
+
+	int free_queue = FIRST_JOB(free_job_queues&FIFO_VALID_QUEUE_MASK);
+	if (free_queue<0) {
+		printf("ERROR: free_queue not possible in imp_triangle!!!");
+		return;
+	}
+	unsigned int free_queue_mask = 1<<free_queue;
+//	printf("imp_triangle, free_queue=%d mask=%08x\n", free_queue,free_queue_mask);
+	Queue* queue = &job_queue[free_queue];
+
 	vec_float4 t_vx_cw = spu_shuffle(TRIx, TRIx, shuffle_tri_cw);
 	vec_uint4 fcgt_x = spu_cmpgt(TRIx, t_vx_cw);	// all-ones if ax>bx, bx>cx, cx>ax, ???
 	u32 fcgt_bits_x = spu_extract(spu_gather(fcgt_x), 0) & ~1;
@@ -90,39 +105,50 @@ static inline triangle* _new_imp_triangle(triangle* triangle_out_ptr)
 	vec_float4 area_ofs = spu_madd(spu_splats(spu_extract(TRIx,0)),area_dx,
 			spu_mul(spu_splats(spu_extract(TRIy,0)),area_dy));
 
-	triangle_out_ptr -> x = TRIx;
-	triangle_out_ptr -> y = TRIy;
-	triangle_out_ptr -> z = TRIz;
-	triangle_out_ptr -> w = TRIw;
+	queue->triangle.x = TRIx;
+	queue->triangle.y = TRIy;
+	queue->triangle.z = TRIz;
+	queue->triangle.w = TRIw;
 	
-	triangle_out_ptr -> r = TRIr;
-	triangle_out_ptr -> g = TRIg;
-	triangle_out_ptr -> b = TRIb;
-	triangle_out_ptr -> a = TRIa;
+	queue->triangle.r = TRIr;
+	queue->triangle.g = TRIg;
+	queue->triangle.b = TRIb;
+	queue->triangle.a = TRIa;
 	
-	triangle_out_ptr -> s = TRIs;
-	triangle_out_ptr -> t = TRIt;
-	triangle_out_ptr -> u = TRIu;
-	triangle_out_ptr -> v = TRIv;
+	queue->triangle.s = TRIs;
+	queue->triangle.t = TRIt;
+	queue->triangle.u = TRIu;
+	queue->triangle.v = TRIv;
 	
-	triangle_out_ptr -> minmax = minmax;
-	triangle_out_ptr -> A = spu_sub(base_area, area_ofs);
-	triangle_out_ptr -> dAdx = area_dx;
-	triangle_out_ptr -> dAdy = area_dy;
+	queue->triangle.minmax = minmax;
+	queue->triangle.A = spu_sub(base_area, area_ofs);
+	queue->triangle.dAdx = area_dx;
+	queue->triangle.dAdy = area_dy;
 	
-	triangle_out_ptr -> texture = current_texture;
-	triangle_out_ptr -> shader = 0;
+	queue->triangle.texture_base = current_texture;
+//	queue->triangle.shader = 0;
 
 // if the triangle is visible (i.e. area>0), then we increment the triangle
 // out ptr to just past the triangle data we've just written to memory.
 // if the triangle is invisible (i.e. area<0) then leave the pointer in the
 // same place so that we re-use the triangle slot on the next triangle.
 
-	unsigned long advance_ptr_mask = spu_extract(fcgt_area, 0);
-	triangle* next_triangle = (triangle*) ( ((void*)triangle_out_ptr) +
-			(advance_ptr_mask&sizeof(triangle)) );
+//	printf("   f=%08lx r=%08lx a=%08lx\n", free_job_queues, ready_job_queues, advance_ptr_mask);
 
-	return next_triangle;
+	unsigned long advance_ptr_mask = spu_extract(fcgt_area, 0);
+
+	free_queue_mask &= advance_ptr_mask;
+	free_job_queues &= ~free_queue_mask;
+	ready_job_queues |= free_queue_mask;
+	QUEUE_JOB(queue, triangle_handler);
+	
+//	printf("-> f=%08lx r=%08lx a=%08lx\n", free_job_queues, ready_job_queues, advance_ptr_mask);
+
+//	triangle* next_triangle = (triangle*) ( ((void*)triangle_out_ptr) +
+//			(advance_ptr_mask&sizeof(triangle)) );
+
+//	if (advance_ptr_mask)
+//		_draw_imp_triangle(&dummy[0]);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -251,15 +277,6 @@ static inline void shuffle_in(vec_uchar16 inserter, float4 s, float4 col, float4
 	TRIt = spu_shuffle(TRIt, (vec_float4) tex.y, inserter);
 	TRIu = spu_shuffle(TRIu, (vec_float4) tex.z, inserter);
 	TRIv = spu_shuffle(TRIv, (vec_float4) tex.w, inserter);
-}
-
-static triangle* imp_triangle()
-{
-	static triangle dummy[10];
-	triangle* next = _new_imp_triangle(&dummy[0]);
-	if (next!=&dummy[0])
-		_draw_imp_triangle(&dummy[0]);
-	return next;
 }
 
 void* imp_vertex(void* from, float4 in)

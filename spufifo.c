@@ -52,7 +52,8 @@ SPU_COMMAND* spu_commands[] = {
 
 /* Process commands on the FIFO */
 void process_fifo(u32* from, u32* to) {
-	while (from != to) {
+//	printf("from %lx to %lx, free_job_queues=%lx\n", from, to,free_job_queues);
+	while (from != to && (free_job_queues&FIFO_VALID_QUEUE_MASK)) {
 		u32* addr = from;
 
 		u32 command = *from++;
@@ -99,7 +100,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 //		int zzz = 0;
 		while (spu_stat_in_mbox() == 0) {
 			process_queue();
-			control.idle_count ++;
+			control.idle_count += 3;
 			// check to see if there's any data waiting on FIFO
 			u64 read = control.fifo_read;
 			u64 written = control.fifo_written;
