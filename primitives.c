@@ -58,7 +58,7 @@ int last_triangle = -1;
 
 static void imp_triangle()
 {
-	int free_queue = FIRST_JOB(free_job_queues&FIFO_VALID_QUEUE_MASK);
+	int free_queue = FIRST_JOB(free_job_queues);
 	if (free_queue<0) {
 		printf("ERROR: free_queue not possible in imp_triangle!!!");
 		return;

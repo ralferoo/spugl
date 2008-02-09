@@ -36,7 +36,7 @@ struct __QUEUE {
 			unsigned short	count;		// count of blocks that still have reference
 			unsigned short	texture_base;	// the base texture ID for block(0,0)
 			unsigned short	texture_y_shift;// log2(texture_width_in_blocks)
-			char		cur_x, cur_y;	// current x and y values
+			         short	cur_x, cur_y;	// current x and y values
 		} triangle;
 
 		// this holds a block waiting to be rendered, in whatever state it is in
@@ -49,6 +49,8 @@ struct __QUEUE {
 			vec_float4*	z_buffer;
 			vec_uint4*	pixels;
 			vec_ushort8*	tex_temp;
+
+			unsigned int	bx,by;
 		} block;
 
 #define QUEUE_PADDING 17
@@ -70,6 +72,9 @@ extern unsigned int ready_job_queues;
 
 extern void debug_queue(void);
 extern void process_queue(void);
+
+extern void _init_buffers();
+
 
 #define ENQUEUE_JOB(q,h) do {Queue* a=(q); a->handler=h; a->name=(#h); \
 if (a->handler) free_job_queues&=~(1<<a->id); else free_job_queues|=(1<<a->id); \

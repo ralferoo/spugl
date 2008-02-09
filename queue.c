@@ -60,8 +60,11 @@ void process_queue(void)
 #ifdef DEBUG_QUEUE 
 		debug_queue();
 #endif
-		while (ready_job_queues) {
-			int id = FIRST_JOB(ready_job_queues);
+		unsigned int consider = ~0;
+
+		while (ready_job_queues&consider) {
+			int id = FIRST_JOB(ready_job_queues&consider);
+			consider = (1<<id)-1;
 #ifdef DEBUG_QUEUE 
 			printf("Job %d waiting...\n", id);
 #endif
@@ -76,9 +79,9 @@ void process_queue(void)
 			handler(q);
 			if (!(q->handler)) {
 				free_job_queues |= mask;
-			int next = job_queue[id].next;
-			if (next>=0)
-				ready_job_queues |= 1<<next;
+				int next = job_queue[id].next;
+				if (next>=0)
+					ready_job_queues |= 1<<next;
 			}
 		}
 	}
