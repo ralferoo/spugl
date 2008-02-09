@@ -519,30 +519,10 @@ static inline void process_block(vec_uint4* block_ptr,
 static void big_block(unsigned int bx, unsigned int by,
 		screen_block* current_block,
 		Queue* tri,
-#ifdef TRY_TO_CULL_BLOCKS
-		vec_float4 Aa_corners,
-		vec_float4 Ab_corners,
-		vec_float4 Ac_corners,
-#endif
 		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac,
 		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4,
 		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy)
 {
-#ifdef TRY_TO_CULL_BLOCKS
-	vec_uint4 uAa = (vec_uint4) Aa_corners;
-	vec_uint4 uAb = (vec_uint4) Ab_corners;
-	vec_uint4 uAc = (vec_uint4) Ac_corners;
-
-	vec_uint4 allNeg = spu_or(spu_or(uAa,uAb),uAc);
-	vec_uint4 pixel = spu_rlmaska(allNeg,-31);
-
-	vec_uint4 bail = spu_orx(pixel);
-	if (!spu_extract(bail,0)) {
-		printf("!\n");
-		return;
-	}
-#endif
-
 	u64 scrbuf = screen.address + screen.bytes_per_line*by*32+bx*128;
 
 	load_screen_block(current_block, scrbuf, screen.bytes_per_line, 32);
@@ -641,13 +621,25 @@ void fast_triangle(Queue* tri, screen_block* current_block)
 		vec_float4 tAc_corners = Ac_corners;
 #endif
 		for (bx=block_left; bx<=block_right; bx++) {
-			big_block(bx, by, current_block, tri,
 #ifdef TRY_TO_CULL_BLOCKS
-				tAa_corners,tAb_corners,tAc_corners,
+	vec_uint4 uAa = (vec_uint4) tAa_corners;
+	vec_uint4 uAb = (vec_uint4) tAb_corners;
+	vec_uint4 uAc = (vec_uint4) tAc_corners;
+
+	vec_uint4 allNeg = spu_or(spu_or(uAa,uAb),uAc);
+	vec_uint4 pixel = spu_rlmaska(allNeg,-31);
+
+	vec_uint4 bail = spu_orx(pixel);
+	if (spu_extract(bail,0)) {
 #endif
+
+			big_block(bx, by, current_block, tri,
 				tAa,tAb,tAc,
 				Aa_dx4,Ab_dx4,Ac_dx4,
 				Aa_dy,Ab_dy,Ac_dy);
+#ifdef TRY_TO_CULL_BLOCKS
+	}
+#endif
 			tAa += Aa_dx32;
 			tAb += Ab_dx32;
 			tAc += Ac_dx32;
@@ -694,8 +686,6 @@ screen_block buffer __attribute__((aligned(128)));
 
 void block_handler(Queue* queue)
 {
-	queue->triangle.y = queue->triangle.b;
-//	queue->handler = 0;
 	printf("Dummy block invoked\n");
 	QUEUE_JOB(queue,0);
 }
@@ -704,9 +694,6 @@ extern int last_triangle;
 
 void triangle_handler(Queue* queue)
 {
-	//queue->triangle.x = queue->triangle.a;
-	//queue->handler = &block_handler;
-
 	_init_buffers();
 	init_screen_block(&buffer, 31);
 

@@ -32,10 +32,11 @@ struct __QUEUE {
 			vec_float4	A,dAdx,dAdy;	// weight information
 			vec_float4	minmax;		// bounding box (xmin,ymin,xmax,ymax)
 
-			unsigned int	count;		// count of blocks that still have reference
 			void		(*init)(Queue*);// the dispatch that can initialise itself
+			unsigned short	count;		// count of blocks that still have reference
 			unsigned short	texture_base;	// the base texture ID for block(0,0)
 			unsigned short	texture_y_shift;// log2(texture_width_in_blocks)
+			char		cur_x, cur_y;	// current x and y values
 		} triangle;
 
 		// this holds a block waiting to be rendered, in whatever state it is in
