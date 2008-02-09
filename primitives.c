@@ -54,18 +54,16 @@ const vec_uchar16 minimax_merge = {
 const vec_uchar16 minimax_add = {
 0,1,2,3, 0,1,2,3, 0,1,2,3, 0,1,2,3};
 
+int last_triangle = -1;
+
 static void imp_triangle()
 {
-//	static triangle dummy[1];
-//	triangle* triangle_out_ptr = &dummy[0];
-
 	int free_queue = FIRST_JOB(free_job_queues&FIFO_VALID_QUEUE_MASK);
 	if (free_queue<0) {
 		printf("ERROR: free_queue not possible in imp_triangle!!!");
 		return;
 	}
 	unsigned int free_queue_mask = 1<<free_queue;
-//	printf("imp_triangle, free_queue=%d mask=%08x\n", free_queue,free_queue_mask);
 	Queue* queue = &job_queue[free_queue];
 
 	vec_float4 t_vx_cw = spu_shuffle(TRIx, TRIx, shuffle_tri_cw);
@@ -133,22 +131,30 @@ static void imp_triangle()
 // if the triangle is invisible (i.e. area<0) then leave the pointer in the
 // same place so that we re-use the triangle slot on the next triangle.
 
-//	printf("   f=%08lx r=%08lx a=%08lx\n", free_job_queues, ready_job_queues, advance_ptr_mask);
-
 	unsigned long advance_ptr_mask = spu_extract(fcgt_area, 0);
+
+//	printf("   f=%08lx r=%08lx a=%08lx id=%d last=%d\n", free_job_queues, ready_job_queues, advance_ptr_mask,
+//		free_queue, last_triangle);
 
 	free_queue_mask &= advance_ptr_mask;
 	free_job_queues &= ~free_queue_mask;
-	ready_job_queues |= free_queue_mask;
 	QUEUE_JOB(queue, triangle_handler);
 	
-//	printf("-> f=%08lx r=%08lx a=%08lx\n", free_job_queues, ready_job_queues, advance_ptr_mask);
+	queue->next = -1;
 
-//	triangle* next_triangle = (triangle*) ( ((void*)triangle_out_ptr) +
-//			(advance_ptr_mask&sizeof(triangle)) );
+	unsigned long has_last = cmp_ge0(last_triangle);
+	short dummy;
+	short* nextp = (short*)if_then_else(has_last,
+				(unsigned long)&(job_queue[last_triangle].next),(unsigned long)&dummy);
+//	if (last_triangle >= 0) {
+//		job_queue[last_triangle].next = free_queue | ~advance_ptr_mask;
+	*nextp = free_queue | ~advance_ptr_mask;
+//	} else {
+//		ready_job_queues |= free_queue_mask;
+	ready_job_queues |= free_queue_mask & ~has_last;
+//	}
 
-//	if (advance_ptr_mask)
-//		_draw_imp_triangle(&dummy[0]);
+	last_triangle = if_then_else(advance_ptr_mask, free_queue, last_triangle);
 }
 
 //////////////////////////////////////////////////////////////////////////////

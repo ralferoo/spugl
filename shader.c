@@ -700,6 +700,8 @@ void block_handler(Queue* queue)
 	QUEUE_JOB(queue,0);
 }
 
+extern int last_triangle;
+
 void triangle_handler(Queue* queue)
 {
 	//queue->triangle.x = queue->triangle.a;
@@ -717,6 +719,8 @@ void triangle_handler(Queue* queue)
 	wait_screen_block(&buffer);
 
 	QUEUE_JOB(queue,0);
+
+	last_triangle = if_then_else(cmp_eq(last_triangle,queue->id), -1, last_triangle);
 	
 //	QUEUE_JOB(queue,block_handler);
 //	READY_JOB(queue);

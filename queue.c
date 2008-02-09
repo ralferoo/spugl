@@ -6,6 +6,9 @@
  *
  ****************************************************************************/
 
+//#define DEBUG_QUEUE 
+
+#include "spuregs.h"
 #include "queue.h"
 
 Queue job_queue[NUMBER_OF_QUEUE_JOBS];
@@ -54,28 +57,29 @@ void init_queue(void)
 void process_queue(void)
 {
 	if (ready_job_queues) {
-	while (ready_job_queues) {
-//		debug_queue();
-		int id = FIRST_JOB(ready_job_queues);
-//		printf("Job %d waiting...\n", id);
-		Queue* q = &job_queue[id];
-		void (*handler)(Queue*) = q->handler;
-		unsigned int mask = 1<<id;
-		//BLOCK_JOB(q);
-		ready_job_queues &= ~mask;
-		//QUEUE_JOB(q,0);
-		q->handler = 0;
-		q->name = "processed";
-//		printf("calling %lx\n", handler);
-		handler(q);
-//		printf("returned from %lx\n", handler);
-		if (!(q->handler)) {
-			free_job_queues |= mask;
-//			printf("freeing job %lx\n", mask);
+#ifdef DEBUG_QUEUE 
+		debug_queue();
+#endif
+		while (ready_job_queues) {
+			int id = FIRST_JOB(ready_job_queues);
+#ifdef DEBUG_QUEUE 
+			printf("Job %d waiting...\n", id);
+#endif
+			Queue* q = &job_queue[id];
+			void (*handler)(Queue*) = q->handler;
+			unsigned int mask = 1<<id;
+			//BLOCK_JOB(q);
+			ready_job_queues &= ~mask;
+			//QUEUE_JOB(q,0);
+			q->handler = 0;
+			q->name = "processed";
+			handler(q);
+			if (!(q->handler)) {
+				free_job_queues |= mask;
+			int next = job_queue[id].next;
+			if (next>=0)
+				ready_job_queues |= 1<<next;
+			}
 		}
-	}
-//	printf("No more ready jobs...\n");
-//	debug_queue();
-//	printf("...\n");
 	}
 }

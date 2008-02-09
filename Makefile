@@ -213,7 +213,7 @@ spufifo.0: spuregs.h struct.h types.h
 spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
 spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h fifo.h
-spufifo.0: gen_spu_command_defs.h gen_spu_command_exts.h
+spufifo.0: gen_spu_command_defs.h queue.h gen_spu_command_exts.h
 spufifo.0: gen_spu_command_table.h
 decode.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 decode.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
@@ -227,7 +227,7 @@ decode.0: /usr/include/stdint.h /usr/include/bits/wchar.h
 primitives.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 primitives.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 primitives.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
-primitives.0: gen_spu_command_defs.h struct.h spuregs.h
+primitives.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
 triangleColourSpan.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 triangleColourSpan.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 triangleColourSpan.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h struct.h
@@ -245,3 +245,6 @@ shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
 shader.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
+queue.0: spuregs.h struct.h types.h
+queue.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+queue.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h queue.h
