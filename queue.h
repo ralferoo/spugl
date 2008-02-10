@@ -13,6 +13,7 @@
 #include <spu_intrinsics.h>
 
 #define NUMBER_OF_QUEUE_JOBS 32
+#define QUEUE_PADDING 18
 
 typedef struct __QUEUE Queue;
 
@@ -37,6 +38,7 @@ struct __QUEUE {
 			unsigned short	texture_base;	// the base texture ID for block(0,0)
 			unsigned short	texture_y_shift;// log2(texture_width_in_blocks)
 			         short	cur_x, cur_y;	// current x and y values
+			unsigned int	step,left;
 		} triangle;
 
 		// this holds a block waiting to be rendered, in whatever state it is in
@@ -53,7 +55,6 @@ struct __QUEUE {
 			unsigned int	bx,by;
 		} block;
 
-#define QUEUE_PADDING 17
 		// padding, number above must be at least as big as number of qwords in any struct
 		vec_uchar16 padding[QUEUE_PADDING];
 	};

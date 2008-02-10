@@ -125,6 +125,8 @@ static void imp_triangle()
 	queue->triangle.dAdy = area_dy;
 	
 	queue->triangle.cur_x = queue->triangle.cur_y = -1;
+	queue->triangle.step = queue->triangle.left = -1;
+
 	queue->triangle.texture_base = current_texture;
 	queue->triangle.init = block_handler;
 //	queue->triangle.shader = 0;
