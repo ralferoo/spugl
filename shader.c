@@ -6,6 +6,8 @@
  *
  ****************************************************************************/
 
+// This file holds the standard shaders
+
 #include <spu_mfcio.h>
 #include "fifo.h"
 #include "struct.h"
@@ -29,9 +31,24 @@ static inline vec_float4 extract(
 		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4, \
 		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy) { \
 	vec_uint4 left = spu_splats(32*8); \
-	do {
+	do { \
+		vec_uint4 uAa = (vec_uint4) Aa; \
+		vec_uint4 uAb = (vec_uint4) Ab; \
+		vec_uint4 uAc = (vec_uint4) Ac; \
+		vec_uint4 allNeg = spu_and(spu_and(uAa,uAb),uAc); \
+		vec_uint4 pixel = spu_rlmaska(allNeg,-31); \
+		vec_uint4 bail = spu_orx(pixel); \
+		if (spu_extract(bail,0)) { \
+			vec_float4 t_w = extract(tri->triangle.w, Aa, Ab, Ac); \
+			vec_float4 w = spu_splats(1.0f)/t_w; \
+			vec_float4 tAa = spu_mul(Aa,w); \
+			vec_float4 tAb = spu_mul(Ab,w); \
+			vec_float4 tAc = spu_mul(Ac,w);
+
+
 
 #define PROCESS_BLOCK_END \
+			} \
 		vec_uint4 which = spu_and(left,spu_splats((unsigned int)7)); \
 		vec_uint4 sel = spu_cmpeq(which,1); \
 		ptr++; \
@@ -42,21 +59,36 @@ static inline vec_float4 extract(
 	} while (spu_extract(left,0)>0); \
 }
 
-static const vec_uchar16 rgba_argb = {
-	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
+//////////////////////////////////////////////////////////////////////////////
+//
+// This is the simplest shader function; just does a linear interpolation of
+// colours between the vertices
+//
+PROCESS_BLOCK_HEAD(process_colour_block)
+	vec_float4 t_r = extract(tri->triangle.r, tAa, tAb, tAc);
+	vec_float4 t_g = extract(tri->triangle.g, tAa, tAb, tAc);
+	vec_float4 t_b = extract(tri->triangle.b, tAa, tAb, tAc);
+
+	vec_uint4 red = spu_and(spu_rlmask(spu_convtu(t_r,32),-8), 0xff0000);
+	vec_uint4 green = spu_and(spu_rlmask(spu_convtu(t_g,32),-16), 0xff00);
+	vec_uint4 blue = spu_rlmask(spu_convtu(t_b,32),-24);
+
+	vec_uint4 colour = spu_or(spu_or(blue, green),red);
+
+	vec_uint4 current = *ptr;
+	*ptr = spu_sel(current, colour, pixel);
+PROCESS_BLOCK_END
 
 //////////////////////////////////////////////////////////////////////////////
+//
+// This shader does a very ugly form of texture mapping - for each pixel that
+// needs mapping, this fires off a DMA for 128 bytes just to then copy across
+// the 4 bytes of the texture data
+//
+	static const vec_uchar16 rgba_argb = {
+		3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
+
 PROCESS_BLOCK_HEAD(process_texture_block)
-	vec_uint4 uAa = (vec_uint4) Aa;
-	vec_uint4 uAb = (vec_uint4) Ab;
-	vec_uint4 uAc = (vec_uint4) Ac;
-
-	vec_uint4 allNeg = spu_and(spu_and(uAa,uAb),uAc);
-	vec_uint4 pixel = spu_rlmaska(allNeg,-31);
-
-	vec_uint4 bail = spu_orx(pixel);
-	if (spu_extract(bail,0)) {
-
 /*
 	printf("pixel %03d, tAa=%06.2f, tAb=%06.2f, tAc=%06.2f, tA=%06.2f\n",
 		spu_extract(pixel,0),
@@ -65,13 +97,6 @@ PROCESS_BLOCK_HEAD(process_texture_block)
 		spu_extract(tAc,0),
 		spu_extract(tAa,0)+spu_extract(tAb,0)+spu_extract(tAc,0));
 */
-	vec_float4 t_w = extract(tri->triangle.w, Aa, Ab, Ac);
-	vec_float4 w = spu_splats(1.0f)/t_w;
-
-	vec_float4 tAa = spu_mul(Aa,w);
-	vec_float4 tAb = spu_mul(Ab,w);
-	vec_float4 tAc = spu_mul(Ac,w);
-
 	vec_float4 t_s = extract(tri->triangle.s, tAa, tAb, tAc);
 	vec_float4 t_t = extract(tri->triangle.t, tAa, tAb, tAc);
 
@@ -155,37 +180,6 @@ PROCESS_BLOCK_HEAD(process_texture_block)
 		textureTemp3[(texAddr3&127)>>2]};
 
 	colour = spu_shuffle(colour, colour, rgba_argb);
-
-	vec_uint4 current = *ptr;
-	*ptr = spu_sel(current, colour, pixel);
-	}
-PROCESS_BLOCK_END
-
-//////////////////////////////////////////////////////////////////////////////
-PROCESS_BLOCK_HEAD(process_colour_block)
-	vec_uint4 uAa = (vec_uint4) Aa;
-	vec_uint4 uAb = (vec_uint4) Ab;
-	vec_uint4 uAc = (vec_uint4) Ac;
-
-	vec_uint4 allNeg = spu_and(spu_and(uAa,uAb),uAc);
-	vec_uint4 pixel = spu_rlmaska(allNeg,-31);
-
-	vec_float4 t_w = extract(tri->triangle.w, Aa, Ab, Ac);
-	vec_float4 w = spu_splats(1.0f)/t_w;
-
-	vec_float4 tAa = spu_mul(Aa,w);
-	vec_float4 tAb = spu_mul(Ab,w);
-	vec_float4 tAc = spu_mul(Ac,w);
-
-	vec_float4 t_r = extract(tri->triangle.r, tAa, tAb, tAc);
-	vec_float4 t_g = extract(tri->triangle.g, tAa, tAb, tAc);
-	vec_float4 t_b = extract(tri->triangle.b, tAa, tAb, tAc);
-
-	vec_uint4 red = spu_and(spu_rlmask(spu_convtu(t_r,32),-8), 0xff0000);
-	vec_uint4 green = spu_and(spu_rlmask(spu_convtu(t_g,32),-16), 0xff00);
-	vec_uint4 blue = spu_rlmask(spu_convtu(t_b,32),-24);
-
-	vec_uint4 colour = spu_or(spu_or(blue, green),red);
 
 	vec_uint4 current = *ptr;
 	*ptr = spu_sel(current, colour, pixel);
