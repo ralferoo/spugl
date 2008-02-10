@@ -16,8 +16,7 @@
 // #define DEBUG_3
 
 #define COUNT_BLOCKED_DMA
-#define NEW_TEXTURE_MAPPED
-//#define TEXTURE_MAPPED
+#define TEXTURE_MAPPED
 //#define TRY_TO_CULL_BLOCKS
 
 extern _bitmap_image screen;
@@ -227,35 +226,10 @@ static inline vec_float4 extract(
 		spu_mul (spu_splats(spu_extract(what,2)),tAc)));
 }
 	
-/*
- * the vectors below contain Aa, Ab, Ac for each of the 4 corners of the block
- *
- * only the first element of the result is set, and will be all ones if
- * the block should be displayed, all zeros if not
- */
-/*
-static inline vec_uint4 block_test(
-	vec_float4 A0, vec_float4 A1, vec_float4 A2, vec_float4 A3) 
-{
-	vec_float4 Aa = spu_splats(spu_extract(A,0));
-	vec_float4 Ab = spu_splats(spu_extract(A,1));
-	vec_float4 Ac = spu_splats(spu_extract(A,2));
-
-	vec_uint4 uAa = (vec_uint4) tAa;
-	vec_uint4 uAb = (vec_uint4) tAb;
-	vec_uint4 uAc = (vec_uint4) tAc;
-
-	vec_uint4 allNeg = spu_and(spu_and(spu_orx(uAa),spu_orx(uAb)),
-				   spu_orx(uAc));
-	vec_uint4 pixel = spu_rlmaska(allNeg,-31);
-	return pixel;
-}
-*/
-
 const vec_uchar16 rgba_argb = {
 	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
 
-#ifdef NEW_TEXTURE_MAPPED
+#ifdef TEXTURE_MAPPED
 static inline void sub_block(vec_uint4* ptr, 
 	Queue* tri, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
 {
@@ -372,80 +346,6 @@ static inline void sub_block(vec_uint4* ptr,
 	*ptr = spu_sel(current, colour, pixel);
 }
 #else
-#ifdef TEXTURE_MAPPED
-static inline void sub_block(vec_uint4* ptr, 
-	Queue* tri, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
-{
-	vec_uint4 uAa = (vec_uint4) tAa;
-	vec_uint4 uAb = (vec_uint4) tAb;
-	vec_uint4 uAc = (vec_uint4) tAc;
-
-	vec_uint4 allNeg = spu_and(spu_and(uAa,uAb),uAc);
-	vec_uint4 pixel = spu_rlmaska(allNeg,-31);
-
-	vec_uint4 bail = spu_orx(pixel);
-	if (!spu_extract(bail,0)) return;
-
-/*
-	printf("pixel %03d, tAa=%06.2f, tAb=%06.2f, tAc=%06.2f, tA=%06.2f\n",
-		spu_extract(pixel,0),
-		spu_extract(tAa,0),
-		spu_extract(tAb,0),
-		spu_extract(tAc,0),
-		spu_extract(tAa,0)+spu_extract(tAb,0)+spu_extract(tAc,0));
-*/
-	vec_float4 t_w = extract(tri->triangle.w, tAa, tAb, tAc);
-	vec_float4 w = spu_splats(1.0f)/t_w;
-
-	tAa = spu_mul(tAa,w);
-	tAb = spu_mul(tAb,w);
-	tAc = spu_mul(tAc,w);
-
-	vec_float4 t_s = extract(tri->triangle.s, tAa, tAb, tAc);
-	vec_float4 t_t = extract(tri->triangle.t, tAa, tAb, tAc);
-
-	vec_uint4 s = spu_and(spu_rlmask(spu_convtu(t_s,32),-14), 0x3fc00);
-	vec_uint4 t = spu_and(spu_rlmask(spu_convtu(t_t,32),-22), 0x3fc);
-	vec_uint4 offset = spu_or(s,t);
-
-//	printf("offset is %lx,%lx,%lx,%lx, texture at %llx\n", 
-//			spu_extract(offset,0),
-//			spu_extract(offset,1),
-//			spu_extract(offset,2),
-//			spu_extract(offset,3),
-//			control.texture_hack);
-
-	unsigned long texAddrBase = control.texture_hack[tri->triangle.texture];
-
-	int tag_id=3;
-	u32* pixels = (u32*)ptr;
-	unsigned long texAddr0 = texAddrBase + spu_extract(offset,0);
-	unsigned long texAddr1 = texAddrBase + spu_extract(offset,1);
-	unsigned long texAddr2 = texAddrBase + spu_extract(offset,2);
-	unsigned long texAddr3 = texAddrBase + spu_extract(offset,3);
-	if (spu_extract(pixel,0))
-		mfc_get(textureTemp0, texAddr0 & ~127, 128, tag_id, 0, 0);
-	if (spu_extract(pixel,1))
-		mfc_get(textureTemp1, texAddr1 & ~127, 128, tag_id, 0, 0);
-	if (spu_extract(pixel,2))
-		mfc_get(textureTemp2, texAddr2 & ~127, 128, tag_id, 0, 0);
-	if (spu_extract(pixel,3))
-		mfc_get(textureTemp3, texAddr3 & ~127, 128, tag_id, 0, 0);
-	wait_for_dma(1<<tag_id);
-
-	vec_uint4 colour = {
-		textureTemp0[(texAddr0&127)>>2],
-		textureTemp1[(texAddr1&127)>>2],
-		textureTemp2[(texAddr2&127)>>2],
-		textureTemp3[(texAddr3&127)>>2]};
-
-//	colour = spu_and(colour, spu_splats((unsigned int)0xff));
-	colour = spu_shuffle(colour, colour, rgba_argb);
-
-	vec_uint4 current = *ptr;
-	*ptr = spu_sel(current, colour, pixel);
-}
-#else
 static inline void sub_block(vec_uint4* ptr, 
 	Queue* tri, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
 {
@@ -477,9 +377,8 @@ static inline void sub_block(vec_uint4* ptr,
 	*ptr = spu_sel(current, colour, pixel);
 }
 #endif
-#endif
 
-static inline void process_block(vec_uint4* block_ptr,
+void process_block(vec_uint4* block_ptr,
 		Queue* tri,
 		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac,
 		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4,
@@ -513,35 +412,6 @@ static inline void process_block(vec_uint4* block_ptr,
 
 		block_ptr += 8;
 	}
-}
-
-static void big_block(unsigned int bx, unsigned int by,
-		screen_block* current_block,
-		Queue* tri,
-		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac,
-		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4,
-		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy)
-{
-	u64 scrbuf = screen.address + screen.bytes_per_line*by*32+bx*128;
-
-	load_screen_block(current_block, scrbuf, screen.bytes_per_line, 32);
-	wait_screen_block(current_block);
-
-	vec_uint4* block_ptr = (vec_uint4*) ((void*)&current_block->pixels[0]);
-
-#ifdef DEBUG_2
-	int a;
-	unsigned long* q = (unsigned long*) block_ptr;
-	for (a=0; a<32*8*4; a++) {
-		q[a] += 0x090000;
-	}
-#endif
-
-	process_block(block_ptr, tri, 
-		Aa, Ab,Ac, Aa_dx4,Ab_dx4,Ac_dx4, Aa_dy,Ab_dy,Ac_dy);
-
-//	flush_screen_block(current_block);
-//	wait_screen_block(current_block);
 }
 
 const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
@@ -599,7 +469,21 @@ void block_handler(Queue* queue)
 	vec_float4 Ab = spu_madd(muls,Ab_dx,spu_splats(spu_extract(A,1)));
 	vec_float4 Ac = spu_madd(muls,Ac_dx,spu_splats(spu_extract(A,2)));
 
-	big_block(queue->block.bx, queue->block.by, &buffer, tri,
+	////////////////////////////////////
+
+	screen_block* current_block = &buffer;
+
+	unsigned int bx=queue->block.bx, by=queue->block.by;
+	u64 scrbuf = screen.address + screen.bytes_per_line*by*32+bx*128;
+
+	load_screen_block(current_block, scrbuf, screen.bytes_per_line, 32);
+	wait_screen_block(current_block);
+
+	vec_uint4* block_ptr = (vec_uint4*) ((void*)&current_block->pixels[0]);
+	
+	////////////////////////////////////
+
+	tri->triangle.functions->process(block_ptr, tri, 
 				Aa, Ab, Ac,
 				Aa_dx4, Ab_dx4, Ac_dx4,
 				Aa_dy, Ab_dy, Ac_dy);
@@ -623,11 +507,9 @@ void finish_triangle_handler(Queue* tri)
 	}
 }
 
-// TODO: the continuation mechanism here sucks... need to rework it to save all the looping
 void triangle_handler(Queue* tri)
 {
 	int slots = COUNT_ONES(free_job_queues);
-//	printf("triangle handler, %d slots\n", slots);
 	if (slots==0) {
 		QUEUE_JOB(tri, triangle_handler);
 		READY_JOB(tri);
@@ -713,7 +595,7 @@ void triangle_handler(Queue* tri)
 			block->block.triangle = tri;
 			block->block.A=A;
 			block->next = -1;
-			ENQUEUE_JOB(block, tri->triangle.init);
+			ENQUEUE_JOB(block, tri->triangle.functions->init);
 			READY_JOB(block);
 			tri->triangle.count++;
 #ifdef TRY_TO_CULL_BLOCKS
@@ -738,3 +620,8 @@ void triangle_handler(Queue* tri)
 	READY_JOB(tri);
 	last_triangle = if_then_else(cmp_eq(last_triangle,tri->id), -1, last_triangle);
 }
+
+RenderFuncs _standard_triangle = {
+	.init = block_handler,
+	.process = process_block
+};

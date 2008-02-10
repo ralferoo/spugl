@@ -57,6 +57,8 @@ const vec_uchar16 minimax_add = {
 
 int last_triangle = -1;
 
+extern RenderFuncs _standard_triangle;
+
 static void imp_triangle()
 {
 	int free_queue = FIRST_JOB(free_job_queues);
@@ -128,7 +130,7 @@ static void imp_triangle()
 	queue->triangle.step = queue->triangle.left = -1;
 
 	queue->triangle.texture_base = current_texture;
-	queue->triangle.init = block_handler;
+	queue->triangle.functions = &_standard_triangle;
 //	queue->triangle.shader = 0;
 
 // if the triangle is visible (i.e. area>0), then we increment the triangle
@@ -150,7 +152,7 @@ static void imp_triangle()
 	unsigned long has_last = cmp_ge0(last_triangle);
 	short dummy;
 	short* nextp = (short*)if_then_else(has_last,
-				(unsigned long)&(job_queue[last_triangle].next),(unsigned long)&dummy);
+			(unsigned long)&(job_queue[last_triangle].next),(unsigned long)&dummy);
 //	if (last_triangle >= 0) {
 //		job_queue[last_triangle].next = free_queue | ~advance_ptr_mask;
 	*nextp = free_queue | ~advance_ptr_mask;
@@ -381,4 +383,3 @@ void imp_close_segment()
 		}
 	}
 }
-	

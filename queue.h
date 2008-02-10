@@ -17,6 +17,17 @@
 
 typedef struct __QUEUE Queue;
 
+typedef struct {
+	// block has been added, this is it's initial function
+	void (*init)(Queue*);
+
+	// the is the main render function
+	void (*process)(vec_uint4* block_ptr, Queue* tri,
+		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac,
+		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4,
+		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy);
+} RenderFuncs;
+
 struct __QUEUE {
 	void		(*handler)(Queue*);	// the dispatch that knows how to 
 	char*		name;			// the debug name
@@ -33,7 +44,7 @@ struct __QUEUE {
 			vec_float4	A,A_dx,A_dy;	// weight information
 			vec_float4	minmax;		// bounding box (xmin,ymin,xmax,ymax)
 
-			void		(*init)(Queue*);// a block's initial handler
+			RenderFuncs*	functions;
 			unsigned short	count;		// count of blocks that still have reference
 			unsigned short	texture_base;	// the base texture ID for block(0,0)
 			unsigned short	texture_y_shift;// log2(texture_width_in_blocks)
@@ -50,6 +61,7 @@ struct __QUEUE {
 			vec_ushort8*	tex_temp;
 
 			unsigned int	bx,by;
+
 		} block;
 
 		// padding, number above must be at least as big as number of qwords in any struct
