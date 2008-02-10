@@ -230,12 +230,12 @@ static inline vec_float4 extract(
 		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac, \
 		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4, \
 		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy) { \
-	vec_uint4 left = spu_splats(32*8-1); \
+	vec_uint4 left = spu_splats(32*8); \
 	do {
 
 #define PROCESS_BLOCK_END \
 		vec_uint4 which = spu_and(left,spu_splats((unsigned int)7)); \
-		vec_uint4 sel = spu_cmpeq(which,0); \
+		vec_uint4 sel = spu_cmpeq(which,1); \
 		ptr++; \
 		left -= spu_splats(1); \
 		Aa += spu_sel(Aa_dx4,Aa_dy,sel); \
@@ -332,7 +332,7 @@ PROCESS_BLOCK_HEAD(process_texture_block)
 //	printf("%d %d %d %d\n",
 //		cache_index_0, cache_index_1, cache_index_2, cache_index_3); 
 
-	unsigned long texAddrBase = control.texture_hack[tri->triangle.texture_base];
+	unsigned long texAddrBase = tri->triangle.texture_base;
 
 	int tag_id=3;
 	u32* pixels = (u32*)ptr;
@@ -425,10 +425,8 @@ const vec_float4 muls31y = {0.0f, 0.0f, 31.0f, 31.0f};
 
 //////////////////////////////////////////////////////////////////////////////
 
-void block_handler(Queue* queue)
+void real_block_handler(Queue* queue)
 {
-//	printf("block handler\n");
-
 	Queue* tri = queue->block.triangle;
 
 	vec_float4 A_dx = tri->triangle.A_dx;
@@ -451,32 +449,38 @@ void block_handler(Queue* queue)
 	vec_float4 Ab = spu_madd(muls,Ab_dx,spu_splats(spu_extract(A,1)));
 	vec_float4 Ac = spu_madd(muls,Ac_dx,spu_splats(spu_extract(A,2)));
 
-	////////////////////////////////////
-
-	screen_block* current_block = &buffer;
-
-	unsigned int bx=queue->block.bx, by=queue->block.by;
-	u64 scrbuf = screen.address + screen.bytes_per_line*by*32+bx*128;
-
-	load_screen_block(current_block, scrbuf, screen.bytes_per_line, 32);
-	wait_screen_block(current_block);
-
-	vec_uint4* block_ptr = (vec_uint4*) ((void*)&current_block->pixels[0]);
-	
-	////////////////////////////////////
-
+	vec_uint4* block_ptr = queue->block.pixels;
 	tri->triangle.functions->process(block_ptr, tri, 
 				Aa, Ab, Ac,
 				Aa_dx4, Ab_dx4, Ac_dx4,
 				Aa_dy, Ab_dy, Ac_dy);
+
+	queue->block.triangle->triangle.count--;
+}
+
+void block_handler(Queue* queue)
+{
+	Queue* tri = queue->block.triangle;
+
+	unsigned int bx=queue->block.bx, by=queue->block.by;
+	u64 scrbuf = screen.address + screen.bytes_per_line*by*32+bx*128;
+
+	screen_block* current_block = &buffer;
+	load_screen_block(current_block, scrbuf, screen.bytes_per_line, 32);
+	wait_screen_block(current_block);
+
+	queue->block.pixels = (vec_uint4*) ((void*)&current_block->pixels[0]);
+	
+	real_block_handler(queue);
 
 	// this shouldn't be necessary... AND... it sometimes causes duff
 	// stuff to be blitted to screen, but i haven't sorted out the block
 	// cache stuff yet
 	flush_screen_block(&buffer);
 	wait_screen_block(&buffer);
-	queue->block.triangle->triangle.count--;
 }
+
+//////////////////////////////////////////////////////////////////////////////
 
 extern int last_triangle;
 
@@ -515,12 +519,11 @@ void triangle_handler(Queue* tri)
 
 	int bx = tri->triangle.cur_x, by = tri->triangle.cur_y;
 	int left = tri->triangle.left;
-	vec_int4 step = spu_splats(tri->triangle.step);
-
+	vec_int4 step = spu_splats((int)tri->triangle.step);
 	vec_float4 A = tri->triangle.A;
 
 	vec_int4 step_start = spu_splats(block_right - block_left);
-	if (by<0) {
+	if (left<0) {
 		bx = block_left;
 		by = block_top;
 		step = step_start;

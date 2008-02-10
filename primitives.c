@@ -23,6 +23,8 @@ extern _bitmap_image screen;
 extern void block_handler(Queue* queue);
 extern void triangle_handler(Queue* queue);
 
+extern SPU_CONTROL control;
+
 static void imp_point()
 {
 }
@@ -126,13 +128,13 @@ static void imp_triangle()
 	queue->triangle.A = spu_sub(base_area, area_ofs);
 	queue->triangle.A_dx = area_dx;
 	queue->triangle.A_dy = area_dy;
-	
-	queue->triangle.cur_x = queue->triangle.cur_y = -1;
-	queue->triangle.step = queue->triangle.left = -1;
+	queue->triangle.left = -1;
 
-	queue->triangle.texture_base = current_texture;
-//	queue->triangle.functions = &_standard_colour_triangle;
+	queue->triangle.texture_base = control.texture_hack[current_texture]; // * (256*256/32/32);
+	queue->triangle.texture_y_shift = 8-5;
 	queue->triangle.functions = &_standard_texture_triangle;
+
+//	queue->triangle.functions = &_standard_colour_triangle;
 
 // if the triangle is visible (i.e. area>0), then we increment the triangle
 // out ptr to just past the triangle data we've just written to memory.
