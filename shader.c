@@ -129,14 +129,6 @@ PROCESS_BLOCK_END
 // the 4 bytes of the texture data
 //
 PROCESS_BLOCK_HEAD(process_texture_block)
-/*
-	printf("pixel %03d, tAa=%06.2f, tAb=%06.2f, tAc=%06.2f, tA=%06.2f\n",
-		spu_extract(pixel,0),
-		spu_extract(tAa,0),
-		spu_extract(tAb,0),
-		spu_extract(tAc,0),
-		spu_extract(tAa,0)+spu_extract(tAb,0)+spu_extract(tAc,0));
-*/
 	vec_float4 t_s = extract(tri->triangle.s, tAa, tAb, tAc);
 	vec_float4 t_t = extract(tri->triangle.t, tAa, tAb, tAc);
 
