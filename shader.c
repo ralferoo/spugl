@@ -42,7 +42,7 @@ static inline vec_float4 extract(
 	} while (spu_extract(left,0)>0); \
 }
 
-const vec_uchar16 rgba_argb = {
+static const vec_uchar16 rgba_argb = {
 	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
 
 //////////////////////////////////////////////////////////////////////////////

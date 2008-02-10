@@ -33,28 +33,28 @@ static void imp_line()
 {
 }
 
-const vec_uchar16 shuffle_tri_right_padded = {
+static const vec_uchar16 shuffle_tri_right_padded = {
 	SEL_00 SEL_A0 SEL_A1 SEL_A2
 };
-const vec_uchar16 shuffle_tri_normal = {
+static const vec_uchar16 shuffle_tri_normal = {
 	SEL_A0 SEL_A1 SEL_A2 SEL_00
 };
-const vec_uchar16 shuffle_tri_cw = {
+static const vec_uchar16 shuffle_tri_cw = {
 	SEL_A1 SEL_A2 SEL_A0 SEL_00
 };
-const vec_uchar16 shuffle_tri_ccw = {
+static const vec_uchar16 shuffle_tri_ccw = {
 	SEL_A2 SEL_A0 SEL_A1 SEL_00
 };
 
-const vec_uchar16 minimax_x = {
+static const vec_uchar16 minimax_x = {
 0xff,0xff, 0x00,0x08, 0x08,0x04, 0x00,0x04, 0x04,0x00, 0x04,0x08, 0x08,0x00, 0xff,0xff,
 };
-const vec_uchar16 minimax_y = {
+static const vec_uchar16 minimax_y = {
 0xff,0xff, 0x10,0x18, 0x18,0x14, 0x10,0x14, 0x14,0x10, 0x14,0x18, 0x18,0x10, 0xff,0xff,
 };
-const vec_uchar16 minimax_merge = {
+static const vec_uchar16 minimax_merge = {
 0,0,0,0, 16,16,16,16, 1,1,1,1, 17,17,17,17};
-const vec_uchar16 minimax_add = {
+static const vec_uchar16 minimax_add = {
 0,1,2,3, 0,1,2,3, 0,1,2,3, 0,1,2,3};
 
 int last_triangle = -1;

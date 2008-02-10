@@ -65,9 +65,6 @@ register vec_ushort8	TEXcache2	asm ("114");
 #define SEL_FF 0xC0,0xC0,0xC0,0xC0,
 #define SEL_80 0xE0,0xE0,0xE0,0xE0,
 
-extern const vec_uchar16 shuffle_tri_cw;
-extern const vec_uchar16 shuffle_tri_ccw;
-
 
 
 

@@ -232,13 +232,13 @@ void _init_buffers()
 
 //////////////////////////////////////////////////////////////////////////////
 
-const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
-const vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
-const vec_float4 muls32 = {32.0f, 32.0f, 32.0f, 32.0f};
-const vec_float4 mulsn28 = {-28.0f, -28.0f, -28.0f, -28.0f};
+static const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
+static const vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
+static const vec_float4 muls32 = {32.0f, 32.0f, 32.0f, 32.0f};
+static const vec_float4 mulsn28 = {-28.0f, -28.0f, -28.0f, -28.0f};
 
-const vec_float4 muls31x = {0.0f, 31.0f, 0.0f, 31.0f};
-const vec_float4 muls31y = {0.0f, 0.0f, 31.0f, 31.0f};
+static const vec_float4 muls31x = {0.0f, 31.0f, 0.0f, 31.0f};
+static const vec_float4 muls31y = {0.0f, 0.0f, 31.0f, 31.0f};
 
 //////////////////////////////////////////////////////////////////////////////
 
