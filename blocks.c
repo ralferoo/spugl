@@ -98,6 +98,7 @@ static inline void build_blit_list(
 
 typedef struct {
 	u32 pixels[32*32];
+	u32 textemp[32*32];
 	vec_uint4 dma1[16];
 	vec_uint4 dma2[16];
 
@@ -287,8 +288,7 @@ void real_block_handler(Queue* queue)
 	vec_float4 Ab = spu_madd(muls,Ab_dx,spu_splats(spu_extract(A,1)));
 	vec_float4 Ac = spu_madd(muls,Ac_dx,spu_splats(spu_extract(A,2)));
 
-	vec_uint4* block_ptr = queue->block.pixels;
-	tri->triangle.functions->process(block_ptr, tri, 
+	tri->triangle.functions->process(queue,
 				Aa, Ab, Ac,
 				Aa_dx4, Ab_dx4, Ac_dx4,
 				Aa_dy, Ab_dy, Ac_dy);
@@ -308,6 +308,7 @@ void block_handler(Queue* queue)
 	wait_screen_block(current_block);
 
 	queue->block.pixels = (vec_uint4*) ((void*)&current_block->pixels[0]);
+	queue->block.tex_temp = (vec_ushort8*) ((void*)&current_block->textemp[0]);
 	
 	real_block_handler(queue);
 

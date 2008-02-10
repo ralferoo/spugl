@@ -39,11 +39,14 @@ static inline vec_float4 extract(
 		spu_mul (spu_splats(spu_extract(what,2)),tAc)));
 }
 	
-#define PROCESS_BLOCK_HEAD(name) void name (vec_uint4* ptr, Queue* tri, \
+#define PROCESS_BLOCK_HEAD(name) void name (Queue* queue, \
 		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac, \
 		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4, \
 		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy) { \
 	vec_uint4 left = spu_splats(32*8); \
+	vec_uint4* ptr = queue->block.pixels; \
+	vec_ushort8* tex_ptr = queue->block.tex_temp; \
+	Queue* tri = queue->block.triangle; \
 	do { \
 		vec_uint4 uAa = (vec_uint4) Aa; \
 		vec_uint4 uAb = (vec_uint4) Ab; \
@@ -76,6 +79,7 @@ static inline vec_float4 extract(
 // colours between the vertices
 //
 PROCESS_BLOCK_HEAD(process_colour_block)
+{
 	vec_float4 t_r = extract(tri->triangle.r, tAa, tAb, tAc);
 	vec_float4 t_g = extract(tri->triangle.g, tAa, tAb, tAc);
 	vec_float4 t_b = extract(tri->triangle.b, tAa, tAb, tAc);
@@ -88,6 +92,7 @@ PROCESS_BLOCK_HEAD(process_colour_block)
 
 	vec_uint4 current = *ptr;
 	*ptr = spu_sel(current, colour, pixel);
+}
 PROCESS_BLOCK_END
 
 //////////////////////////////////////////////////////////////////////////////
@@ -102,6 +107,7 @@ static const vec_uchar16 rgba_argb = {
 // the 4 bytes of the texture data
 //
 PROCESS_BLOCK_HEAD(process_simple_texture_block)
+{
 	vec_float4 t_s = extract(tri->triangle.s, tAa, tAb, tAc);
 	vec_float4 t_t = extract(tri->triangle.t, tAa, tAb, tAc);
 
@@ -133,6 +139,7 @@ PROCESS_BLOCK_HEAD(process_simple_texture_block)
 	colour = spu_shuffle(colour, colour, rgba_argb);
 	vec_uint4 current = *ptr;
 	*ptr = spu_sel(current, colour, pixel);
+}
 PROCESS_BLOCK_END
 
 //////////////////////////////////////////////////////////////////////////////
@@ -150,6 +157,7 @@ static const vec_uchar16 shuf_gath_23 = {
 // the 4 bytes of the texture data
 //
 PROCESS_BLOCK_HEAD(process_texture_block)
+{
 	vec_float4 t_s = extract(tri->triangle.s, tAa, tAb, tAc);
 	vec_float4 t_t = extract(tri->triangle.t, tAa, tAb, tAc);
 
@@ -237,6 +245,7 @@ PROCESS_BLOCK_HEAD(process_texture_block)
 
 	vec_uint4 current = *ptr;
 	*ptr = spu_sel(current, colour, pixel);
+}
 PROCESS_BLOCK_END
 
 //////////////////////////////////////////////////////////////////////////////

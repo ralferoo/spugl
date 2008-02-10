@@ -25,7 +25,7 @@ typedef struct {
 	void (*init)(Queue*);
 
 	// the is the main render function
-	void (*process)(vec_uint4* block_ptr, Queue* tri,
+	void (*process)(Queue* queue,
 		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac,
 		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4,
 		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy);
