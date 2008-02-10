@@ -366,7 +366,6 @@ static inline void sub_block(vec_uint4* ptr,
 		textureTemp2[(texAddr2&127)>>2],
 		textureTemp3[(texAddr3&127)>>2]};
 
-//	colour = spu_and(colour, spu_splats((unsigned int)0xff));
 	colour = spu_shuffle(colour, colour, rgba_argb);
 
 	vec_uint4 current = *ptr;
