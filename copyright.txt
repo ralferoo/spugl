@@ -1,0 +1,1 @@
+for i in *.[ch] Makefile ; do perl -ne '{if (m/Ranulf Doswell/) {s/^(\s*[\*#])(\s+.*)made available.*/$1$2\n$1\n$1 This library may not be used or distributed without a licence, please\n$1 contact me for information if you wish to use it./g;} print;}' <$i >___ ; mv ___ $i ; done

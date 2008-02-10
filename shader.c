@@ -2,7 +2,10 @@
  *
  * SPU 3d rasterisation library
  *
- * (c) 2008 Ranulf Doswell <dev@ranulf.net> made available under LGPL
+ * (c) 2008 Ranulf Doswell <dev@ranulf.net> 
+ *
+ * This library may not be used or distributed without a licence, please
+ * contact me for information if you wish to use it.
  *
  ****************************************************************************/
 
@@ -57,8 +60,6 @@ static inline vec_float4 extract(
 			vec_float4 tAa = spu_mul(Aa,w); \
 			vec_float4 tAb = spu_mul(Ab,w); \
 			vec_float4 tAc = spu_mul(Ac,w);
-
-
 
 #define PROCESS_BLOCK_END \
 			} \

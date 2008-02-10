@@ -2,7 +2,10 @@
  *
  * SPU triangle span function for interpolated colours
  *
- * (c) 2007 Ranulf Doswell <dev@ranulf.net> made available under LGPL
+ * (c) 2007 Ranulf Doswell <dev@ranulf.net> 
+ *
+ * This library may not be used or distributed without a licence, please
+ * contact me for information if you wish to use it.
  *
  ****************************************************************************/
 
