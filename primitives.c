@@ -60,6 +60,7 @@ static const vec_uchar16 minimax_add = {
 int last_triangle = -1;
 
 extern RenderFuncs _standard_texture_triangle;
+extern RenderFuncs _standard_simple_texture_triangle;
 extern RenderFuncs _standard_colour_triangle;
 
 static void imp_triangle()
@@ -134,6 +135,7 @@ static void imp_triangle()
 	queue->triangle.texture_y_shift = 8-5;
 	queue->triangle.functions = &_standard_texture_triangle;
 
+//	queue->triangle.functions = &_standard_simple_texture_triangle;
 //	queue->triangle.functions = &_standard_colour_triangle;
 
 // if the triangle is visible (i.e. area>0), then we increment the triangle

@@ -18,6 +18,9 @@ u32 textureTemp1[32] __attribute__((aligned(128)));
 u32 textureTemp2[32] __attribute__((aligned(128)));
 u32 textureTemp3[32] __attribute__((aligned(128)));
 
+static const vec_uchar16 rgba_argb = {
+	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
+
 static inline vec_float4 extract(
 	vec_float4 what, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
 {
@@ -85,9 +88,46 @@ PROCESS_BLOCK_END
 // needs mapping, this fires off a DMA for 128 bytes just to then copy across
 // the 4 bytes of the texture data
 //
-	static const vec_uchar16 rgba_argb = {
-		3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
+PROCESS_BLOCK_HEAD(process_simple_texture_block)
+	vec_float4 t_s = extract(tri->triangle.s, tAa, tAb, tAc);
+	vec_float4 t_t = extract(tri->triangle.t, tAa, tAb, tAc);
 
+	vec_uint4 s_sub = spu_and(spu_rlmask(spu_convtu(t_s,32),-14), 0x3fc00);
+	vec_uint4 t_sub = spu_and(spu_rlmask(spu_convtu(t_t,32),-22), 0x3fc);
+	vec_uint4 offset = spu_or(s_sub,t_sub);
+	unsigned long texAddrBase = tri->triangle.texture_base;
+	int tag_id=3;
+	u32* pixels = (u32*)ptr;
+	unsigned long texAddr0 = texAddrBase + spu_extract(offset,0);
+	unsigned long texAddr1 = texAddrBase + spu_extract(offset,1);
+	unsigned long texAddr2 = texAddrBase + spu_extract(offset,2);
+	unsigned long texAddr3 = texAddrBase + spu_extract(offset,3);
+	if (spu_extract(pixel,0))
+		mfc_get(textureTemp0, texAddr0 & ~127, 128, tag_id, 0, 0);
+	if (spu_extract(pixel,1))
+		mfc_get(textureTemp1, texAddr1 & ~127, 128, tag_id, 0, 0);
+	if (spu_extract(pixel,2))
+		mfc_get(textureTemp2, texAddr2 & ~127, 128, tag_id, 0, 0);
+	if (spu_extract(pixel,3))
+		mfc_get(textureTemp3, texAddr3 & ~127, 128, tag_id, 0, 0);
+	wait_for_dma(1<<tag_id);
+
+	vec_uint4 colour = {
+		textureTemp0[(texAddr0&127)>>2],
+		textureTemp1[(texAddr1&127)>>2],
+		textureTemp2[(texAddr2&127)>>2],
+		textureTemp3[(texAddr3&127)>>2]};
+	colour = spu_shuffle(colour, colour, rgba_argb);
+	vec_uint4 current = *ptr;
+	*ptr = spu_sel(current, colour, pixel);
+PROCESS_BLOCK_END
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// This shader does a very ugly form of texture mapping - for each pixel that
+// needs mapping, this fires off a DMA for 128 bytes just to then copy across
+// the 4 bytes of the texture data
+//
 PROCESS_BLOCK_HEAD(process_texture_block)
 /*
 	printf("pixel %03d, tAa=%06.2f, tAb=%06.2f, tAc=%06.2f, tA=%06.2f\n",
@@ -187,6 +227,11 @@ PROCESS_BLOCK_END
 
 //////////////////////////////////////////////////////////////////////////////
 extern void block_handler(Queue* queue);
+
+RenderFuncs _standard_simple_texture_triangle = {
+	.init = block_handler,
+	.process = process_simple_texture_block
+};
 
 RenderFuncs _standard_texture_triangle = {
 	.init = block_handler,
