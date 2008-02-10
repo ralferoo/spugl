@@ -21,7 +21,7 @@ PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I. -Wno-trigrap
 SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS
 SPUCCFLAGS = -O6 -I. -DSPU_REGS
 
-SPU_OBJS = spufifo.0 decode.0 primitives.0 triangleColourSpan.0 fragment.0 shader.0 queue.0
+SPU_OBJS = spufifo.0 decode.0 primitives.0 triangleColourSpan.0 fragment.0 shader.0 queue.0 blocks.0
 PPU_OBJS = ppufifo.o glfifo.o framebuffer.o
 
 TEXTURES_C := $(wildcard textures/*.c)
@@ -248,3 +248,7 @@ shader.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
 queue.0: spuregs.h struct.h types.h
 queue.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 queue.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h queue.h
+blocks.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
+blocks.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+blocks.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
+blocks.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
