@@ -722,7 +722,7 @@ void triangle_handler(Queue* tri)
 			block->block.Ab_dy=Ab_dy;
 			block->block.Ac_dy=Ac_dy;
 			block->next = -1;
-			ENQUEUE_JOB(block, block_handler);
+			ENQUEUE_JOB(block, tri->triangle.init);
 			READY_JOB(block);
 			tri->triangle.count++;
 #ifdef TRY_TO_CULL_BLOCKS

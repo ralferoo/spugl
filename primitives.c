@@ -20,6 +20,7 @@ extern float4 current_texcoord;
 extern u32 current_texture;
 extern _bitmap_image screen;
 
+extern void block_handler(Queue* queue);
 extern void triangle_handler(Queue* queue);
 
 static void imp_point()
@@ -125,6 +126,7 @@ static void imp_triangle()
 	
 	queue->triangle.cur_x = queue->triangle.cur_y = -1;
 	queue->triangle.texture_base = current_texture;
+	queue->triangle.init = block_handler;
 //	queue->triangle.shader = 0;
 
 // if the triangle is visible (i.e. area>0), then we increment the triangle

@@ -32,7 +32,7 @@ struct __QUEUE {
 			vec_float4	A,dAdx,dAdy;	// weight information
 			vec_float4	minmax;		// bounding box (xmin,ymin,xmax,ymax)
 
-			void		(*init)(Queue*);// the dispatch that can initialise itself
+			void		(*init)(Queue*);// a block's initial handler
 			unsigned short	count;		// count of blocks that still have reference
 			unsigned short	texture_base;	// the base texture ID for block(0,0)
 			unsigned short	texture_y_shift;// log2(texture_width_in_blocks)
