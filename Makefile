@@ -49,7 +49,7 @@ run:	test
 	./test
 
 edit:
-	gvim -p Makefile fragment.c primitives.c shader.c test.c struct.h
+	gvim -p Makefile shader.c blocks.c queue.h primitives.c test.c struct.h
 
 source:
 	make shader.s && less shader.s

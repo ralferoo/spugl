@@ -31,9 +31,6 @@ u32 textureTemp1[32] __attribute__((aligned(128)));
 u32 textureTemp2[32] __attribute__((aligned(128)));
 u32 textureTemp3[32] __attribute__((aligned(128)));
 
-static const vec_uchar16 rgba_argb = {
-	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
-
 static inline vec_float4 extract(
 	vec_float4 what, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
 {
@@ -94,6 +91,11 @@ PROCESS_BLOCK_HEAD(process_colour_block)
 PROCESS_BLOCK_END
 
 //////////////////////////////////////////////////////////////////////////////
+
+static const vec_uchar16 rgba_argb = {
+	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
+
+//////////////////////////////////////////////////////////////////////////////
 //
 // This shader does a very ugly form of texture mapping - for each pixel that
 // needs mapping, this fires off a DMA for 128 bytes just to then copy across
@@ -132,6 +134,14 @@ PROCESS_BLOCK_HEAD(process_simple_texture_block)
 	vec_uint4 current = *ptr;
 	*ptr = spu_sel(current, colour, pixel);
 PROCESS_BLOCK_END
+
+//////////////////////////////////////////////////////////////////////////////
+
+static const vec_uchar16 shuf_gath_01 = {
+	0,1,2,3, 16,17,18,19, SEL_00 SEL_00};
+
+static const vec_uchar16 shuf_gath_23 = {
+	SEL_00 SEL_00 0,1,2,3, 16,17,18,19,};
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -185,18 +195,19 @@ PROCESS_BLOCK_HEAD(process_texture_block)
 	vec_uint4 gather_1 = spu_sel(gather1_1, gather2_1, gather_merge);
 	vec_uint4 gather_3 = spu_sel(gather1_3, gather2_3, gather_merge);
 
-//	vec_uint4 gather_01 = spu_shuffle(gather_0,gather_1,shuf_gath_01);
-//	vec_uint4 gather_23 = spu_shuffle(gather_2,gather_3,shuf_gath_23);
-//	vec_uint4 gather = spu_shuffle(gather_01,gather_23,shuf_gath_0123);
+	vec_uint4 gather_01 = spu_shuffle(gather_0,gather_1,shuf_gath_01);
+	vec_uint4 gather_23 = spu_shuffle(gather_2,gather_3,shuf_gath_23);
+	vec_uint4 gather = spu_or(gather_01,gather_23);
+	vec_uint4 cache = spu_cntlz(gather);
 
-	unsigned int cache_index_0 = spu_extract(spu_cntlz(gather_0),0);
-	unsigned int cache_index_1 = spu_extract(spu_cntlz(gather_1),0);
-	unsigned int cache_index_2 = spu_extract(spu_cntlz(gather_2),0);
-	unsigned int cache_index_3 = spu_extract(spu_cntlz(gather_3),0);
+/*
+	printf("%d %d %d %d -> %02lx %02lx %02lx %02lx\n",
+		spu_extract(block_id,0), spu_extract(block_id,1), 
+		spu_extract(block_id,2), spu_extract(block_id,3),
+		spu_extract(cache,0), spu_extract(cache,1),
+		spu_extract(cache,2), spu_extract(cache,3)); 
+*/
 
-//	tri->triangle.dummy = cache_index_0 | cache_index_1 | cache_index_2 | cache_index_3;
-//	printf("%d %d %d %d\n",
-//		cache_index_0, cache_index_1, cache_index_2, cache_index_3); 
 
 	unsigned long texAddrBase = tri->triangle.texture_base;
 
