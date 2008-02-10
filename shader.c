@@ -226,22 +226,38 @@ static inline vec_float4 extract(
 		spu_mul (spu_splats(spu_extract(what,2)),tAc)));
 }
 	
+#define PROCESS_BLOCK_HEAD(name) void name (vec_uint4* ptr, Queue* tri, \
+		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac, \
+		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4, \
+		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy) { \
+	vec_uint4 left = spu_splats(32*8-1); \
+	do {
+
+#define PROCESS_BLOCK_END \
+		vec_uint4 which = spu_and(left,spu_splats((unsigned int)7)); \
+		vec_uint4 sel = spu_cmpeq(which,0); \
+		ptr++; \
+		left -= spu_splats(1); \
+		Aa += spu_sel(Aa_dx4,Aa_dy,sel); \
+		Ab += spu_sel(Ab_dx4,Ab_dy,sel); \
+		Ac += spu_sel(Ac_dx4,Ac_dy,sel); \
+	} while (spu_extract(left,0)>0); \
+}
+
 const vec_uchar16 rgba_argb = {
 	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
 
-#ifdef TEXTURE_MAPPED
-static inline void sub_block(vec_uint4* ptr, 
-	Queue* tri, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
-{
-	vec_uint4 uAa = (vec_uint4) tAa;
-	vec_uint4 uAb = (vec_uint4) tAb;
-	vec_uint4 uAc = (vec_uint4) tAc;
+//////////////////////////////////////////////////////////////////////////////
+PROCESS_BLOCK_HEAD(process_texture_block)
+	vec_uint4 uAa = (vec_uint4) Aa;
+	vec_uint4 uAb = (vec_uint4) Ab;
+	vec_uint4 uAc = (vec_uint4) Ac;
 
 	vec_uint4 allNeg = spu_and(spu_and(uAa,uAb),uAc);
 	vec_uint4 pixel = spu_rlmaska(allNeg,-31);
 
 	vec_uint4 bail = spu_orx(pixel);
-	if (!spu_extract(bail,0)) return;
+	if (spu_extract(bail,0)) {
 
 /*
 	printf("pixel %03d, tAa=%06.2f, tAb=%06.2f, tAc=%06.2f, tA=%06.2f\n",
@@ -251,12 +267,12 @@ static inline void sub_block(vec_uint4* ptr,
 		spu_extract(tAc,0),
 		spu_extract(tAa,0)+spu_extract(tAb,0)+spu_extract(tAc,0));
 */
-	vec_float4 t_w = extract(tri->triangle.w, tAa, tAb, tAc);
+	vec_float4 t_w = extract(tri->triangle.w, Aa, Ab, Ac);
 	vec_float4 w = spu_splats(1.0f)/t_w;
 
-	tAa = spu_mul(tAa,w);
-	tAb = spu_mul(tAb,w);
-	tAc = spu_mul(tAc,w);
+	vec_float4 tAa = spu_mul(Aa,w);
+	vec_float4 tAb = spu_mul(Ab,w);
+	vec_float4 tAc = spu_mul(Ac,w);
 
 	vec_float4 t_s = extract(tri->triangle.s, tAa, tAb, tAc);
 	vec_float4 t_t = extract(tri->triangle.t, tAa, tAb, tAc);
@@ -344,24 +360,24 @@ static inline void sub_block(vec_uint4* ptr,
 
 	vec_uint4 current = *ptr;
 	*ptr = spu_sel(current, colour, pixel);
-}
-#else
-static inline void sub_block(vec_uint4* ptr, 
-	Queue* tri, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
-{
-	vec_uint4 uAa = (vec_uint4) tAa;
-	vec_uint4 uAb = (vec_uint4) tAb;
-	vec_uint4 uAc = (vec_uint4) tAc;
+	}
+PROCESS_BLOCK_END
+
+//////////////////////////////////////////////////////////////////////////////
+PROCESS_BLOCK_HEAD(process_colour_block)
+	vec_uint4 uAa = (vec_uint4) Aa;
+	vec_uint4 uAb = (vec_uint4) Ab;
+	vec_uint4 uAc = (vec_uint4) Ac;
 
 	vec_uint4 allNeg = spu_and(spu_and(uAa,uAb),uAc);
 	vec_uint4 pixel = spu_rlmaska(allNeg,-31);
 
-	vec_float4 t_w = extract(tri->triangle.w, tAa, tAb, tAc);
+	vec_float4 t_w = extract(tri->triangle.w, Aa, Ab, Ac);
 	vec_float4 w = spu_splats(1.0f)/t_w;
 
-	tAa = spu_mul(tAa,w);
-	tAb = spu_mul(tAb,w);
-	tAc = spu_mul(tAc,w);
+	vec_float4 tAa = spu_mul(Aa,w);
+	vec_float4 tAb = spu_mul(Ab,w);
+	vec_float4 tAc = spu_mul(Ac,w);
 
 	vec_float4 t_r = extract(tri->triangle.r, tAa, tAb, tAc);
 	vec_float4 t_g = extract(tri->triangle.g, tAa, tAb, tAc);
@@ -375,39 +391,7 @@ static inline void sub_block(vec_uint4* ptr,
 
 	vec_uint4 current = *ptr;
 	*ptr = spu_sel(current, colour, pixel);
-}
-#endif
-
-void process_block(vec_uint4* block_ptr,
-		Queue* tri,
-		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac,
-		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4,
-		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy)
-{
-	vec_uint4 left = spu_splats(32*8);
-	while (spu_extract(left,0)>0) {
-		sub_block(block_ptr, tri, Aa,Ab,Ac);
-
-		left -= spu_splats(1);
-		block_ptr++;
-		vec_uint4 which = spu_and(left,spu_splats((unsigned int)7));
-		vec_uint4 sel = spu_cmpeq(which,0);
-
-		vec_float4 Aa_d = spu_sel(Aa_dx4,Aa_dy,sel);
-		vec_float4 Ab_d = spu_sel(Ab_dx4,Ab_dy,sel);
-		vec_float4 Ac_d = spu_sel(Ac_dx4,Ac_dy,sel);
-
-		Aa += Aa_d; Ab += Ab_d; Ac += Ac_d;
-	}
-}
-
-const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
-const vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
-const vec_float4 muls32 = {32.0f, 32.0f, 32.0f, 32.0f};
-const vec_float4 mulsn28 = {-28.0f, -28.0f, -28.0f, -28.0f};
-
-const vec_float4 muls31x = {0.0f, 31.0f, 0.0f, 31.0f};
-const vec_float4 muls31y = {0.0f, 0.0f, 31.0f, 31.0f};
+PROCESS_BLOCK_END
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -424,11 +408,22 @@ void _init_buffers()
 	init_screen_block(&buffer, 31);
 }
 
+
+
+
+
+
 //////////////////////////////////////////////////////////////////////////////
 
+const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
+const vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
+const vec_float4 muls32 = {32.0f, 32.0f, 32.0f, 32.0f};
+const vec_float4 mulsn28 = {-28.0f, -28.0f, -28.0f, -28.0f};
 
+const vec_float4 muls31x = {0.0f, 31.0f, 0.0f, 31.0f};
+const vec_float4 muls31y = {0.0f, 0.0f, 31.0f, 31.0f};
 
-
+//////////////////////////////////////////////////////////////////////////////
 
 void block_handler(Queue* queue)
 {
@@ -611,7 +606,12 @@ void triangle_handler(Queue* tri)
 	last_triangle = if_then_else(cmp_eq(last_triangle,tri->id), -1, last_triangle);
 }
 
-RenderFuncs _standard_triangle = {
+RenderFuncs _standard_texture_triangle = {
 	.init = block_handler,
-	.process = process_block
+	.process = process_texture_block
+};
+
+RenderFuncs _standard_colour_triangle = {
+	.init = block_handler,
+	.process = process_colour_block
 };
