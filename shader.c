@@ -6,7 +6,17 @@
  *
  ****************************************************************************/
 
-// This file holds the standard shaders
+//////////////////////////////////////////////////////////////////////////////
+//
+// This file holds the standard shaders, the idea is that a shader processes
+// a block of 32x32 pixels at once using an unrolled function that processes
+// 4 pixels at once. This function is sandwiched between the PROCESS_BLOCK_HEAD
+// and PROCESS_BLOCK_END macros.
+//
+// tAa, tAb, tAc hold the adjusted mutliplication factors for the vertices
+// ready to be passed into extract.
+//
+// pixel holds the word mask of pixels to be considered for inclusion.
 
 #include <spu_mfcio.h>
 #include "fifo.h"
