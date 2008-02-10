@@ -384,40 +384,27 @@ void process_block(vec_uint4* block_ptr,
 		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4,
 		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy)
 {
-	unsigned int line;
-	for (line=0; line<32; line++) {
-		vec_float4 tAa = Aa;
-		vec_float4 tAb = Ab;
-		vec_float4 tAc = Ac;
+	vec_uint4 left = spu_splats(32*8);
+	while (spu_extract(left,0)>0) {
+		sub_block(block_ptr, tri, Aa,Ab,Ac);
 
-		Aa += Aa_dy;
-		Ab += Ab_dy;
-		Ac += Ac_dy;
+		left -= spu_splats(1);
+		block_ptr++;
+		vec_uint4 which = spu_and(left,spu_splats((unsigned int)7));
+		vec_uint4 sel = spu_cmpeq(which,0);
 
-		sub_block(&block_ptr[0], tri, tAa,tAb,tAc);
-		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
-		sub_block(&block_ptr[1], tri, tAa,tAb,tAc);
-		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
-		sub_block(&block_ptr[2], tri, tAa,tAb,tAc);
-		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
-		sub_block(&block_ptr[3], tri, tAa,tAb,tAc);
-		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
-		sub_block(&block_ptr[4], tri, tAa,tAb,tAc);
-		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
-		sub_block(&block_ptr[5], tri, tAa,tAb,tAc);
-		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
-		sub_block(&block_ptr[6], tri, tAa,tAb,tAc);
-		tAa += Aa_dx4; tAb += Ab_dx4; tAc += Ac_dx4;
-		sub_block(&block_ptr[7], tri, tAa,tAb,tAc);
+		vec_float4 Aa_d = spu_sel(Aa_dx4,Aa_dy,sel);
+		vec_float4 Ab_d = spu_sel(Ab_dx4,Ab_dy,sel);
+		vec_float4 Ac_d = spu_sel(Ac_dx4,Ac_dy,sel);
 
-		block_ptr += 8;
+		Aa += Aa_d; Ab += Ab_d; Ac += Ac_d;
 	}
 }
 
 const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
 const vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
 const vec_float4 muls32 = {32.0f, 32.0f, 32.0f, 32.0f};
-const vec_float4 mulsn32 = {-32.0f, -32.0f, -32.0f, -32.0f};
+const vec_float4 mulsn28 = {-28.0f, -28.0f, -28.0f, -28.0f};
 
 const vec_float4 muls31x = {0.0f, 31.0f, 0.0f, 31.0f};
 const vec_float4 muls31y = {0.0f, 0.0f, 31.0f, 31.0f};
@@ -454,7 +441,7 @@ void block_handler(Queue* queue)
 	vec_float4 Ab_dx = spu_splats(spu_extract(A_dx,1));
 	vec_float4 Ac_dx = spu_splats(spu_extract(A_dx,2));
 
-	vec_float4 A_dy = tri->triangle.A_dy;
+	vec_float4 A_dy = queue->block.A_dy;
 	vec_float4 Aa_dy = spu_splats(spu_extract(A_dy,0));
 	vec_float4 Ab_dy = spu_splats(spu_extract(A_dy,1));
 	vec_float4 Ac_dy = spu_splats(spu_extract(A_dy,2));
@@ -551,9 +538,10 @@ void triangle_handler(Queue* tri)
 
 	vec_float4 A_dx = tri->triangle.A_dx;
 	vec_float4 A_dy = tri->triangle.A_dy;
-	vec_float4 A_dx4 = spu_mul(muls4,tri->triangle.A_dx);
-	vec_float4 A_dx32 = spu_mul(muls32,tri->triangle.A_dx);
+	vec_float4 A_dx4 = spu_mul(muls4,A_dx);
+	vec_float4 A_dx32 = spu_mul(muls32,A_dx);
 	vec_float4 A_dy32 = spu_nmsub(pixels_wide,A_dx,spu_mul(muls32,A_dy));
+	vec_float4 blockA_dy = spu_madd(mulsn28,A_dx,A_dy);
 
 #ifdef TRY_TO_CULL_BLOCKS
 	vec_float4 Aa_corners = spu_madd(muls31y,Aa_dy,
@@ -594,6 +582,8 @@ void triangle_handler(Queue* tri)
 			block->block.by = by;
 			block->block.triangle = tri;
 			block->block.A=A;
+			block->block.A_dx=A_dx;
+			block->block.A_dy=blockA_dy;
 			block->next = -1;
 			ENQUEUE_JOB(block, tri->triangle.functions->init);
 			READY_JOB(block);
