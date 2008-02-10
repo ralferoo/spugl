@@ -121,8 +121,8 @@ static void imp_triangle()
 	
 	queue->triangle.minmax = minmax;
 	queue->triangle.A = spu_sub(base_area, area_ofs);
-	queue->triangle.dAdx = area_dx;
-	queue->triangle.dAdy = area_dy;
+	queue->triangle.A_dx = area_dx;
+	queue->triangle.A_dy = area_dy;
 	
 	queue->triangle.cur_x = queue->triangle.cur_y = -1;
 	queue->triangle.step = queue->triangle.left = -1;

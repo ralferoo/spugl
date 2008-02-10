@@ -30,7 +30,7 @@ struct __QUEUE {
 			vec_float4	x,y,z,w;	// coords
 			vec_float4	r,g,b,a;	// primary colour
 			vec_float4	s,t,u,v;	// primary texture
-			vec_float4	A,dAdx,dAdy;	// weight information
+			vec_float4	A,A_dx,A_dy;	// weight information
 			vec_float4	minmax;		// bounding box (xmin,ymin,xmax,ymax)
 
 			void		(*init)(Queue*);// a block's initial handler
@@ -43,11 +43,8 @@ struct __QUEUE {
 
 		// this holds a block waiting to be rendered, in whatever state it is in
 		struct {
-			vec_float4	Aa,Ab,Ac;
-			vec_float4	Aa_dx4,Ab_dx4,Ac_dx4;
-			vec_float4	Aa_dy,Ab_dy,Ac_dy;
-			
-			Queue*		triangle;
+			vec_float4	A;		// the weighting of the top left of the block
+			Queue*		triangle;	// used to get A_dx,A_dy and parametric data
 			vec_float4*	z_buffer;
 			vec_uint4*	pixels;
 			vec_ushort8*	tex_temp;
