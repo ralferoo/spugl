@@ -62,7 +62,8 @@ struct __QUEUE {
 			Queue*		triangle;	// used to get parametric data
 			vec_float4*	z_buffer;
 			vec_uint4*	pixels;
-			vec_ushort8*	tex_temp;
+			char*		tex_temp;
+			char		tex_override;
 
 			unsigned int	bx,by;
 

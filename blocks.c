@@ -98,7 +98,7 @@ static inline void build_blit_list(
 
 typedef struct {
 	u32 pixels[32*32];
-	u32 textemp[32*32];
+	char textemp[32*8];
 	vec_uint4 dma1[16];
 	vec_uint4 dma2[16];
 
@@ -222,29 +222,37 @@ unsigned int freeTextureMaps = 0;
 
 screen_block buffer __attribute__((aligned(128)));
 
+extern u32 textureCache[];
+
 void _init_buffers()
 {
+	int i;
+	for (i=0; i<32*32*16; i++) {
+		textureCache[i] = (i<<4) | (i<<9) | (i<<19);
+	}
+
+
 	freeTextureMaps = (1<<NUMBER_TEX_MAPS)-1;
 	TEXcache1 = TEXcache2 = spu_splats((unsigned short)-1);
 	init_screen_block(&buffer, 31);
 
-	TEXcache1 = spu_insert(32, TEXcache1, 0);	// 16
-	TEXcache1 = spu_insert(33, TEXcache1, 1);	// 18
+	TEXcache1 = spu_insert(32, TEXcache1, 0);	// 0
+	TEXcache1 = spu_insert(33, TEXcache1, 1);	// 2
 	TEXcache1 = spu_insert(34, TEXcache1, 2);
 	TEXcache1 = spu_insert(35, TEXcache1, 3);
 	TEXcache1 = spu_insert(36, TEXcache1, 4);
 	TEXcache1 = spu_insert(37, TEXcache1, 5);
 	TEXcache1 = spu_insert(38, TEXcache1, 6);
-	TEXcache1 = spu_insert(39, TEXcache1, 7);	// 30
+	TEXcache1 = spu_insert(39, TEXcache1, 7);	// 14
 
-	TEXcache2 = spu_insert(31, TEXcache2, 0);	// 17
-	TEXcache2 = spu_insert(30, TEXcache2, 1);	// 19
-	TEXcache2 = spu_insert(29, TEXcache2, 2);	// 21
+	TEXcache2 = spu_insert(31, TEXcache2, 0);	// 1
+	TEXcache2 = spu_insert(30, TEXcache2, 1);	// 3
+	TEXcache2 = spu_insert(9, TEXcache2, 2);	// 5
 	TEXcache2 = spu_insert(28, TEXcache2, 3);
 	TEXcache2 = spu_insert(27, TEXcache2, 4);
-	TEXcache2 = spu_insert(26, TEXcache2, 5);
-	TEXcache2 = spu_insert(25, TEXcache2, 6);
-	TEXcache2 = spu_insert(24, TEXcache2, 7);	// 31
+	TEXcache2 = spu_insert(0, TEXcache2, 5);
+	TEXcache2 = spu_insert(63, TEXcache2, 6);
+	TEXcache2 = spu_insert(44, TEXcache2, 7);	// 15
 }
 
 
@@ -309,6 +317,7 @@ void block_handler(Queue* queue)
 
 	queue->block.pixels = (vec_uint4*) ((void*)&current_block->pixels[0]);
 	queue->block.tex_temp = (vec_ushort8*) ((void*)&current_block->textemp[0]);
+	queue->block.tex_override = -1;
 	
 	real_block_handler(queue);
 

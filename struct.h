@@ -14,7 +14,7 @@
 
 #include "types.h"
 
-#define LOCAL_FRAGMENTS 40
+#define LOCAL_FRAGMENTS 1
 
 #define FRAGMENT_WIDTH 32
 #define FRAGMENT_HEIGHT 32
