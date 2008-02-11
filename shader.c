@@ -84,6 +84,8 @@ static inline vec_float4 extract(
 		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy) { \
 	vec_uint4 left = spu_splats(32*8); \
 	vec_uint4* ptr = queue->block.pixels; \
+	vec_ushort8 need0 = spu_splats((unsigned short)-1); \
+	vec_ushort8 need1 = need0; \
 	char* tex_mask_ptr = queue->block.tex_temp; \
 	Queue* tri = queue->block.triangle; \
 	do { \
@@ -268,6 +270,22 @@ PROCESS_BLOCK_HEAD_TEX(process_texture_block)
 	unsigned long pixel2 = *((u32*)spu_extract(addr,2));
 	unsigned long pixel3 = *((u32*)spu_extract(addr,3));
 	vec_uint4 colour = {pixel0, pixel1, pixel2, pixel3};
+
+	// now try to work out what textures were missing
+	// copy_cmp_[0123] hold required texture ids splatted across all 8 halfwords
+
+	vec_uint4 gotneeds_0 = spu_gather(spu_or(spu_cmpeq(need0,copy_cmp_0),
+						 spu_cmpeq(need1,copy_cmp_0)));
+	vec_uint4 gotneeds_1 = spu_gather(spu_or(spu_cmpeq(need0,copy_cmp_1),
+						 spu_cmpeq(need1,copy_cmp_1)));
+	vec_uint4 gotneeds_2 = spu_gather(spu_or(spu_cmpeq(need0,copy_cmp_2),
+						 spu_cmpeq(need1,copy_cmp_2)));
+	vec_uint4 gotneeds_3 = spu_gather(spu_or(spu_cmpeq(need0,copy_cmp_3),
+						 spu_cmpeq(need1,copy_cmp_3)));
+	vec_uint4 gotneeds_all = {spu_extract(gotneeds_0,0), spu_extract(gotneeds_1,0),
+				  spu_extract(gotneeds_2,0), spu_extract(gotneeds_3,0)};
+	vec_uint4 want_textures = spu_andc(cache_not_found,gotneeds_all);
+	
 
 /*
 	printf("%d %d %d %d -> %02lx %02lx %02lx %02lx\n",
