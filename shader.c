@@ -76,6 +76,7 @@ static inline vec_float4 extract(
 		Ab += spu_sel(Ab_dx4,Ab_dy,sel); \
 		Ac += spu_sel(Ac_dx4,Ac_dy,sel); \
 	} while (spu_extract(left,0)>0); \
+	queue->block.triangle->triangle.count--; \
 }
 
 
@@ -354,16 +355,18 @@ void process_texture_block(Queue* queue,
 		Ab += spu_sel(Ab_dx4,Ab_dy,sel); 
 		Ac += spu_sel(Ac_dx4,Ac_dy,sel); 
 	} while (spu_extract(left,0)>0); 
+	queue->block.tex_override = 0; 
 
-/*
 	printf("needs %04x %04x %04x %04x %04x %04x %04x %04x\n",
 		spu_extract(need1,0), spu_extract(need1,1),
 		spu_extract(need1,2), spu_extract(need1,3),
 		spu_extract(need1,4), spu_extract(need1,5),
 		spu_extract(need1,6), spu_extract(need1,7)); 
+/*
 */
 
-	queue->block.tex_override = 0; 
+	queue->block.triangle->triangle.count--;
+
 }
 
 //////////////////////////////////////////////////////////////////////////////

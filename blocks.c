@@ -328,7 +328,6 @@ void real_block_handler(Queue* queue)
 	TEXcache1 ^= spu_splats((unsigned short)32);
 	TEXcache2 ^= spu_splats((unsigned short)32);
 */
-	queue->block.triangle->triangle.count--;
 }
 
 void block_handler(Queue* queue)
