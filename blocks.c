@@ -245,14 +245,14 @@ void _init_buffers()
 	TEXcache1 = spu_insert(38, TEXcache1, 6);
 	TEXcache1 = spu_insert(39, TEXcache1, 7);	// 14
 
-	TEXcache2 = spu_insert(31, TEXcache2, 0);	// 1
-	TEXcache2 = spu_insert(30, TEXcache2, 1);	// 3
-	TEXcache2 = spu_insert(9, TEXcache2, 2);	// 5
-	TEXcache2 = spu_insert(28, TEXcache2, 3);
-	TEXcache2 = spu_insert(27, TEXcache2, 4);
-	TEXcache2 = spu_insert(0, TEXcache2, 5);
-	TEXcache2 = spu_insert(63, TEXcache2, 6);
-	TEXcache2 = spu_insert(44, TEXcache2, 7);	// 15
+	TEXcache2 = spu_insert(40, TEXcache2, 0);	// 1
+	TEXcache2 = spu_insert(41, TEXcache2, 1);	// 3
+	TEXcache2 = spu_insert(42, TEXcache2, 2);	// 5
+	TEXcache2 = spu_insert(43, TEXcache2, 3);
+	TEXcache2 = spu_insert(44, TEXcache2, 4);
+	TEXcache2 = spu_insert(45, TEXcache2, 5);
+	TEXcache2 = spu_insert(46, TEXcache2, 6);
+	TEXcache2 = spu_insert(47, TEXcache2, 7);	// 15
 }
 
 
@@ -300,7 +300,34 @@ void real_block_handler(Queue* queue)
 				Aa, Ab, Ac,
 				Aa_dx4, Ab_dx4, Ac_dx4,
 				Aa_dy, Ab_dy, Ac_dy);
+/*
+	TEXcache1 ^= spu_splats((unsigned short)31);
+	TEXcache2 ^= spu_splats((unsigned short)31);
 
+	tri->triangle.functions->process(queue,
+				Aa, Ab, Ac,
+				Aa_dx4, Ab_dx4, Ac_dx4,
+				Aa_dy, Ab_dy, Ac_dy);
+
+	TEXcache1 ^= spu_splats((unsigned short)32);
+	TEXcache2 ^= spu_splats((unsigned short)32);
+
+	tri->triangle.functions->process(queue,
+				Aa, Ab, Ac,
+				Aa_dx4, Ab_dx4, Ac_dx4,
+				Aa_dy, Ab_dy, Ac_dy);
+
+	TEXcache1 ^= spu_splats((unsigned short)31);
+	TEXcache2 ^= spu_splats((unsigned short)31);
+
+	tri->triangle.functions->process(queue,
+				Aa, Ab, Ac,
+				Aa_dx4, Ab_dx4, Ac_dx4,
+				Aa_dy, Ab_dy, Ac_dy);
+
+	TEXcache1 ^= spu_splats((unsigned short)32);
+	TEXcache2 ^= spu_splats((unsigned short)32);
+*/
 	queue->block.triangle->triangle.count--;
 }
 
