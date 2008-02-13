@@ -216,49 +216,12 @@ void load_screen_block(screen_block* block,
 
 //////////////////////////////////////////////////////////////////////////////
 
-#define NUMBER_TEX_MAPS 24
-
-unsigned int freeTextureMaps = 0;
-
 screen_block buffer __attribute__((aligned(128)));
-
-extern u32 textureCache[];
 
 void _init_buffers()
 {
-	int i;
-	for (i=0; i<32*32*16; i++) {
-		textureCache[i] = (i<<4) | (i<<9) | (i<<19);
-	}
-
-
-	freeTextureMaps = (1<<NUMBER_TEX_MAPS)-1;
-	TEXcache1 = TEXcache2 = spu_splats((unsigned short)-1);
 	init_screen_block(&buffer, 31);
-
-	TEXcache1 = spu_insert(32, TEXcache1, 0);	// 0
-	TEXcache1 = spu_insert(33, TEXcache1, 1);	// 2
-	TEXcache1 = spu_insert(34, TEXcache1, 2);
-	TEXcache1 = spu_insert(35, TEXcache1, 3);
-	TEXcache1 = spu_insert(36, TEXcache1, 4);
-	TEXcache1 = spu_insert(37, TEXcache1, 5);
-	TEXcache1 = spu_insert(38, TEXcache1, 6);
-	TEXcache1 = spu_insert(39, TEXcache1, 7);	// 14
-
-	TEXcache2 = spu_insert(40, TEXcache2, 0);	// 1
-	TEXcache2 = spu_insert(41, TEXcache2, 1);	// 3
-	TEXcache2 = spu_insert(42, TEXcache2, 2);	// 5
-	TEXcache2 = spu_insert(43, TEXcache2, 3);
-	TEXcache2 = spu_insert(44, TEXcache2, 4);
-	TEXcache2 = spu_insert(45, TEXcache2, 5);
-	TEXcache2 = spu_insert(46, TEXcache2, 6);
-	TEXcache2 = spu_insert(47, TEXcache2, 7);	// 15
 }
-
-
-
-
-
 
 //////////////////////////////////////////////////////////////////////////////
 

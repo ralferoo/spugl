@@ -86,6 +86,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 
 	init_queue();
 	_init_buffers();
+	_init_texture_cache();
 
 	int running = 1;
 	while (running) {

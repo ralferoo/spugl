@@ -31,12 +31,6 @@ u32 textureTemp1[32] __attribute__((aligned(128)));
 u32 textureTemp2[32] __attribute__((aligned(128)));
 u32 textureTemp3[32] __attribute__((aligned(128)));
 
-typedef struct {
-	u32 textureBuffer[32*32] __attribute__((aligned(128)));
-} TextureBlock;
-
-TextureBlock textureCache[16] __attribute__((aligned(128)));
-
 static inline vec_float4 extract(
 	vec_float4 what, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
 {
@@ -148,6 +142,57 @@ PROCESS_BLOCK_HEAD(process_simple_texture_block)
 	*ptr = spu_sel(current, colour, pixel);
 }
 PROCESS_BLOCK_END
+
+//////////////////////////////////////////////////////////////////////////////
+
+#define NUMBER_TEX_MAPS 16
+#define NUMBER_TEX_PIXELS (32*32)
+
+typedef struct {
+	u32 textureBuffer[NUMBER_TEX_PIXELS] __attribute__((aligned(128)));
+} TextureBlock;
+
+TextureBlock textureCache[NUMBER_TEX_MAPS] __attribute__((aligned(128)));
+
+unsigned int freeTextureMaps = 0;
+unsigned int lastLoadedTextureMap = 0;
+
+void _init_texture_cache()
+{
+	u32* texture = &textureCache[0].textureBuffer[0];
+
+	int i;
+	for (i=0; i<NUMBER_TEX_PIXELS*NUMBER_TEX_MAPS; i++) {
+		texture[i] = (i<<4) | (i<<9) | (i<<19);
+	}
+
+
+	freeTextureMaps = (1<<NUMBER_TEX_MAPS)-1;
+	TEXcache1 = TEXcache2 = spu_splats((unsigned short)-1);
+
+	TEXcache1 = spu_insert(32, TEXcache1, 0);	// 0
+	TEXcache1 = spu_insert(33, TEXcache1, 1);	// 2
+	TEXcache1 = spu_insert(34, TEXcache1, 2);
+	TEXcache1 = spu_insert(35, TEXcache1, 3);
+	TEXcache1 = spu_insert(36, TEXcache1, 4);
+	TEXcache1 = spu_insert(37, TEXcache1, 5);
+	TEXcache1 = spu_insert(38, TEXcache1, 6);
+	TEXcache1 = spu_insert(39, TEXcache1, 7);	// 14
+
+	TEXcache2 = spu_insert(40, TEXcache2, 0);	// 1
+	TEXcache2 = spu_insert(41, TEXcache2, 1);	// 3
+	TEXcache2 = spu_insert(42, TEXcache2, 2);	// 5
+	TEXcache2 = spu_insert(43, TEXcache2, 3);
+	TEXcache2 = spu_insert(44, TEXcache2, 4);
+	TEXcache2 = spu_insert(45, TEXcache2, 5);
+	TEXcache2 = spu_insert(46, TEXcache2, 6);
+	TEXcache2 = spu_insert(47, TEXcache2, 7);	// 15
+}
+
+
+
+
+
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -357,15 +402,22 @@ void process_texture_block(Queue* queue,
 	} while (spu_extract(left,0)>0); 
 	queue->block.tex_override = 0; 
 
-	printf("needs %04x %04x %04x %04x %04x %04x %04x %04x\n",
+	vec_ushort8 need_mask=spu_cmpeq(need1,spu_splats((unsigned short)-1));
+	vec_uint4 need_bits = spu_gather(need_mask);
+
+	vec_uint4 need_any = spu_cmpeq(need_bits,spu_splats((unsigned int)0xff));
+
+	printf("needs %02x -> %04x %04x %04x %04x %04x %04x %04x %04x\n",
+		spu_extract(need_bits,0),
 		spu_extract(need1,0), spu_extract(need1,1),
 		spu_extract(need1,2), spu_extract(need1,3),
 		spu_extract(need1,4), spu_extract(need1,5),
 		spu_extract(need1,6), spu_extract(need1,7)); 
 /*
 */
+		//mfc_get(textureTemp0, texAddr0 & ~127, 128, tag_id, 0, 0);
 
-	queue->block.triangle->triangle.count--;
+	queue->block.triangle->triangle.count += spu_extract((vec_int4)need_any,0);
 
 }
 
