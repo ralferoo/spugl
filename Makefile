@@ -251,6 +251,7 @@ shader.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
 queue.0: spuregs.h struct.h types.h
 queue.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 queue.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h queue.h
+queue.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 blocks.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 blocks.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 blocks.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h

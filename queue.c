@@ -13,12 +13,13 @@
 
 #include "spuregs.h"
 #include "queue.h"
+#include <spu_mfcio.h>
 
 Queue job_queue[NUMBER_OF_QUEUE_JOBS];
 
 unsigned int free_job_queues = ALL_QUEUE_JOBS;
-
 unsigned int ready_job_queues = 0;
+unsigned int dma_wait_job_queues = 0;
 
 int has_finished()
 {
@@ -59,13 +60,23 @@ void init_queue(void)
 
 void process_queue(void)
 {
+	unsigned int consider = ~0;
+
 	if (ready_job_queues) {
 #ifdef DEBUG_QUEUE 
 		debug_queue();
 #endif
-		unsigned int consider = ~0;
 
 		while (ready_job_queues&consider) {
+			if (dma_wait_job_queues) {
+				mfc_write_tag_mask(dma_wait_job_queues);
+				unsigned long completed = mfc_read_tag_status_immediate();
+//				printf("DMA completion %lx is %lx\n", dma_wait_job_queues, completed);
+				dma_wait_job_queues &= ~completed;
+				ready_job_queues |= completed;
+				consider |= completed;
+			}
+
 			int id = FIRST_JOB(ready_job_queues&consider);
 			consider = (1<<id)-1;
 #ifdef DEBUG_QUEUE 

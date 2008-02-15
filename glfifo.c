@@ -196,3 +196,49 @@ GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
 	FIFO_EPILOGUE();
 }
 
+
+
+
+/*
+ * Transformation
+ */
+
+/*
+GLAPI void GLAPIENTRY glMatrixMode( GLenum mode );
+
+GLAPI void GLAPIENTRY glOrtho( GLdouble left, GLdouble right,
+                                 GLdouble bottom, GLdouble top,
+                                 GLdouble near_val, GLdouble far_val );
+
+GLAPI void GLAPIENTRY glFrustum( GLdouble left, GLdouble right,
+                                   GLdouble bottom, GLdouble top,
+                                   GLdouble near_val, GLdouble far_val );
+
+GLAPI void GLAPIENTRY glViewport( GLint x, GLint y,
+                                    GLsizei width, GLsizei height );
+
+GLAPI void GLAPIENTRY glPushMatrix( void );
+
+GLAPI void GLAPIENTRY glPopMatrix( void );
+
+GLAPI void GLAPIENTRY glLoadIdentity( void );
+
+GLAPI void GLAPIENTRY glLoadMatrixd( const GLdouble *m );
+GLAPI void GLAPIENTRY glLoadMatrixf( const GLfloat *m );
+
+GLAPI void GLAPIENTRY glMultMatrixd( const GLdouble *m );
+GLAPI void GLAPIENTRY glMultMatrixf( const GLfloat *m );
+
+GLAPI void GLAPIENTRY glRotated( GLdouble angle,
+                                   GLdouble x, GLdouble y, GLdouble z );
+GLAPI void GLAPIENTRY glRotatef( GLfloat angle,
+                                   GLfloat x, GLfloat y, GLfloat z );
+
+GLAPI void GLAPIENTRY glScaled( GLdouble x, GLdouble y, GLdouble z );
+GLAPI void GLAPIENTRY glScalef( GLfloat x, GLfloat y, GLfloat z );
+
+GLAPI void GLAPIENTRY glTranslated( GLdouble x, GLdouble y, GLdouble z );
+GLAPI void GLAPIENTRY glTranslatef( GLfloat x, GLfloat y, GLfloat z );
+
+*/
+

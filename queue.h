@@ -25,7 +25,7 @@ typedef struct {
 	void (*init)(Queue*);
 
 	// the is the main render function
-	void (*process)(Queue* queue,
+	vec_ushort8 (*process)(Queue* queue,
 		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac,
 		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4,
 		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy);
@@ -67,6 +67,8 @@ struct __QUEUE {
 
 			unsigned int	bx,by;
 
+			vec_ushort8	TEXmerge1,TEXmerge2;	// for texture blits
+			unsigned int	texturesMask;
 		} block;
 
 		// padding, number above must be at least as big as number of qwords in any struct
@@ -84,6 +86,7 @@ typedef char constraint_violated[1 - 2*(sizeof(struct __QUEUE) != 16*(1+QUEUE_PA
 extern Queue job_queue[];
 extern unsigned int free_job_queues;
 extern unsigned int ready_job_queues;
+extern unsigned int dma_wait_job_queues;
 
 extern void debug_queue(void);
 extern void process_queue(void);
