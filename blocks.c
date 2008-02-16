@@ -410,6 +410,11 @@ void real_block_handler(Queue* queue)
 //			printf("desired %d->%d, reading to %x from %x:%08x len %d tag %d\n",
 //				desired, nextIndex, texture, eah, eal, len, queue->id);
 
+			if (mfc_stat_cmd_queue() == 0) {
+				printf("DMA queue full; bailing...\n");
+				break;
+			}
+
 			spu_mfcdma64(texture, eah, eal, len, queue->id, MFC_GET_CMD);
 
 			freeTextureMaps &= ~nextMask;
