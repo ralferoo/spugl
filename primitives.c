@@ -134,6 +134,8 @@ static void imp_triangle()
 	queue->triangle.A_dy = area_dy;
 	queue->triangle.left = -1;
 
+	queue->triangle.tex_id_base = current_texture<<6;
+	queue->triangle.tex_id_mask = (1<<6)-1;
 	queue->triangle.texture_base = control.texture_hack[current_texture]; // * (256*256/32/32);
 	queue->triangle.texture_y_shift = 8-5;
 	queue->triangle.functions = &_standard_texture_triangle;

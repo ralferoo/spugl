@@ -16,7 +16,7 @@
 #include <spu_intrinsics.h>
 
 #define NUMBER_OF_QUEUE_JOBS 32
-#define QUEUE_PADDING 17
+#define QUEUE_PADDING 18
 
 typedef struct __QUEUE Queue;
 
@@ -54,6 +54,8 @@ struct __QUEUE {
 			unsigned long	texture_base;	// the base texture address for block(0,0)
 			unsigned char	texture_y_shift;// log2(texture_width_in_blocks)
 			unsigned char	step, cur_x, cur_y;	// current x and y values
+			unsigned short	tex_id_base;	// base of texture ids (to guarantee unique)
+			unsigned short	tex_id_mask;	// mask of valid bits of texture id
 		} triangle;
 
 		// this holds a block waiting to be rendered, in whatever state it is in

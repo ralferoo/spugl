@@ -328,6 +328,9 @@ void real_block_handler(Queue* queue)
 	int finished = spu_extract((vec_int4)need_any,0);
 	queue->block.triangle->triangle.count += finished;
 
+	vec_ushort8 tex_id_base = spu_splats((unsigned short)tri->triangle.tex_id_base);
+	vec_ushort8 needs_sub = spu_sub(needs,tex_id_base);
+
 	if (!finished) {
 		vec_ushort8 TEXmerge1 = spu_splats((unsigned short)-1);
 		vec_ushort8 TEXmerge2 = spu_splats((unsigned short)-1);
@@ -340,6 +343,7 @@ void real_block_handler(Queue* queue)
 				break;
 			}
 			unsigned short want = spu_extract(needs,i);
+			unsigned short want_sub = spu_extract(needs_sub,i);
 			int nextBit1 = FIRST_JOB(freeTextureMaps);
 			int nextBit2 = FIRST_JOB(freeTextureMaps & ((1<<lastLoadedTextureMap)-1) );
 			int nextIndex = nextBit2<0 ? nextBit1 : nextBit2;
@@ -394,9 +398,9 @@ void real_block_handler(Queue* queue)
 		spu_extract(TEXcache1,6), spu_extract(TEXcache2,6),
 		spu_extract(TEXcache1,7), spu_extract(TEXcache2,7));
 */
-			unsigned int desired = spu_extract(needs, i);
-			unsigned long long ea = control.texture_hack[0] + (desired<<(5+5+2));
-//tri->triangle.texture_base
+			unsigned int desired = spu_extract(needs_sub, i);
+//			unsigned long long ea = control.texture_hack[0] + (desired<<(5+5+2));
+			unsigned long long ea = tri->triangle.texture_base + (desired<<(5+5+2));
 			unsigned long len = 32*32*4;
 			
 			unsigned long eah = 0; // TODO: fix this

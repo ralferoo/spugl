@@ -202,6 +202,7 @@ vec_ushort8 process_texture_block(Queue* queue,
 	vec_ushort8 need1 = spu_splats((unsigned short)-1); 
 	char* tex_mask_ptr = queue->block.tex_temp; 
 	Queue* tri = queue->block.triangle; 
+	vec_uint4 tex_id_base = spu_splats((unsigned int)tri->triangle.tex_id_base);
 	do { 
 		vec_uint4 uAa = (vec_uint4) Aa; 
 		vec_uint4 uAb = (vec_uint4) Ab; 
@@ -228,7 +229,7 @@ vec_ushort8 process_texture_block(Queue* queue,
 
 			vec_uint4 s_blk = spu_and(spu_rlmask(spu_convtu(t_s,32),-26), 0x38);	//24+2
 			vec_uint4 t_blk = spu_and(spu_rlmask(spu_convtu(t_t,32),-29), 0x7);	//24+5
-			vec_uint4 block_id = spu_or(s_blk,t_blk);
+			vec_uint4 block_id = spu_add(tex_id_base,spu_or(s_blk,t_blk));
 
 			vec_uchar16 shuf_cmp_0 = spu_splats((unsigned short)0x203);
 			vec_ushort8 copy_cmp_0 = spu_shuffle(block_id,block_id,shuf_cmp_0);

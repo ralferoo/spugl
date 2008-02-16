@@ -25,7 +25,7 @@ SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS
 SPUCCFLAGS = -O6 -I. -DSPU_REGS
 
 SPU_OBJS = spufifo.0 decode.0 primitives.0 triangleColourSpan.0 fragment.0 shader.0 queue.0 blocks.0
-PPU_OBJS = ppufifo.o glfifo.o framebuffer.o
+PPU_OBJS = ppufifo.o glfifo.o framebuffer.o textureprep.o
 
 TEXTURES_C := $(wildcard textures/*.c)
 TEXTURES := $(patsubst %.c,%.o,$(TEXTURES_C))
@@ -194,6 +194,24 @@ framebuffer.o: /usr/include/asm/sockios.h /usr/include/arpa/inet.h
 framebuffer.o: /usr/include/netinet/in.h /usr/include/bits/in.h
 framebuffer.o: /usr/include/bits/byteswap.h fifo.h types.h
 framebuffer.o: gen_spu_command_defs.h struct.h spuregs.h
+textureprep.o: /usr/include/stdlib.h /usr/include/features.h
+textureprep.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+textureprep.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+textureprep.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+textureprep.o: /usr/include/sys/types.h /usr/include/bits/types.h
+textureprep.o: /usr/include/bits/typesizes.h /usr/include/time.h
+textureprep.o: /usr/include/endian.h /usr/include/bits/endian.h
+textureprep.o: /usr/include/sys/select.h /usr/include/bits/select.h
+textureprep.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
+textureprep.o: /usr/include/sys/sysmacros.h /usr/include/bits/pthreadtypes.h
+textureprep.o: /usr/include/alloca.h /usr/include/bits/stdlib-ldbl.h
+textureprep.o: /usr/include/stdio.h /usr/include/libio.h
+textureprep.o: /usr/include/_G_config.h /usr/include/wchar.h
+textureprep.o: /usr/include/bits/wchar.h /usr/include/gconv.h
+textureprep.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+textureprep.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
+textureprep.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
+textureprep.o: types.h
 test.o: /usr/include/stdlib.h /usr/include/features.h
 test.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 test.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
