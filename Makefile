@@ -99,10 +99,6 @@ depend: .gen
 	@rm -f Makefile.bak
 	@for i in $(SPU_OBJS) ; do grep $$i:.*spuregs.h Makefile >/dev/null || (echo ERROR: $$i does not refer to spuregs.h && false) ; done
 
-# it's probably just me, but i never manage to get .svnignore to work...
-status:
-	svn status|grep -v swp$$|grep -v [0o]$$ |grep -v \\.gen
-
 # SPU rules
 
 %.s: %.c
