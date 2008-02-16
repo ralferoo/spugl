@@ -28,8 +28,8 @@ SPUCCFLAGS = -O6 -I. -DSPU_REGS
 
 TEXTURES_C := $(wildcard textures/*.c)
 TEXTURES := $(patsubst %.c,%.o,$(TEXTURES_C))
-SPU_HNDL = spu_3d.handle.O
-SPU_HNDL_BASE = $(patsubst %.O,%.spe,$(SPU_HNDL))
+SPU_HNDL = spu_3d.handle.o$(USERLAND)
+SPU_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(SPU_HNDL))
 
 SHARED_HEADERS = struct.h fifo.h types.h GL/*.h
 PPU_OBJS = ppufifo.o glfifo.o framebuffer.o textureprep.o
@@ -39,7 +39,7 @@ GENSOURCES = decode.c fragment.c
 PPU_TEST_OBJS = $(PPU_OBJS) test.o $(TEXTURES)
 PPU_SRCS := $(patsubst %.o,%.c,$(PPU_TEST_OBJS))
 
-SOURCE_DIST_FILES= README $(PPU_SRCS) $(SPU_HNDL_BASE) $(SHARED_HEADERS) gen_spu_command_defs.h
+SOURCE_DIST_FILES= README $(PPU_SRCS) $(SPU_HNDL) $(SHARED_HEADERS) gen_spu_command_defs.h
 
 all:	$(TARGETS)
 
@@ -114,6 +114,9 @@ status:
 %.0: %.s
 	$(SPUCC) $(SPUCCFLAGS) -c $< -o $*.0
 
+%.handle.o$(USERLAND): %.handle.spe
+	embedspu $*_handle $*.handle.spe $*.handle.o$(USERLAND)
+
 ### BUILD-ONLY-END ###
 
 ###############################################################################
@@ -122,7 +125,7 @@ status:
 
 clean:
 	rm -f *.o
-#	rm -f *.spe *.O
+#	rm -f *.spe *.o$(USERLAND)
 	rm -f *.0
 	rm -rf build dist
 	rm -f .gen test
@@ -139,9 +142,6 @@ clean:
 
 %.o: %.cpp
 	$(PPUCC) $(PPUCCFLAGS) $< -o $@
-
-%.handle.O: %.handle.spe
-	embedspu $*_handle $*.handle.spe $*.handle.O
 
 ###############################################################################
 #
