@@ -24,18 +24,21 @@ PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I. -Wno-trigrap
 SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS
 SPUCCFLAGS = -O6 -I. -DSPU_REGS
 
-SPU_OBJS = spufifo.0 decode.0 primitives.0 triangleColourSpan.0 fragment.0 shader.0 queue.0 blocks.0
-PPU_OBJS = ppufifo.o glfifo.o framebuffer.o textureprep.o
-
 TEXTURES_C := $(wildcard textures/*.c)
 TEXTURES := $(patsubst %.c,%.o,$(TEXTURES_C))
-SPU_HNDL = spu_3d.handle.o
-PPU_TEST_OBJS = $(PPU_OBJS) test.o $(TEXTURES)
+SPU_HNDL = spu_3d.handle.O
 
+SHARED_HEADERS = struct.h fifo.h types.h GL/*.h
+PPU_OBJS = ppufifo.o glfifo.o framebuffer.o textureprep.o
+SPU_OBJS = spufifo.0 decode.0 primitives.0 fragment.0 shader.0 queue.0 blocks.0
+
+PPU_TEST_OBJS = $(PPU_OBJS) test.o $(TEXTURES)
 PPU_SRCS := $(patsubst %.o,%.c,$(PPU_TEST_OBJS))
-SPU_SRCS := $(patsubst %.0,%.c,$(SPU_OBJS))
 
 GENSOURCES = decode.c fragment.c
+GENPRODUCTS = gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h
+
+SOURCE_DIST_FILES= README $(PPU_SRCS) $(SPU_HNDL) $(SHARED_HEADERS) $(GENPRODUCTS)
 
 all:	$(TARGETS)
 
@@ -48,6 +51,23 @@ test.static:	$(PPU_TEST_OBJS) $(SPU_HNDL)
 run:	test
 	./test
 
+### BUILD-ONLY-START ###
+#
+# This stuff is excluded from the distribution Makefile...
+#
+
+SPU_SRCS := $(patsubst %.0,%.c,$(SPU_OBJS))
+
+dist:	source.tar.gz
+
+source.tar.gz:	$(SOURCE_DIST_FILES) Makefile
+	rm -rf .dist
+	mkdir .dist
+	sed -e '/BUILD-ONLY-''START/,/BUILD-ONLY-''END/d' <Makefile | sed -e '/DO NOT'' DELETE/,$$d' >.dist/Makefile
+	touch .dist/spuregs.h
+	tar cf - $(SOURCE_DIST_FILES) | (cd .dist ; tar xf -)
+	tar cfz $@ -C .dist .
+
 edit:
 	gvim -p Makefile shader.c blocks.c queue.h primitives.c test.c struct.h
 
@@ -55,8 +75,8 @@ source:
 	make shader.s && less shader.s
 
 shader.s: queue.h
-ppufifo.o: Makefile .gen
-spufifo.0: Makefile .gen
+#ppufifo.o: Makefile .gen
+spufifo.0: Makefile $(GENPRODUCTS)
 
 gen_spu_command_defs.h: .gen
 gen_spu_command_exts.h: .gen
@@ -65,9 +85,10 @@ gen_spu_command_table.h: .gen
 	perl importdefs.pl $(GENSOURCES)
 	@touch .gen
 
-###############################################################################
-#
-# useful targets
+%.handle.O: $(SPU_OBJS) Makefile
+	$(SPUCC) $(SPU_OBJS) -o $*.handle.spe
+	spu-strip $*.handle.spe
+	embedspu $*_handle $*.handle.spe $*.handle.O
 
 depend: .gen
 	@echo checking dependencies
@@ -79,6 +100,23 @@ depend: .gen
 # it's probably just me, but i never manage to get .svnignore to work...
 status:
 	svn status|grep -v swp$$|grep -v [0o]$$ |grep -v \\.gen
+
+# SPU rules
+
+%.s: %.c
+	$(SPUCC) $(SPUCCFLAGS) -c -S $< -o $*.s
+
+%.0: %.c
+	$(SPUCC) $(SPUCCFLAGS) -c $< -o $*.0
+
+%.0: %.s
+	$(SPUCC) $(SPUCCFLAGS) -c $< -o $*.0
+
+### BUILD-ONLY-END ###
+
+###############################################################################
+#
+# useful targets
 
 clean:
 	rm -f *.o
@@ -98,20 +136,6 @@ clean:
 
 %.o: %.cpp
 	$(PPUCC) $(PPUCCFLAGS) $< -o $@
-
-%.s: %.c
-	$(SPUCC) $(SPUCCFLAGS) -c -S $< -o $*.s
-
-%.0: %.c
-	$(SPUCC) $(SPUCCFLAGS) -c $< -o $*.0
-
-%.0: %.s
-	$(SPUCC) $(SPUCCFLAGS) -c $< -o $*.0
-
-%.handle.o: $(SPU_OBJS) Makefile
-	$(SPUCC) $(SPU_OBJS) -o $*.handle.spe
-	spu-strip $*.handle.spe
-	embedspu $*_handle $*.handle.spe $*.handle.o
 
 ###############################################################################
 #
