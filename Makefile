@@ -9,6 +9,8 @@
 #
 ############################################################################
 
+BASE_NAME = spugl-client-0.1
+
 TARGETS = test
 
 LIBDIRS = -L/usr/lib
@@ -27,18 +29,17 @@ SPUCCFLAGS = -O6 -I. -DSPU_REGS
 TEXTURES_C := $(wildcard textures/*.c)
 TEXTURES := $(patsubst %.c,%.o,$(TEXTURES_C))
 SPU_HNDL = spu_3d.handle.O
+SPU_HNDL_BASE = $(patsubst %.O,%.spe,$(SPU_HNDL))
 
 SHARED_HEADERS = struct.h fifo.h types.h GL/*.h
 PPU_OBJS = ppufifo.o glfifo.o framebuffer.o textureprep.o
 SPU_OBJS = spufifo.0 decode.0 primitives.0 fragment.0 shader.0 queue.0 blocks.0
+GENSOURCES = decode.c fragment.c
 
 PPU_TEST_OBJS = $(PPU_OBJS) test.o $(TEXTURES)
 PPU_SRCS := $(patsubst %.o,%.c,$(PPU_TEST_OBJS))
 
-GENSOURCES = decode.c fragment.c
-GENPRODUCTS = gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h
-
-SOURCE_DIST_FILES= README $(PPU_SRCS) $(SPU_HNDL) $(SHARED_HEADERS) $(GENPRODUCTS)
+SOURCE_DIST_FILES= README $(PPU_SRCS) $(SPU_HNDL_BASE) $(SHARED_HEADERS) gen_spu_command_defs.h
 
 all:	$(TARGETS)
 
@@ -58,14 +59,14 @@ run:	test
 
 SPU_SRCS := $(patsubst %.0,%.c,$(SPU_OBJS))
 
-dist:	source.tar.gz
+dist:	$(BASE_NAME).tar.gz
 
-source.tar.gz:	$(SOURCE_DIST_FILES) Makefile
+$(BASE_NAME).tar.gz:	$(SOURCE_DIST_FILES) Makefile
 	rm -rf .dist
-	mkdir .dist
-	sed -e '/BUILD-ONLY-''START/,/BUILD-ONLY-''END/d' <Makefile | sed -e '/DO NOT'' DELETE/,$$d' >.dist/Makefile
-	touch .dist/spuregs.h
-	tar cf - $(SOURCE_DIST_FILES) | (cd .dist ; tar xf -)
+	mkdir -p .dist/$(BASE_NAME)
+	sed -e '/BUILD-ONLY-''START/,/BUILD-ONLY-''END/d' <Makefile | sed -e '/DO NOT'' DELETE/,$$d' >.dist/$(BASE_NAME)/Makefile
+	touch .dist/$(BASE_NAME)/spuregs.h
+	tar cf - $(SOURCE_DIST_FILES) | (cd .dist/$(BASE_NAME) ; tar xf -)
 	tar cfz $@ -C .dist .
 
 edit:
@@ -73,6 +74,8 @@ edit:
 
 source:
 	make shader.s && less shader.s
+
+GENPRODUCTS = gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h
 
 shader.s: queue.h
 #ppufifo.o: Makefile .gen
@@ -85,10 +88,9 @@ gen_spu_command_table.h: .gen
 	perl importdefs.pl $(GENSOURCES)
 	@touch .gen
 
-%.handle.O: $(SPU_OBJS) Makefile
+%.handle.spe: $(SPU_OBJS) Makefile
 	$(SPUCC) $(SPU_OBJS) -o $*.handle.spe
 	spu-strip $*.handle.spe
-	embedspu $*_handle $*.handle.spe $*.handle.O
 
 depend: .gen
 	@echo checking dependencies
@@ -120,7 +122,8 @@ status:
 
 clean:
 	rm -f *.o
-	rm -f *.spe *.0
+#	rm -f *.spe *.O
+	rm -f *.0
 	rm -rf build dist
 	rm -f .gen test
 	rm -f textures/*.o
@@ -136,6 +139,9 @@ clean:
 
 %.o: %.cpp
 	$(PPUCC) $(PPUCCFLAGS) $< -o $@
+
+%.handle.O: %.handle.spe
+	embedspu $*_handle $*.handle.spe $*.handle.O
 
 ###############################################################################
 #
