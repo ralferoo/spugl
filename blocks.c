@@ -431,7 +431,6 @@ void real_block_handler(Queue* queue)
 
 /*
 	printf("block %2d @(%2d,%2d) ", queue->id, queue->block.bx, queue->block.by);
-
 	printf("needs %02x -> %04x %04x %04x %04x %04x %04x %04x %04x\n",
 		spu_extract(need_bits,0),
 		spu_extract(needs,0), spu_extract(needs,1),
@@ -439,6 +438,7 @@ void real_block_handler(Queue* queue)
 		spu_extract(needs,4), spu_extract(needs,5),
 		spu_extract(needs,6), spu_extract(needs,7)); 
 */
+	} else {
 	}
 }
 
@@ -483,8 +483,8 @@ void finish_texmap_blit_handler(Queue* queue)
 		spu_extract(TEXcache1,7), spu_extract(TEXcache2,7));
 */
 
-	queue->block.triangle->triangle.count --;
-//	block_handler(queue);
+//	queue->block.triangle->triangle.count --;
+	real_block_handler(queue);
 }
 
 void block_handler(Queue* queue)
