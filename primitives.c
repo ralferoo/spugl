@@ -160,26 +160,25 @@ int triangleProducer(Triangle* tri, Block* block)
 //	printf("producing block t:%x b:%x @%d,%d left:%d count:%d\n",
 //			tri, block, bx,by, left, tri->count);
 
-		block->process = tri->init_block;
-			block->bx = bx;
-			block->by = by;
-			block->triangle = tri;
-			block->A=A;
-			block->A_dx=A_dx;
-			block->A_dy=blockA_dy;
-//			block->next = -1;
-			tri->count++;
+	block->process = tri->init_block;
+	block->bx = bx;
+	block->by = by;
+	block->triangle = tri;
+	block->A=A;
+	block->A_dx=A_dx;
+	block->A_dy=blockA_dy;
+//	block->next = -1;
+	tri->count++;
 
-		vec_uint4 step_eq0 = spu_cmpeq(step,spu_splats(0));
-		vec_float4 A_d32 = spu_sel(A_dx32,A_dy32,step_eq0);
-		A += A_d32;
+	vec_uint4 step_eq0 = spu_cmpeq(step,spu_splats(0));
+	vec_float4 A_d32 = spu_sel(A_dx32,A_dy32,step_eq0);
+	A += A_d32;
 
-		bx = if_then_else(spu_extract(step_eq0,0), block_left, bx+1);
-		by = if_then_else(spu_extract(step_eq0,0), by+1, by);
-		vec_int4 t_step = spu_add(step, spu_splats(-1));
-		step = spu_sel(t_step, step_start, step_eq0);
-		left--;
-
+	bx = if_then_else(spu_extract(step_eq0,0), block_left, bx+1);
+	by = if_then_else(spu_extract(step_eq0,0), by+1, by);
+	vec_int4 t_step = spu_add(step, spu_splats(-1));
+	step = spu_sel(t_step, step_start, step_eq0);
+	left--;
 
 	tri->cur_x = bx;
 	tri->cur_y = by;
