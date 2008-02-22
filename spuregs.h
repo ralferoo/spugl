@@ -105,6 +105,12 @@ static inline unsigned long if_then_else(unsigned long c,
 }
 	
 
+static inline int first_bit(unsigned int x) {
+	vec_uint4 xx = (vec_uint4) x;
+	vec_uint4 clz = spu_cntlz(xx);
+	return (int) 31-spu_extract(clz,0);
+}
+
 #endif
 
 #endif // __spuregs_h

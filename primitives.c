@@ -23,8 +23,8 @@ extern float4 current_texcoord;
 extern u32 current_texture;
 extern _bitmap_image screen;
 
-extern void block_handler(Queue* queue);
-extern void triangle_handler(Queue* queue);
+//extern void block_handler(Queue* queue);
+//extern void triangle_handler(Queue* queue);
 
 extern SPU_CONTROL control;
 
@@ -60,22 +60,51 @@ static const vec_uchar16 minimax_merge = {
 static const vec_uchar16 minimax_add = {
 0,1,2,3, 0,1,2,3, 0,1,2,3, 0,1,2,3};
 
-int last_triangle = -1;
+//int last_triangle = -1;
 
-extern RenderFuncs _standard_texture_triangle;
-extern RenderFuncs _standard_simple_texture_triangle;
-extern RenderFuncs _standard_colour_triangle;
+//extern RenderFuncs _standard_texture_triangle;
+//extern RenderFuncs _standard_simple_texture_triangle;
+//extern RenderFuncs _standard_colour_triangle;
 
-static void imp_triangle()
+void* dummyBlock(void* self, Block* block)
 {
-	int free_queue = FIRST_JOB(free_job_queues);
-	if (free_queue<0) {
-		printf("ERROR: free_queue not possible in imp_triangle!!!");
-		return;
+	static int a = 3;
+	if (a++%6) {
+		block->triangle->count--;
+		printf("dummy block s:%x t:%x b:%x c:%d id:%d\n", self, block->triangle, block, block->triangle->count, block->bx);
+		return 0;
+	} else {
+		printf("dummy block stalling s:%x t:%x b:%x c:%d id:%d\n", self, block->triangle, block, block->triangle->count, block->bx);
+		return self;
 	}
-	unsigned int free_queue_mask = 1<<free_queue;
-	Queue* queue = &job_queue[free_queue];
+}
 
+int dummyProducer(Triangle* tri, Block* block)
+{
+	static int id = 0;
+	static int a = 3;
+	if (tri->left<0) {
+		tri->left = 1; //(a%47)+4;
+		a+=19;
+		printf("new dummy producer, initialising left to %d\n", tri->left);
+	}
+	if (tri->left>0) {
+		tri->left--;
+		tri->count++;
+		printf("dummy producer t:%x b:%x c:%d id:%d\n", tri, block, tri->count, id);
+		block->process = &dummyBlock;
+		block->triangle = tri;
+		block->bx = id++;
+		return 1;
+	} else {
+		tri->count--;
+		printf("dummy finished producer t:%x b:%x c:%d\n", tri, block, tri->count);
+		return 0;
+	}
+}
+
+static void imp_triangle(struct __TRIANGLE * triangle)
+{
 	vec_float4 t_vx_cw = spu_shuffle(TRIx, TRIx, shuffle_tri_cw);
 	vec_uint4 fcgt_x = spu_cmpgt(TRIx, t_vx_cw);	// all-ones if ax>bx, bx>cx, cx>ax, ???
 	u32 fcgt_bits_x = spu_extract(spu_gather(fcgt_x), 0) & ~1;
@@ -113,35 +142,37 @@ static void imp_triangle()
 	vec_float4 area_ofs = spu_madd(spu_splats(spu_extract(TRIx,0)),area_dx,
 			spu_mul(spu_splats(spu_extract(TRIy,0)),area_dy));
 
-	queue->triangle.x = TRIx;
-	queue->triangle.y = TRIy;
-	queue->triangle.z = TRIz;
-	queue->triangle.w = TRIw;
+	triangle->x = TRIx;
+	triangle->y = TRIy;
+	triangle->z = TRIz;
+	triangle->w = TRIw;
 	
-	queue->triangle.r = TRIr;
-	queue->triangle.g = TRIg;
-	queue->triangle.b = TRIb;
-	queue->triangle.a = TRIa;
+	triangle->r = TRIr;
+	triangle->g = TRIg;
+	triangle->b = TRIb;
+	triangle->a = TRIa;
 	
-	queue->triangle.s = TRIs;
-	queue->triangle.t = TRIt;
-	queue->triangle.u = TRIu;
-	queue->triangle.v = TRIv;
+	triangle->s = TRIs;
+	triangle->t = TRIt;
+	triangle->u = TRIu;
+	triangle->v = TRIv;
 	
-	queue->triangle.minmax = minmax;
-	queue->triangle.A = spu_sub(base_area, area_ofs);
-	queue->triangle.A_dx = area_dx;
-	queue->triangle.A_dy = area_dy;
-	queue->triangle.left = -1;
+	triangle->minmax = minmax;
+	triangle->A = spu_sub(base_area, area_ofs);
+	triangle->A_dx = area_dx;
+	triangle->A_dy = area_dy;
+	triangle->left = -1;
 
-	queue->triangle.tex_id_base = current_texture<<6;
-	queue->triangle.tex_id_mask = (1<<6)-1;
-	queue->triangle.texture_base = control.texture_hack[current_texture]; // * (256*256/32/32);
-	queue->triangle.texture_y_shift = 8-5;
-	queue->triangle.functions = &_standard_texture_triangle;
+	triangle->tex_id_base = current_texture<<6;
+	triangle->tex_id_mask = (1<<6)-1;
+	triangle->texture_base = control.texture_hack[current_texture]; // * (256*256/32/32);
+	triangle->texture_y_shift = 8-5;
+	triangle->produce = &dummyProducer;
 
-//	queue->triangle.functions = &_standard_simple_texture_triangle;
-//	queue->triangle.functions = &_standard_colour_triangle;
+//	triangle->functions = &_standard_texture_triangle;
+
+//	triangle->functions = &_standard_simple_texture_triangle;
+//	triangle->functions = &_standard_colour_triangle;
 
 // if the triangle is visible (i.e. area>0), then we increment the triangle
 // out ptr to just past the triangle data we've just written to memory.
@@ -150,6 +181,11 @@ static void imp_triangle()
 
 	unsigned long advance_ptr_mask = spu_extract(fcgt_area, 0);
 
+//	static int qqq=0;
+//	printf("add triangle, a=%d, q=%d\n", advance_ptr_mask, ++qqq);
+
+	triangle->count = 1 & advance_ptr_mask;
+/*
 //	printf("   f=%08lx r=%08lx a=%08lx id=%d last=%d\n", free_job_queues, ready_job_queues, advance_ptr_mask,
 //		free_queue, last_triangle);
 
@@ -170,8 +206,8 @@ static void imp_triangle()
 //		ready_job_queues |= free_queue_mask;
 	ready_job_queues |= free_queue_mask & ~has_last;
 //	}
-
 	last_triangle = if_then_else(advance_ptr_mask, free_queue, last_triangle);
+*/
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -302,7 +338,7 @@ static inline void shuffle_in(vec_uchar16 inserter, float4 s, float4 col, float4
 	TRIv = spu_shuffle(TRIv, (vec_float4) tex.w, inserter);
 }
 
-void* imp_vertex(void* from, float4 in)
+void* imp_vertex(void* from, float4 in, struct __TRIANGLE * triangle)
 {
 #ifdef CHECK_STATE_TABLE
 	if (current_state < 0 ||
@@ -347,7 +383,7 @@ void* imp_vertex(void* from, float4 in)
 			imp_line();
 			break;
 		case ADD_TRIANGLE2:
-			imp_triangle();
+			imp_triangle(triangle);
 
 			current_state = shuffle_map[current_state].next;
 			ins = shuffle_map[current_state].insert;
@@ -362,7 +398,7 @@ void* imp_vertex(void* from, float4 in)
 
 			// fall through here
 		case ADD_TRIANGLE:
-			imp_triangle();
+			imp_triangle(triangle);
 			break;
 	}
 	current_state = shuffle_map[current_state].next;
@@ -377,7 +413,7 @@ int imp_validate_state(int state)
 		  shuffle_map[state].insert == 0;
 }
 
-void imp_close_segment()
+void imp_close_segment(struct __TRIANGLE * triangle)
 {
 	int end = shuffle_map[current_state].end;
 	if (end) {
@@ -388,7 +424,7 @@ void imp_close_segment()
 				imp_line();
 				break;
 			case ADD_TRIANGLE:
-				imp_triangle();
+				imp_triangle(triangle);
 				break;
 		}
 	}

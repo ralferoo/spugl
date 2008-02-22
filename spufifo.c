@@ -13,6 +13,7 @@
 #include <spu_mfcio.h>
 #include "fifo.h"
 #include "queue.h"
+#include <stdio.h>
 
 SPU_CONTROL control __CACHE_ALIGNED__;
 
@@ -48,8 +49,8 @@ SPU_COMMAND* spu_commands[] = {
 };
 
 /* Process commands on the FIFO */
-void process_fifo(u32* from, u32* to) {
-	while (from != to && (COUNT_ONES(free_job_queues)>8)) {
+void process_fifo(u32* from, u32* to, Triangle* tri) {
+	while (!tri->count && from != to) { // && (COUNT_ONES(free_job_queues)>8)) {
 		u32* addr = from;
 
 		u32 command = *from++;
@@ -57,7 +58,7 @@ void process_fifo(u32* from, u32* to) {
 					? spu_commands[command] : 0;
 
 		if (func) {
-			from = (*func)(from);
+			from = (*func)(from, tri);
 			if (!from)
 				return;
 		} else {
@@ -67,6 +68,27 @@ void process_fifo(u32* from, u32* to) {
 		u64 ls = control.my_local_address;
 		control.fifo_read = ls+((u64)((u32)from));
 	}
+}
+
+
+extern int fifoTriangleGenerator(Triangle* tri);
+
+int fifoTriangleGenerator(Triangle* tri)
+{
+//	write(1,">",1);
+	// check to see if there's any data waiting on FIFO
+	u64 read = control.fifo_read;
+	u64 written = control.fifo_written;
+	u64 ls = control.my_local_address;
+	tri->count = 0;
+	if (read!=written && !tri->count) {
+		u32* to = (u32*) ((u32)(written-ls));
+		u32* from = (u32*) ((u32)(read-ls));
+		process_fifo(from, to, tri);
+		u64 new_read = control.fifo_read;
+	}
+//	write(1,"<",1);
+	return tri->count;
 }
 
 /* I'm deliberately going to ignore the arguments passed in as early versions
@@ -85,24 +107,14 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 	spu_write_out_mbox((u32)&control);
 
 	init_queue();
-	_init_buffers();
-	_init_texture_cache();
+//	_init_buffers();
+//	_init_texture_cache();
 
 	int running = 1;
 	while (running) {
 		while (spu_stat_in_mbox() == 0) {
-			process_queue();
+			process_queue(&fifoTriangleGenerator);
 			control.idle_count += 2;
-			// check to see if there's any data waiting on FIFO
-			u64 read = control.fifo_read;
-			u64 written = control.fifo_written;
-			u64 ls = control.my_local_address;
-			if (read!=written) {
-				u32* to = (u32*) ((u32)(written-ls));
-				u32* from = (u32*) ((u32)(read-ls));
-				process_fifo(from, to);
-				u64 new_read = control.fifo_read;
-			}
 		}
 
 		unsigned long msg = spu_read_in_mbox();

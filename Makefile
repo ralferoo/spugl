@@ -21,9 +21,9 @@ USERLAND = 32
 #USERLAND = 64
 
 PPUCC = gcc
-PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I. -Wno-trigraphs
+PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I. -Wno-trigraphs -std=gnu99
 
-SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS
+SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99
 SPUCCFLAGS = -O6 -I. -DSPU_REGS
 
 TEXTURES_C := $(wildcard textures/*.c)
@@ -33,7 +33,7 @@ SPU_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(SPU_HNDL))
 
 SHARED_HEADERS = struct.h fifo.h types.h GL/*.h
 PPU_OBJS = ppufifo.o glfifo.o framebuffer.o textureprep.o
-SPU_OBJS = spufifo.0 decode.0 primitives.0 fragment.0 shader.0 queue.0 blocks.0
+SPU_OBJS = spufifo.0 decode.0 primitives.0 fragment.0 queue.0 # blocks.0 shader.0
 GENSOURCES = decode.c fragment.c
 
 PPU_TEST_OBJS = $(PPU_OBJS) test.o $(TEXTURES)

@@ -54,7 +54,7 @@ u32* getFragment(unsigned int id, unsigned long dma_tag)
 
 ///////////////////////////////////////////////////////////////////////////////
 
-/*4*/void* impScreenInfo(u32* from) {
+/*4*/void* impScreenInfo(u32* from, struct __TRIANGLE * triangle) {
 	u64 ea;
 	__READ_EA(from)
 	screen.address = ea;
@@ -77,7 +77,7 @@ u32* getFragment(unsigned int id, unsigned long dma_tag)
 	return from;
 }
 	
-/*5*/void* impClearScreen(u32* from) {
+/*5*/void* impClearScreen(u32* from, struct __TRIANGLE * triangle) {
 	void* lb = malloc( (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT) + BYTE_ALIGNMENT);
 	u32* p = lb;
 	int i;
