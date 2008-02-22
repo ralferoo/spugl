@@ -53,7 +53,7 @@ struct __TRIANGLE {
 
 	TriangleHandler*	produce;
 	BlockHandler*	init_block;
-//	RenderFuncs*	functions;
+
 		 short	left;		// count of blocks left to produce
 	unsigned short	count;		// count of blocks that still have reference
 	unsigned long	texture_base;	// the base texture address for block(0,0)

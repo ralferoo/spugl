@@ -37,7 +37,6 @@ void process_queue(TriangleGenerator* generator)
 	vector unsigned short idle_blocks = spu_cmpeq(active_blocks,(vector unsigned short)(-1));
 
 	unsigned int mask;
-//	write(1,"!",1);
 	for (int i=0, mask=1; i<NUMBER_OF_ACTIVE_BLOCKS; i++, mask<<=1) {
 		if (completed&mask) {
 			if (spu_extract(idle_blocks, i)==0) {
@@ -72,7 +71,6 @@ void process_queue(TriangleGenerator* generator)
 	}
 
 	while (free_blocks && triangles[triangle_next_read].count) {
-//		write(1,"@",1);
 		unsigned int rest_mask = ((1<<last_block_added)-1);
 		int bit1 = first_bit(free_blocks);
 		int bit2 = first_bit(free_blocks & rest_mask);
@@ -93,7 +91,6 @@ void process_queue(TriangleGenerator* generator)
 	}
 
 	while (triangles[triangle_next_write].count==0) {
-//		write(1,"#",1);
 		Triangle* tri = &triangles[triangle_next_write];
 		if ( (*generator)(tri) ) {
 //			printf("generated triangle on %d\n", triangle_next_write);
@@ -112,95 +109,7 @@ void init_queue(void)
 	}
 }
 
-
-
-/*
-Queue job_queue[NUMBER_OF_QUEUE_JOBS];
-
-unsigned int free_job_queues = ALL_QUEUE_JOBS;
-unsigned int ready_job_queues = 0;
-unsigned int dma_wait_job_queues = 0;
-
-*/
 int has_finished()
 {
-	return 1; //free_job_queues == ALL_QUEUE_JOBS;
+	return 1;
 }
-/*
-
-void debug_queue(void)
-{
-	unsigned int mask = 1;
-	int i;
-	for (i=0; i<NUMBER_OF_QUEUE_JOBS; i++, mask<<=1) {
-		Queue* q = &job_queue[i];
-		if (!(free_job_queues&mask)) {
-			printf("job %2d(%c): dispatcher %05lx DMA %08lx next %2d \"%s\"\n", 
-				i, ready_job_queues&mask?'R':'S', q->handler, q->dmamask, q->next,
-				q->name);
-		}
-	}
-}
-
-void dummy_handler(Queue* queue)
-{
-	printf("Dummy handler invoked\n");
-}
-
-void init_queue(void)
-{
-	int i;
-	for (i=0; i<NUMBER_OF_QUEUE_JOBS; i++) {
-		job_queue[i].id = i;
-		job_queue[i].next = -1;
-	}
-	
-	QUEUE_JOB(&job_queue[0],dummy_handler);
-	READY_JOB(&job_queue[0]);
-	debug_queue();
-}
-
-void process_queue(void)
-{
-	unsigned int consider = ~0;
-
-	if (ready_job_queues) {
-#ifdef DEBUG_QUEUE 
-		debug_queue();
-#endif
-
-		while (ready_job_queues&consider) {
-			if (dma_wait_job_queues) {
-				mfc_write_tag_mask(dma_wait_job_queues);
-				unsigned long completed = mfc_read_tag_status_immediate();
-//				printf("DMA completion %lx is %lx\n", dma_wait_job_queues, completed);
-				dma_wait_job_queues &= ~completed;
-				ready_job_queues |= completed;
-				consider |= completed;
-			}
-
-			int id = FIRST_JOB(ready_job_queues&consider);
-			consider = (1<<id)-1;
-#ifdef DEBUG_QUEUE 
-			printf("Job %d waiting...\n", id);
-#endif
-			Queue* q = &job_queue[id];
-			void (*handler)(Queue*) = q->handler;
-			unsigned int mask = 1<<id;
-			//BLOCK_JOB(q);
-			ready_job_queues &= ~mask;
-			//QUEUE_JOB(q,0);
-			q->handler = 0;
-			q->name = "processed";
-			handler(q);
-			if (!(q->handler)) {
-				free_job_queues |= mask;
-				int next = job_queue[id].next;
-				if (next>=0)
-					ready_job_queues |= 1<<next;
-			}
-		}
-	}
-}
-*/
-

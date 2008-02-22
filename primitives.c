@@ -71,10 +71,10 @@ void* dummyBlock(void* self, Block* block)
 	static int a = 3;
 	if (a++%6) {
 		block->triangle->count--;
-		printf("dummy block s:%x t:%x b:%x c:%d id:%d\n", self, block->triangle, block, block->triangle->count, block->bx);
+		printf("dummy block s:%x t:%x b:%x c:%d coord:%d,%d\n", self, block->triangle, block, block->triangle->count, block->bx, block->by);
 		return 0;
 	} else {
-		printf("dummy block stalling s:%x t:%x b:%x c:%d id:%d\n", self, block->triangle, block, block->triangle->count, block->bx);
+		printf("dummy block stalling s:%x t:%x b:%x c:%d coord:%d,%d\n", self, block->triangle, block, block->triangle->count, block->bx, block->by);
 		return self;
 	}
 }
@@ -84,7 +84,7 @@ int dummyProducer(Triangle* tri, Block* block)
 	static int id = 0;
 	static int a = 3;
 	if (tri->left<0) {
-		tri->left = 1; //(a%47)+4;
+		tri->left = //(a%47)+1;
 		a+=19;
 		printf("new dummy producer, initialising left to %d\n", tri->left);
 	}
@@ -92,7 +92,7 @@ int dummyProducer(Triangle* tri, Block* block)
 		tri->left--;
 		tri->count++;
 		printf("dummy producer t:%x b:%x c:%d id:%d\n", tri, block, tri->count, id);
-		block->process = &dummyBlock;
+		block->process = tri->init_block;
 		block->triangle = tri;
 		block->bx = id++;
 		return 1;
@@ -101,6 +101,102 @@ int dummyProducer(Triangle* tri, Block* block)
 		printf("dummy finished producer t:%x b:%x c:%d\n", tri, block, tri->count);
 		return 0;
 	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+
+static const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
+static const vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
+static const vec_float4 muls32 = {32.0f, 32.0f, 32.0f, 32.0f};
+static const vec_float4 mulsn28 = {-28.0f, -28.0f, -28.0f, -28.0f};
+
+static const vec_float4 muls31x = {0.0f, 31.0f, 0.0f, 31.0f};
+static const vec_float4 muls31y = {0.0f, 0.0f, 31.0f, 31.0f};
+
+//////////////////////////////////////////////////////////////////////////////
+
+int triangleProducer(Triangle* tri, Block* block)
+{
+	vec_float4 minmax_ = tri->minmax;
+	vec_int4 minmax = spu_convts(tri->minmax,0);
+	vec_int4 minmax_block = spu_rlmaska(minmax,-5);
+	vec_int4 minmax_block_mask = minmax & spu_splats(~31);
+	vec_float4 minmax_block_topleft = spu_convtf(minmax_block_mask,0);
+
+	int block_left = spu_extract(minmax_block,0);
+	int block_top = spu_extract(minmax_block,1);
+	int block_right = spu_extract(minmax_block,2);
+	int block_bottom = spu_extract(minmax_block,3);
+
+	vec_float4 pixels_wide = spu_splats(spu_extract(minmax_block_topleft,2)-spu_extract(minmax_block_topleft,0));
+
+////////////////////////////////////////////
+
+	int bx = tri->cur_x, by = tri->cur_y;
+	int left = tri->left;
+	vec_int4 step = spu_splats((int)tri->step);
+	vec_float4 A = tri->A;
+
+	vec_int4 step_start = spu_splats(block_right - block_left);
+	if (left<0) {
+		bx = block_left;
+		by = block_top;
+		step = step_start;
+		left = (block_bottom+1-block_top)*(block_right+1-block_left);
+		A = spu_madd(spu_splats(spu_extract(minmax_block_topleft,0)),tri->A_dx,
+	            spu_madd(spu_splats(spu_extract(minmax_block_topleft,1)),tri->A_dy,A));
+	}
+
+////////////////////////////////////////////
+
+	vec_float4 A_dx = tri->A_dx;
+	vec_float4 A_dy = tri->A_dy;
+	vec_float4 A_dx4 = spu_mul(muls4,A_dx);
+	vec_float4 A_dx32 = spu_mul(muls32,A_dx);
+	vec_float4 A_dy32 = spu_nmsub(pixels_wide,A_dx,spu_mul(muls32,A_dy));
+	vec_float4 blockA_dy = spu_madd(mulsn28,A_dx,A_dy);
+
+//	printf("producing block t:%x b:%x @%d,%d left:%d count:%d\n",
+//			tri, block, bx,by, left, tri->count);
+
+		block->process = tri->init_block;
+			block->bx = bx;
+			block->by = by;
+			block->triangle = tri;
+			block->A=A;
+			block->A_dx=A_dx;
+			block->A_dy=blockA_dy;
+//			block->next = -1;
+			tri->count++;
+
+		vec_uint4 step_eq0 = spu_cmpeq(step,spu_splats(0));
+		vec_float4 A_d32 = spu_sel(A_dx32,A_dy32,step_eq0);
+		A += A_d32;
+
+		bx = if_then_else(spu_extract(step_eq0,0), block_left, bx+1);
+		by = if_then_else(spu_extract(step_eq0,0), by+1, by);
+		vec_int4 t_step = spu_add(step, spu_splats(-1));
+		step = spu_sel(t_step, step_start, step_eq0);
+		left--;
+
+
+	tri->cur_x = bx;
+	tri->cur_y = by;
+	tri->step = spu_extract(step,0);
+	tri->left = left;
+	tri->A = A;
+
+	return left;
+
+//	QUEUE_JOB(tri, triangle_handler);
+//	READY_JOB(tri);
+//	return;
+
+
+//	QUEUE_JOB(tri, finish_triangle_handler);
+//	READY_JOB(tri);
+//	last_triangle = if_then_else(cmp_eq(last_triangle,tri->id), -1, last_triangle);
 }
 
 static void imp_triangle(struct __TRIANGLE * triangle)
@@ -167,7 +263,9 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	triangle->tex_id_mask = (1<<6)-1;
 	triangle->texture_base = control.texture_hack[current_texture]; // * (256*256/32/32);
 	triangle->texture_y_shift = 8-5;
-	triangle->produce = &dummyProducer;
+
+	triangle->init_block = &dummyBlock;
+	triangle->produce = &triangleProducer;
 
 //	triangle->functions = &_standard_texture_triangle;
 
