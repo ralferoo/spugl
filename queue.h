@@ -64,16 +64,14 @@ struct __TRIANGLE {
 
 // this holds a block waiting to be rendered, in whatever state it is in
 struct __BLOCK {
-	vec_float4	A,A_dx,A_dy,A_dx4;	// the weighting of the top left of the block
+	vec_float4	A;			// the weighting of the top left of the block
 	Triangle*	triangle;		// used to get parametric data
 	vec_float4*	z_buffer;
 	vec_uint4*	pixels;
-	char*		tex_temp;
 	BlockHandler*	process;
-	char		tex_override;
 
 	unsigned int	bx,by;
-	unsigned int	hash;
+//	unsigned int	hash;
 	unsigned int	left;
 
 	vec_ushort8	TEXmerge1,TEXmerge2;	// for texture blits
@@ -84,7 +82,6 @@ struct __BLOCK {
 // this holds the temporary data used when rendering one of the above blocks
 struct __ACTIVE {
 	u32 pixels[32*32];
-	char textemp[32*8];
 	vec_uint4 dma1[16];
 	vec_uint4 dma2[16];
 

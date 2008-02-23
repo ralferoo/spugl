@@ -115,8 +115,6 @@ void blockActivater(Block* block, ActiveBlock* active, int tag)
 	unsigned long long ea = screen.address + screen.bytes_per_line*by*32+bx*128;
 
 	block->pixels = (vec_uint4*) ((void*)&active->pixels[0]);
-	block->tex_temp = (char*) ((void*)&active->textemp[0]);
-	block->tex_override = -1;
 
 	if (active->ea_copy == ea) {
 //		printf("re-using same ea %llx in %x -> %x\n", ea, block, active);

@@ -119,9 +119,6 @@ int dummyProducer(Triangle* tri, Block* block)
 int triangleProducer(Triangle* tri, Block* block)
 {
 	vec_float4 A = tri->A;
-	vec_float4 A_dx = tri->A_dx;
-	vec_float4 A_dy = tri->A_dy;
-	vec_float4 A_dx4 = tri->A_dx4;
 	vec_float4 A_dx32 = tri->A_dx32;
 	vec_float4 A_dy32 = tri->A_dy32;
 	vec_float4 blockA_dy = tri->blockA_dy;
@@ -134,9 +131,6 @@ int triangleProducer(Triangle* tri, Block* block)
 	block->by = by;
 	block->triangle = tri;
 	block->A=A;
-	block->A_dx=A_dx;
-	block->A_dy=blockA_dy;
-	block->A_dx4=A_dx4;
 	block->left=32*8;
 	tri->count++;
 

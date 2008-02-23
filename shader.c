@@ -47,12 +47,12 @@ void* linearColourFill(void* self, Block* block, int tag)
 	vec_float4 Ab_dx = spu_splats(spu_extract(A_dx,1));
 	vec_float4 Ac_dx = spu_splats(spu_extract(A_dx,2));
 
-	vec_float4 A_dy = block->A_dy;
+	vec_float4 A_dy = tri->blockA_dy;
 	vec_float4 Aa_dy = spu_splats(spu_extract(A_dy,0));
 	vec_float4 Ab_dy = spu_splats(spu_extract(A_dy,1));
 	vec_float4 Ac_dy = spu_splats(spu_extract(A_dy,2));
 
-	vec_float4 A_dx4 = block->A_dx4;
+	vec_float4 A_dx4 = tri->A_dx4;
 	vec_float4 Aa_dx4 = spu_splats(spu_extract(A_dx4,0));
 	vec_float4 Ab_dx4 = spu_splats(spu_extract(A_dx4,1));
 	vec_float4 Ac_dx4 = spu_splats(spu_extract(A_dx4,2));
@@ -129,12 +129,12 @@ void* textureMapFill(void* self, Block* block, int tag)
 	vec_float4 Ab_dx = spu_splats(spu_extract(A_dx,1));
 	vec_float4 Ac_dx = spu_splats(spu_extract(A_dx,2));
 
-	vec_float4 A_dy = block->A_dy;
+	vec_float4 A_dy = tri->blockA_dy;
 	vec_float4 Aa_dy = spu_splats(spu_extract(A_dy,0));
 	vec_float4 Ab_dy = spu_splats(spu_extract(A_dy,1));
 	vec_float4 Ac_dy = spu_splats(spu_extract(A_dy,2));
 
-	vec_float4 A_dx4 = block->A_dx4;
+	vec_float4 A_dx4 = tri->A_dx4;
 	vec_float4 Aa_dx4 = spu_splats(spu_extract(A_dx4,0));
 	vec_float4 Ab_dx4 = spu_splats(spu_extract(A_dx4,1));
 	vec_float4 Ac_dx4 = spu_splats(spu_extract(A_dx4,2));

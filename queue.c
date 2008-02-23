@@ -165,7 +165,7 @@ queue_chained:
 		Triangle* tri = &triangles[triangle_next_read];
 //		printf("calling triangle produce on tri %d(%x) on block %d\n", triangle_next_read, tri, next_bit);
 		int hash = tri->produce(tri, &blocks[next_bit]);
-		blocks[next_bit].hash = hash;
+//		blocks[next_bit].hash = hash;
 
 		unsigned int chain = chain_hash(hash, next_bit);
 		ready_blocks |= next_mask & chain;
