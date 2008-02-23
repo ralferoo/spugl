@@ -66,8 +66,55 @@ static const vec_uchar16 minimax_add = {
 //extern RenderFuncs _standard_simple_texture_triangle;
 //extern RenderFuncs _standard_colour_triangle;
 
+//////////////////////////////////////////////////////////////////////////////
+
+static const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
+static const vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
+static const vec_float4 muls32 = {32.0f, 32.0f, 32.0f, 32.0f};
+static const vec_float4 mulsn28 = {-28.0f, -28.0f, -28.0f, -28.0f};
+
+static const vec_float4 muls31x = {0.0f, 31.0f, 0.0f, 31.0f};
+static const vec_float4 muls31y = {0.0f, 0.0f, 31.0f, 31.0f};
+
+//////////////////////////////////////////////////////////////////////////////
+
+extern vec_ushort8 process_colour_block(Block* block, 
+		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac, 
+		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4, 
+		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy);
+
 void* dummyBlock(void* self, Block* block, int tag)
 {
+	Triangle* tri = block->triangle;
+
+	vec_float4 A_dx = tri->A_dx;
+	vec_float4 Aa_dx = spu_splats(spu_extract(A_dx,0));
+	vec_float4 Ab_dx = spu_splats(spu_extract(A_dx,1));
+	vec_float4 Ac_dx = spu_splats(spu_extract(A_dx,2));
+
+	vec_float4 A_dy = block->A_dy;
+	vec_float4 Aa_dy = spu_splats(spu_extract(A_dy,0));
+	vec_float4 Ab_dy = spu_splats(spu_extract(A_dy,1));
+	vec_float4 Ac_dy = spu_splats(spu_extract(A_dy,2));
+
+	vec_float4 A_dx4 = spu_mul(muls4,A_dx);
+	vec_float4 Aa_dx4 = spu_splats(spu_extract(A_dx4,0));
+	vec_float4 Ab_dx4 = spu_splats(spu_extract(A_dx4,1));
+	vec_float4 Ac_dx4 = spu_splats(spu_extract(A_dx4,2));
+
+	vec_float4 A = block->A;
+	vec_float4 Aa = spu_madd(muls,Aa_dx,spu_splats(spu_extract(A,0)));
+	vec_float4 Ab = spu_madd(muls,Ab_dx,spu_splats(spu_extract(A,1)));
+	vec_float4 Ac = spu_madd(muls,Ac_dx,spu_splats(spu_extract(A,2)));
+
+	vec_ushort8 needs = process_colour_block(block,
+				Aa, Ab, Ac,
+				Aa_dx4, Ab_dx4, Ac_dx4,
+				Aa_dy, Ab_dy, Ac_dy);
+
+	block->triangle->count--;
+	return 0;
+/*
 	static int a = 3;
 	u32* pixels = (u32*)(block->pixels);
 //	printf("dummy block, p=%x\n", pixels);
@@ -82,6 +129,7 @@ void* dummyBlock(void* self, Block* block, int tag)
 //		printf("dummy block stalling s:%x t:%x b:%x c:%d coord:%d,%d tag:%d\n", self, block->triangle, block, block->triangle->count, block->bx, block->by, tag);
 		return self;
 	}
+*/
 }
 
 int dummyProducer(Triangle* tri, Block* block)
@@ -108,16 +156,6 @@ int dummyProducer(Triangle* tri, Block* block)
 	}
 }
 
-
-//////////////////////////////////////////////////////////////////////////////
-
-static const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
-static const vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
-static const vec_float4 muls32 = {32.0f, 32.0f, 32.0f, 32.0f};
-static const vec_float4 mulsn28 = {-28.0f, -28.0f, -28.0f, -28.0f};
-
-static const vec_float4 muls31x = {0.0f, 31.0f, 0.0f, 31.0f};
-static const vec_float4 muls31y = {0.0f, 0.0f, 31.0f, 31.0f};
 
 //////////////////////////////////////////////////////////////////////////////
 

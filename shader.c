@@ -39,13 +39,13 @@ static inline vec_float4 extract(
 		spu_mul (spu_splats(spu_extract(what,2)),tAc)));
 }
 	
-#define PROCESS_BLOCK_HEAD(name) vec_ushort8 name (Queue* queue, \
+#define PROCESS_BLOCK_HEAD(name) vec_ushort8 name (Block* queue, \
 		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac, \
 		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4, \
 		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy) { \
 	vec_uint4 left = spu_splats(32*8); \
-	vec_uint4* ptr = queue->block.pixels; \
-	Queue* tri = queue->block.triangle; \
+	vec_uint4* ptr = queue->pixels; \
+	Triangle* tri = queue->triangle; \
 	do { \
 		vec_uint4 uAa = (vec_uint4) Aa; \
 		vec_uint4 uAb = (vec_uint4) Ab; \
@@ -54,7 +54,7 @@ static inline vec_float4 extract(
 		vec_uint4 pixel = spu_rlmaska(allNeg,-31); \
 		vec_uint4 bail = spu_orx(pixel); \
 		if (spu_extract(bail,0)) { \
-			vec_float4 t_w = extract(tri->triangle.w, Aa, Ab, Ac); \
+			vec_float4 t_w = extract(tri->w, Aa, Ab, Ac); \
 			vec_float4 w = spu_splats(1.0f)/t_w; \
 			vec_float4 tAa = spu_mul(Aa,w); \
 			vec_float4 tAb = spu_mul(Ab,w); \
@@ -81,9 +81,9 @@ static inline vec_float4 extract(
 //
 PROCESS_BLOCK_HEAD(process_colour_block)
 {
-	vec_float4 t_r = extract(tri->triangle.r, tAa, tAb, tAc);
-	vec_float4 t_g = extract(tri->triangle.g, tAa, tAb, tAc);
-	vec_float4 t_b = extract(tri->triangle.b, tAa, tAb, tAc);
+	vec_float4 t_r = extract(tri->r, tAa, tAb, tAc);
+	vec_float4 t_g = extract(tri->g, tAa, tAb, tAc);
+	vec_float4 t_b = extract(tri->b, tAa, tAb, tAc);
 
 	vec_uint4 red = spu_and(spu_rlmask(spu_convtu(t_r,32),-8), 0xff0000);
 	vec_uint4 green = spu_and(spu_rlmask(spu_convtu(t_g,32),-16), 0xff00);
@@ -101,6 +101,8 @@ PROCESS_BLOCK_END
 static const vec_uchar16 rgba_argb = {
 	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
 
+
+/*
 //////////////////////////////////////////////////////////////////////////////
 //
 // This shader does a very ugly form of texture mapping - for each pixel that
@@ -109,13 +111,13 @@ static const vec_uchar16 rgba_argb = {
 //
 PROCESS_BLOCK_HEAD(process_simple_texture_block)
 {
-	vec_float4 t_s = extract(tri->triangle.s, tAa, tAb, tAc);
-	vec_float4 t_t = extract(tri->triangle.t, tAa, tAb, tAc);
+	vec_float4 t_s = extract(tri->s, tAa, tAb, tAc);
+	vec_float4 t_t = extract(tri->t, tAa, tAb, tAc);
 
 	vec_uint4 s_sub = spu_and(spu_rlmask(spu_convtu(t_s,32),-14), 0x3fc00);
 	vec_uint4 t_sub = spu_and(spu_rlmask(spu_convtu(t_t,32),-22), 0x3fc);
 	vec_uint4 offset = spu_or(s_sub,t_sub);
-	unsigned long texAddrBase = tri->triangle.texture_base;
+	unsigned long texAddrBase = tri->texture_base;
 	int tag_id=3;
 	u32* pixels = (u32*)ptr;
 	unsigned long texAddr0 = texAddrBase + spu_extract(offset,0);
@@ -142,6 +144,7 @@ PROCESS_BLOCK_HEAD(process_simple_texture_block)
 	*ptr = spu_sel(current, colour, pixel);
 }
 PROCESS_BLOCK_END
+*/
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -187,41 +190,43 @@ static const vec_uchar16 splats[] = {
 	/* 1110 */ {18,19, 22,23,26,27, 0,1, 2,3,4,5, 6,7,8,9},
 	/* 1111 */ {18,19, 22,23,26,27,30,31, 0,1, 2,3,4,5, 6,7},
 };
+
+/*
 //////////////////////////////////////////////////////////////////////////////
 //
 // This shader does a very ugly form of texture mapping - for each pixel that
 // needs mapping, this fires off a DMA for 128 bytes just to then copy across
 // the 4 bytes of the texture data
 //
-vec_ushort8 process_texture_block(Queue* queue, 
+vec_ushort8 process_texture_block(Block* block, 
 		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac, 
 		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4, 
 		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy) { 
 	vec_uint4 left = spu_splats(32*8); 
-	vec_uint4* ptr = queue->block.pixels; 
+	vec_uint4* ptr = block->pixels; 
 	vec_ushort8 need1 = spu_splats((unsigned short)-1); 
-	char* tex_mask_ptr = queue->block.tex_temp; 
-	Queue* tri = queue->block.triangle; 
-	vec_uint4 tex_id_base = spu_splats((unsigned int)tri->triangle.tex_id_base);
+	char* tex_mask_ptr = block->tex_temp; 
+	Triangle* tri = block->triangle; 
+	vec_uint4 tex_id_base = spu_splats((unsigned int)tri->tex_id_base);
 	do { 
 		vec_uint4 uAa = (vec_uint4) Aa; 
 		vec_uint4 uAb = (vec_uint4) Ab; 
 		vec_uint4 uAc = (vec_uint4) Ac; 
 		vec_uint4 allNeg = spu_and(spu_and(uAa,uAb),uAc); 
 		vec_uint4 pixel = spu_rlmaska(allNeg,-31); 
-		char _tex_mask = *tex_mask_ptr | queue->block.tex_override; 
+		char _tex_mask = *tex_mask_ptr | block->tex_override; 
 		vec_uint4 tex_mask = si_fsm((vec_uint4)_tex_mask); 
 		pixel = spu_and(pixel,tex_mask); 
 		vec_uint4 bail = spu_orx(pixel); 
 		if (spu_extract(bail,0)) { 
-			vec_float4 t_w = extract(tri->triangle.w, Aa, Ab, Ac); 
+			vec_float4 t_w = extract(tri->w, Aa, Ab, Ac); 
 			vec_float4 w = spu_splats(1.0f)/t_w; 
 			vec_float4 tAa = spu_mul(Aa,w); 
 			vec_float4 tAb = spu_mul(Ab,w); 
 			vec_float4 tAc = spu_mul(Ac,w);
 ////////////////////
-			vec_float4 t_s = extract(tri->triangle.s, tAa, tAb, tAc);
-			vec_float4 t_t = extract(tri->triangle.t, tAa, tAb, tAc);
+			vec_float4 t_s = extract(tri->s, tAa, tAb, tAc);
+			vec_float4 t_t = extract(tri->t, tAa, tAb, tAc);
 
 			vec_uint4 s_sub = spu_and(spu_rlmask(spu_convtu(t_s,32),-17), 0xf80);	//19-2
 			vec_uint4 t_sub = spu_and(spu_rlmask(spu_convtu(t_t,32),-22), 0x7c);	//24-2
@@ -314,7 +319,7 @@ vec_ushort8 process_texture_block(Queue* queue,
 			need1 = spu_shuffle(need1,(vec_ushort8)block_id,
 							splats[spu_extract(want_gather,0)]);
 		
-		/*
+		/ *
 			printf("%d %d %d %d -> %02lx %02lx %02lx %02lx"
 				" got %02x %02x %02x %02x %x%x%x%x"
 				" needs %04x %04x %04x %04x %04x %04x %04x %04x [%x %x]\n",
@@ -335,7 +340,7 @@ vec_ushort8 process_texture_block(Queue* queue,
 				spu_extract(want_gather,0),
 				spu_extract(gotneeds_all,0)
 				); 
-		*/
+		* /
 		
 			colour = spu_shuffle(colour, colour, rgba_argb);
 		
@@ -352,14 +357,16 @@ vec_ushort8 process_texture_block(Queue* queue,
 		Ab += spu_sel(Ab_dx4,Ab_dy,sel); 
 		Ac += spu_sel(Ac_dx4,Ac_dy,sel); 
 	} while (spu_extract(left,0)>0); 
-	queue->block.tex_override = 0; 
+	block->tex_override = 0; 
 	return need1;
 }
+*/
 
 //////////////////////////////////////////////////////////////////////////////
 
-extern void block_handler(Queue* queue);
+// extern void block_handler(Queue* queue);
 
+/*
 RenderFuncs _standard_simple_texture_triangle = {
 	.init = block_handler,
 	.process = process_simple_texture_block
@@ -374,3 +381,5 @@ RenderFuncs _standard_colour_triangle = {
 	.init = block_handler,
 	.process = process_colour_block
 };
+*/
+
