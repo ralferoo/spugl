@@ -29,6 +29,40 @@ static unsigned int last_block_started = 0;
 static unsigned int last_block_added = 0;
 static vector unsigned short active_blocks = (vector unsigned short)(-1);
 
+static inline void chain_hash(unsigned short hash, int idx)
+{
+	static vector unsigned short hash0 = (vector unsigned short)(-1);
+	static vector unsigned short hash1 = (vector unsigned short)(-1);
+	static vector unsigned short hash2 = (vector unsigned short)(-1);
+	static vector unsigned short hash3 = (vector unsigned short)(-1);
+
+	vector unsigned short compare = spu_splats(hash);
+
+	// mask* will be all-ones if match, all-zeros if not
+	vector unsigned short mask0 = spu_cmpeq(compare, hash0);
+	vector unsigned short mask1 = spu_cmpeq(compare, hash1);
+	vector unsigned short mask2 = spu_cmpeq(compare, hash2);
+	vector unsigned short mask3 = spu_cmpeq(compare, hash3);
+
+	// remove old match (if any) from hash table and update hash table with new entry
+	const static vector unsigned int shift = { 0x80000000,0x800000,0x8000,0x80 };
+	vector unsigned int shifted = spu_rl(shift,32-idx);
+
+	hash0 = spu_sel(spu_or(hash0,mask0),compare,spu_maskh(spu_extract(shifted,0)));
+	hash1 = spu_sel(spu_or(hash1,mask1),compare,spu_maskh(spu_extract(shifted,1)));
+	hash2 = spu_sel(spu_or(hash2,mask2),compare,spu_maskh(spu_extract(shifted,2)));
+	hash3 = spu_sel(spu_or(hash3,mask3),compare,spu_maskh(spu_extract(shifted,3)));
+	
+	// determine what index previous held the hash
+	const static vector unsigned char sel01 = { 128, 128, 19, 3 };
+	const static vector unsigned char sel23 = { 19, 3, 128, 128 };
+	unsigned int old = spu_extract(spu_cntlz(spu_or(
+		spu_shuffle(spu_gather(mask0), spu_gather(mask1), sel01), 
+		spu_shuffle(spu_gather(mask2), spu_gather(mask3), sel23))),0);
+
+	printf("hash %4x held by %2d now held by %2d\n", hash, old, idx);
+}
+
 static inline void debug()
 {
 /*
@@ -104,15 +138,18 @@ queue_next:
 
 		Triangle* tri = &triangles[triangle_next_read];
 //		printf("calling triangle produce on tri %d(%x) on block %d\n", triangle_next_read, tri, next_bit);
-		int next = tri->produce(tri, &blocks[next_bit]);
 		last_block_added = next_bit;
 		ready_blocks |= next_mask;
 		free_blocks &= ~next_mask;
-		if (next) {
-		} else {
+
+		int hash = tri->produce(tri, &blocks[next_bit]);
+		if (hash<0) {
 //			printf("finished producing on %d\n", triangle_next_read);
 			tri->produce = 0;
 			triangle_next_read = (triangle_next_read+1)%NUMBER_OF_TRIS;
+		} else {
+//			printf("production -> hash %x\n", hash);
+			chain_hash(hash, next_bit);
 		}
 	}
 
@@ -145,6 +182,14 @@ void init_queue(ActiveBlockInit* init, ActiveBlockFlush* flush)
 	for (int j=0; j<NUMBER_OF_ACTIVE_BLOCKS; j++) {
 		(*init)(&active[j]);
 	}
+
+	for (int i=0; i<70; i++)
+		chain_hash(0x120+(i%3)+(i>>2), i);
+
+	chain_hash(-1, 3);
+
+	for (int i=0; i<70; i++)
+		chain_hash(0x120+(i%3)+(i>>2), i);
 }
 
 int has_finished()

@@ -231,11 +231,12 @@ int triangleProducer(Triangle* tri, Block* block)
 
 	if (left==0) {
 		tri->count--;
+		return -1;
 //		printf("done all blocks, t:%x b:%x count:%d\n",
 //			tri, block, tri->count);
 	}
 
-	return left;
+	return bx | (by<<8);
 
 //	QUEUE_JOB(tri, triangle_handler);
 //	READY_JOB(tri);

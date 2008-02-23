@@ -168,7 +168,6 @@ void blockActivater(Block* block, ActiveBlock* active, int tag)
 
 
 
-#ifdef __IGNORE_ALL_JUNK
 
 
 int qs(int a) { return a>>5; }
@@ -176,6 +175,8 @@ unsigned int qu(unsigned int a) { return a>>5; }
 
 float myrecip(float b) { return 1.0/b; }
 float mydiv(float a,float b) { return a/b; }
+
+#ifdef __IGNORE_ALL_JUNK
 
 //////////////////////////////////////////////////////////////////////////////
 
