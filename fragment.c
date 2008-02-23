@@ -14,6 +14,7 @@
 #include "struct.h"
 #include "primitives.h"
 
+//#include <stdlib.h>
 #include <GL/gl.h>
 
 extern SPU_CONTROL control;
@@ -79,10 +80,10 @@ u32* getFragment(unsigned int id, unsigned long dma_tag)
 	
 /*5*/void* impClearScreen(u32* from, struct __TRIANGLE * triangle) {
 	void* lb = malloc( (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT) + BYTE_ALIGNMENT);
-	u32* p = lb;
+	u32* p = (u32*)((u32)(lb+BYTE_ALIGNMENT-1) & ~BYTE_ALIGNMENT);
 	int i;
 	for (i=0; i<screen.width; i++)
-		p[i] = 0;
+		p[i] = ((i&255)<<1) | ((i>>7)<<20);
 	for (i=0; i<screen.height; i++) {
 		u64 addr = screen.address + screen.bytes_per_line*i;
 		mfc_putf(lb, addr, (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT), 0, 0, 0);

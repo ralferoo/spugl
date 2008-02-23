@@ -14,19 +14,19 @@
 #include <spu_mfcio.h>
 #include <stdio.h>
 
-Triangle triangles[NUMBER_OF_TRIS];
-Block blocks[NUMBER_OF_QUEUED_BLOCKS];
-ActiveBlock active[NUMBER_OF_ACTIVE_BLOCKS];
+static Triangle triangles[NUMBER_OF_TRIS];
+static Block blocks[NUMBER_OF_QUEUED_BLOCKS];
+static ActiveBlock active[NUMBER_OF_ACTIVE_BLOCKS];
 
-unsigned int triangle_count = 0;
-unsigned int triangle_next_read = 0;
-unsigned int triangle_next_write = 0;
+static unsigned int triangle_count = 0;
+static unsigned int triangle_next_read = 0;
+static unsigned int triangle_next_write = 0;
 
-unsigned int free_blocks = ((((1<<(NUMBER_OF_QUEUED_BLOCKS-2))-1)<<2)|3);
-unsigned int ready_blocks = 0;
-unsigned int last_block_started = 0;
-unsigned int last_block_added = 0;
-vector unsigned short active_blocks = (vector unsigned short)(-1);
+static unsigned int free_blocks = ((((1<<(NUMBER_OF_QUEUED_BLOCKS-2))-1)<<2)|3);
+static unsigned int ready_blocks = 0;
+static unsigned int last_block_started = 0;
+static unsigned int last_block_added = 0;
+static vector unsigned short active_blocks = (vector unsigned short)(-1);
 
 void process_queue(TriangleGenerator* generator, BlockActivater* activate)
 {	

@@ -23,7 +23,7 @@ USERLAND = 32
 PPUCC = gcc
 PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I. -Wno-trigraphs -std=gnu99
 
-SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99
+SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -fpic
 SPUCCFLAGS = -O6 -I. -DSPU_REGS
 
 TEXTURES_C := $(wildcard textures/*.c)
