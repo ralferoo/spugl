@@ -37,10 +37,12 @@ typedef struct {
 
 typedef struct __BLOCK Block;
 typedef struct __TRIANGLE Triangle;
+typedef struct __ACTIVE ActiveBlock;
 
 typedef int (TriangleGenerator)(Triangle* tri);
 typedef int (TriangleHandler)(Triangle* tri, Block* block);
 typedef void* (BlockHandler)(void* self, Block* block);
+typedef void (BlockActivater)(Block* block, ActiveBlock* active);
 
 // this holds a triangle, i.e. something that creates blocks to be rendered
 struct __TRIANGLE {
@@ -79,6 +81,19 @@ struct __BLOCK {
 	unsigned int	texturesMask;
 } __attribute__ ((aligned(16)));
 
+struct __ACTIVE {
+	u32 pixels[32*32];
+	char textemp[32*8];
+	vec_uint4 dma1[16];
+	vec_uint4 dma2[16];
+
+	vec_uint4* current_dma;
+	vec_uint4* new_dma;
+	unsigned long current_length;
+	unsigned long eah;
+	unsigned long tagid;
+	unsigned long pad;
+} __attribute__((aligned(16)));
 
 
 /*
@@ -110,7 +125,7 @@ typedef char constraint_violated[1 - 2*(sizeof(struct __QUEUE) != 16*(1+QUEUE_PA
 
 
 extern void init_queue(void);
-extern void process_queue(TriangleGenerator* generator);
+extern void process_queue(TriangleGenerator* generator, BlockActivater* activate);
 
 extern void _init_buffers();
 

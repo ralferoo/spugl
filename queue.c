@@ -9,8 +9,6 @@
  *
  ****************************************************************************/
 
-//#define DEBUG_QUEUE 
-
 #include "spuregs.h"
 #include "queue.h"
 #include <spu_mfcio.h>
@@ -18,6 +16,7 @@
 
 Triangle triangles[NUMBER_OF_TRIS];
 Block blocks[NUMBER_OF_QUEUED_BLOCKS];
+ActiveBlock active[NUMBER_OF_ACTIVE_BLOCKS];
 
 unsigned int triangle_count = 0;
 unsigned int triangle_next_read = 0;
@@ -29,7 +28,7 @@ unsigned int last_block_started = 0;
 unsigned int last_block_added = 0;
 vector unsigned short active_blocks = (vector unsigned short)(-1);
 
-void process_queue(TriangleGenerator* generator)
+void process_queue(TriangleGenerator* generator, BlockActivater* activate)
 {	
 	mfc_write_tag_mask((1<<NUMBER_OF_ACTIVE_BLOCKS)-1);
 	unsigned int completed = mfc_read_tag_status_immediate();
@@ -52,8 +51,10 @@ void process_queue(TriangleGenerator* generator)
 					free_blocks |= 1<<id;
 					active_blocks = spu_insert( (unsigned short)-1,
 								    active_blocks, i);
+					goto queue_next;
 				}
 			} else {
+queue_next:
 				if (ready_blocks) {
 					unsigned int rest_mask = ((1<<last_block_started)-1);
 					int bit1 = first_bit(ready_blocks);
@@ -64,6 +65,7 @@ void process_queue(TriangleGenerator* generator)
 					last_block_started = next_bit;
 					active_blocks = spu_insert( (unsigned short)next_bit,
 								    active_blocks, i);
+					activate(&blocks[next_bit], &active[i]);
 //					printf("queued %d: %d\n", i, next_bit);
 				}
 			}

@@ -71,7 +71,7 @@ void process_fifo(u32* from, u32* to, Triangle* tri) {
 }
 
 
-extern int fifoTriangleGenerator(Triangle* tri);
+// extern int fifoTriangleGenerator(Triangle* tri);
 
 int fifoTriangleGenerator(Triangle* tri)
 {
@@ -89,6 +89,12 @@ int fifoTriangleGenerator(Triangle* tri)
 	}
 //	write(1,"<",1);
 	return tri->count;
+}
+
+
+void blockActivater(Block* block, ActiveBlock* active)
+{
+	printf("activating block %x on %x\n", block, active);
 }
 
 /* I'm deliberately going to ignore the arguments passed in as early versions
@@ -113,7 +119,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 	int running = 1;
 	while (running) {
 		while (spu_stat_in_mbox() == 0) {
-			process_queue(&fifoTriangleGenerator);
+			process_queue(&fifoTriangleGenerator, &blockActivater);
 			control.idle_count += 2;
 		}
 
