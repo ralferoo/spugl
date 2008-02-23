@@ -20,38 +20,14 @@
 extern SPU_CONTROL control;
 _bitmap_image screen = { .address = 0};
 
-#define FRAG_IS_SCREEN	0x8000
-#define FRAG_ID_MASK	0x7fff
-
-unsigned char _local_fragment_base[LOCAL_FRAGMENTS * FRAGMENT_SIZE] __attribute__((aligned(128)));
-
 static struct {
 	unsigned int wide;
 	unsigned int high;
 	u64 base_ea;
 	u32 buffer_length;
 	unsigned int num_fragments;
-	unsigned short id[LOCAL_FRAGMENTS];
-	void* fragment_local_base;
-	unsigned int next_fragment;
 } frags = {
-	.fragment_local_base = (void*) &_local_fragment_base,
-	.next_fragment = 0,
-	.id = {0}
 };
-
-///////////////////////////////////////////////////////////////////////////////
-
-#define MAX_SCREEN_FRAGMENTS (1920*1280/(FRAGMENT_WIDTH*FRAGMENT_HEIGHT))
-
-u32* getFragment(unsigned int id, unsigned long dma_tag)
-{
-	unsigned int next_fragment = frags.next_fragment;
-	frags.next_fragment = (frags.next_fragment+1)%LOCAL_FRAGMENTS;
-	if (frags.id[next_fragment]) {
-//		if (
-	}
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -90,8 +66,8 @@ u32* getFragment(unsigned int id, unsigned long dma_tag)
 		u64 addr = screen.address + screen.bytes_per_line*i;
 		mfc_putf(lb, addr, (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT), 0, 0, 0);
 	}
-		mfc_write_tag_mask(1);
-		mfc_read_tag_status_all();
+	mfc_write_tag_mask(1);
+	mfc_read_tag_status_all();
 	free(lb);
 	return from;
 }
