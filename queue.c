@@ -63,10 +63,19 @@ static inline unsigned int chain_hash(unsigned short hash, int idx)
 		spu_shuffle(spu_gather(mask2), spu_gather(mask3), sel23)));
 	unsigned int old = spu_extract(old_v,0);
 
-	if (old!=32)
-		printf("hash %4x held by %2d now held by %2d\n", hash, old, idx);
-
 	chained_block[old] = idx;
+//	if (old!=32)
+	{
+		printf("%08x: hash %04x held by %2d now held by %2d     \n", ready_blocks, hash, old, idx);
+
+		for (int c=0; c<33; c++)
+			printf("%2d|",c);
+		printf("\n");
+		for (int c=0; c<33; c++)
+			printf("%2d ",chained_block[c]);
+		printf("\n");
+	}
+
 
 	return spu_extract(spu_cmpeq(old_v,spu_splats((unsigned int)32)),0);
 }
@@ -105,23 +114,26 @@ void process_queue(TriangleGenerator* generator, BlockActivater* activate)
 		if (completed&mask) {
 			if (spu_extract(idle_blocks, i)==0) {
 				unsigned short id = spu_extract(active_blocks,i);
-//				printf("busy %d: %d\n", i, id);
 				Block* block = &blocks[id];
 				BlockHandler* next = block->process(block->process, block, i);
 				if (next) {
 					block->process = next;
+					printf("stalled %d: %d\n", i, id);
 				} else {
-//					printf("finished %d: %d\n", i, id);
+					printf("finished %d: %d\n", i, id);
 					block->process = next;
 					free_blocks |= 1<<id;
 					active_blocks = spu_insert( (unsigned short)-1,
 								    active_blocks, i);
-					next_bit = chained_block[i];
-//						static int aaa = -2;
-//					chain_hash(aaa--, i);
-//					printf("next_bit %d\n", next_bit);
+					next_bit = chained_block[id];
 					if (next_bit>=0) {
-						chained_block[i] = -1;
+						printf("from %d, next_bit %d\n", id, next_bit);
+						static int aaa = -2;
+					chain_hash(aaa--, id);
+						chained_block[id] = -1;
+						printf("ready %08x -> ",ready_blocks);
+						ready_blocks |= 1<<next_bit;
+						printf("%08x\n",ready_blocks);
 //						goto queue_chained;
 					}
 					goto queue_next;
@@ -159,7 +171,8 @@ queue_chained:
 //		printf("calling triangle produce on tri %d(%x) on block %d\n", triangle_next_read, tri, next_bit);
 		int hash = tri->produce(tri, &blocks[next_bit]);
 
-		ready_blocks |= next_mask ;// & chain_hash(hash, next_bit);
+		unsigned int chain = chain_hash(hash, next_bit);
+		ready_blocks |= next_mask & chain;
 		last_block_added = next_bit;
 		free_blocks &= ~next_mask;
 
