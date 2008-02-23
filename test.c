@@ -175,7 +175,7 @@ skip:
 
 		// bah humbug, stdio buffering, bah!
 		char buffer[256];
-		sprintf(buffer,"[%d] %2.1f FPS, currently idling %2.2f%%, blocked %2.2f%% SPU    \r",
+		sprintf(buffer,"[%d] %2.1f FPS      \r", // currently idling %2.2f%%, blocked %2.2f%% SPU    \r",
 			cnt,
 			(float) 1.0/uptoLoop,
 			(float) (100.0*(_end-_start)/onesec/uptoLoop),

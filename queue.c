@@ -29,18 +29,30 @@ static unsigned int last_block_started = 0;
 static unsigned int last_block_added = 0;
 static vector unsigned short active_blocks = (vector unsigned short)(-1);
 
+static vector unsigned short hash0 = (vector unsigned short)(-1);
+static vector unsigned short hash1 = (vector unsigned short)(-1);
+static vector unsigned short hash2 = (vector unsigned short)(-1);
+static vector unsigned short hash3 = (vector unsigned short)(-1);
+
 static signed char chained_block[33];
 static int busy = 0;
 
+static inline void clear_hash(int idx)
+{
+	vector unsigned short empty = spu_splats(-1);
+
+	// remove old match (if any) from hash table and update hash table with new entry
+	const static vector unsigned int shift = { 0x80000000,0x800000,0x8000,0x80 };
+	vector unsigned int shifted = spu_rl(shift,32-idx);
+
+	hash0 = spu_sel(hash0,empty,spu_maskh(spu_extract(shifted,0)));
+	hash1 = spu_sel(hash1,empty,spu_maskh(spu_extract(shifted,1)));
+	hash2 = spu_sel(hash2,empty,spu_maskh(spu_extract(shifted,2)));
+	hash3 = spu_sel(hash3,empty,spu_maskh(spu_extract(shifted,3)));
+}
+
 static inline unsigned int chain_hash(unsigned short hash, int idx)
 {
-	if (1) return -1;
-
-	static vector unsigned short hash0 = (vector unsigned short)(-1);
-	static vector unsigned short hash1 = (vector unsigned short)(-1);
-	static vector unsigned short hash2 = (vector unsigned short)(-1);
-	static vector unsigned short hash3 = (vector unsigned short)(-1);
-
 	vector unsigned short compare = spu_splats(hash);
 
 	// mask* will be all-ones if match, all-zeros if not
@@ -66,11 +78,15 @@ static inline unsigned int chain_hash(unsigned short hash, int idx)
 		spu_shuffle(spu_gather(mask2), spu_gather(mask3), sel23)));
 	unsigned int old = spu_extract(old_v,0);
 
+//	if (1) return -1;
+
+//	if (old!=32)
+//		printf("%08x: hash %04x held by %2d now held by %2d     \n", ready_blocks, hash, old, idx);
+
 	chained_block[old] = idx;
 /*
 //	if (old!=32)
 	{
-		printf("%08x: hash %04x held by %2d now held by %2d     \n", ready_blocks, hash, old, idx);
 
 		for (int c=0; c<33; c++)
 			printf("%2d|",c);
@@ -131,8 +147,7 @@ void process_queue(TriangleGenerator* generator, BlockActivater* activate)
 					active_blocks = spu_insert( (unsigned short)-1,
 								    active_blocks, i);
 					next_bit = chained_block[id];
-				static int aaa = -2;
-				chain_hash(aaa--, id);
+					clear_hash(id);
 					if (next_bit>=0) {
 //						printf("from %d, next_bit %d\n", id, next_bit);
 						chained_block[id] = -1;
@@ -176,6 +191,7 @@ queue_chained:
 		Triangle* tri = &triangles[triangle_next_read];
 //		printf("calling triangle produce on tri %d(%x) on block %d\n", triangle_next_read, tri, next_bit);
 		int hash = tri->produce(tri, &blocks[next_bit]);
+		blocks[next_bit].hash = hash;
 
 		unsigned int chain = chain_hash(hash, next_bit);
 //		if (!chain)

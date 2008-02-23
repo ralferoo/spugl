@@ -15,25 +15,18 @@
 #include "types.h"
 #include <spu_intrinsics.h>
 
-#define NUMBER_OF_TRIS	16
-#define NUMBER_OF_QUEUED_BLOCKS 32
-#define NUMBER_OF_ACTIVE_BLOCKS 4
+///////////////////////////////////////////////////////////////////////////////
+//
+// these might be interesting to tweak, particularly as reducing these values will leave more
+// room for textures, at the expense of possibly increased latency for very small triangles
+//
+// NUMBER_OF_TRIS		no limit, but there's no advantage to having this bigger than blocks
+// NUMBER_OF_QUEUED_BLOCKS	maximum and optimally 32; needs to fit in bitmask
+// NUMBER_OF_ACTIVE_BLOCKS	should be at least 2; any more than 4 and the DMA queue could fill
 
-/*
-typedef struct __QUEUE OLD_Queue;
-
-typedef struct {
-	// block has been added, this is it's initial function
-	void (*init)(Block*);
-
-	// the is the main render function
-	vec_ushort8 (*process)(Block* queue,
-		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac,
-		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4,
-		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy);
-} RenderFuncs;
-*/
-
+#define NUMBER_OF_TRIS	35
+#define NUMBER_OF_QUEUED_BLOCKS 9
+#define NUMBER_OF_ACTIVE_BLOCKS 3
 
 typedef struct __BLOCK Block;
 typedef struct __TRIANGLE Triangle;
@@ -78,11 +71,13 @@ struct __BLOCK {
 	char		tex_override;
 
 	unsigned int	bx,by;
+	unsigned int	hash;
 
 	vec_ushort8	TEXmerge1,TEXmerge2;	// for texture blits
 	unsigned int	texturesMask;
 } __attribute__ ((aligned(16)));
 
+// this holds the temporary data used when rendering one of the above blocks
 struct __ACTIVE {
 	u32 pixels[32*32];
 	char textemp[32*8];
@@ -93,82 +88,15 @@ struct __ACTIVE {
 	vec_uint4* new_dma;
 	unsigned long current_length;
 	unsigned long eah;
-//	unsigned long tagid;
-//	unsigned long pad;
+	unsigned long long ea_copy;
 } __attribute__((aligned(16)));
 
-
-/*
-#define NUMBER_OF_QUEUE_JOBS 32
-#define QUEUE_PADDING 18
-
-
-struct __QUEUE {
-	void		(*handler)(Queue*);	// the dispatch that knows how to 
-	char*		name;			// the debug name
-	unsigned short	id;			// the command ID
-		 short	next;			// the command to process after this one is finished
-	unsigned int	dmamask;		// the DMA mask (if any) of this command
-		
-	union {	
-
-		// padding, number above must be at least as big as number of qwords in any struct
-		vec_uchar16 padding[QUEUE_PADDING];
-	};
-} ;
-// http://www.thescripts.com/forum/thread220022.html
-//
-// If you get an error on the next line, you need to increase the size of
-// QUEUE_PADDING at the top of this file...
-typedef char constraint_violated[1 - 2*(sizeof(struct __QUEUE) != 16*(1+QUEUE_PADDING))];
-
-///////////////////////////////////////////////////////////////////////////////
-*/
 
 extern void flush_queue();		// push all active blocks to the screen
 extern void init_queue(ActiveBlockInit* init, ActiveBlockFlush* flush);
 extern void process_queue(TriangleGenerator* generator, BlockActivater* activate);
 
 extern void _init_buffers();
-
-/*
-extern void debug_queue(void);
-extern Queue job_queue[];
-extern unsigned int free_job_queues;
-extern unsigned int ready_job_queues;
-extern unsigned int dma_wait_job_queues;
-
-
-#define ENQUEUE_JOB(q,h) do {Queue* a=(q); a->handler=h; a->name=(#h); \
-if (a->handler) free_job_queues&=~(1<<a->id); else free_job_queues|=(1<<a->id); \
-} while(0)
-#define QUEUE_JOB(q,h) do {Queue* a=(q); a->handler=h; a->name=(#h);} while(0)
-#define READY_JOB(q) (ready_job_queues|=1<<(q)->id)
-#define BLOCK_JOB(q) (ready_job_queues&=~(1<<(q)->id))
-
-static inline int FIRST_JOB(unsigned int x) {
-	vec_uint4 xx = (vec_uint4) x;
-	vec_uint4 clz = spu_cntlz(xx);
-	return (int) 31-spu_extract(clz,0);
-}
-
-static inline int COUNT_ONES(unsigned int x)
-{
-	vec_uchar16 xx = (vec_uchar16) ((vec_uint4)x);
-	vec_uchar16 yy = spu_cntb(xx);
-	vec_ushort8 zz = (vec_ushort8) spu_sumb(yy,yy);
-	return spu_extract(zz,1);
-}
-
-// we want to keep the FIFO jobs from filling up the entire queue, so reserve
-// a few slots for other things...
-#define FIFO_VALID_QUEUE_MASK (~0xff)
-
-// this rather convuluted expression is just (1<<n)-1 but rearranged to 
-// get rid of the warnings :(
-//= (1<<NUMBER_OF_QUEUE_JOBS)-1;
-#define ALL_QUEUE_JOBS ((((1<<(NUMBER_OF_QUEUE_JOBS-2))-1)<<2)|3)
-*/
 
 ///////////////////////////////////////////////////////////////////////////////
 

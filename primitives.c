@@ -114,22 +114,6 @@ void* dummyBlock(void* self, Block* block, int tag)
 
 	block->triangle->count--;
 	return 0;
-/*
-	static int a = 3;
-	u32* pixels = (u32*)(block->pixels);
-//	printf("dummy block, p=%x\n", pixels);
-	for (int i=0; i<1024; i++)
-		*pixels++ = i+a*42;
-
-	if (a++%6) {
-		block->triangle->count--;
-//		printf("dummy block s:%x t:%x b:%x c:%d coord:%d,%d tag:%d\n", self, block->triangle, block, block->triangle->count, block->bx, block->by, tag);
-		return 0;
-	} else {
-//		printf("dummy block stalling s:%x t:%x b:%x c:%d coord:%d,%d tag:%d\n", self, block->triangle, block, block->triangle->count, block->bx, block->by, tag);
-		return self;
-	}
-*/
 }
 
 int dummyProducer(Triangle* tri, Block* block)
@@ -207,11 +191,7 @@ int triangleProducer(Triangle* tri, Block* block)
 	block->A=A;
 	block->A_dx=A_dx;
 	block->A_dy=blockA_dy;
-//	block->next = -1;
 	tri->count++;
-
-//	printf("producing block t:%x b:%x @%d,%d left:%d count:%d\n",
-//			tri, block, bx,by, left, tri->count);
 
 	vec_uint4 step_eq0 = spu_cmpeq(step,spu_splats(0));
 	vec_float4 A_d32 = spu_sel(A_dx32,A_dy32,step_eq0);
@@ -232,20 +212,9 @@ int triangleProducer(Triangle* tri, Block* block)
 	if (left==0) {
 		tri->count--;
 		tri->produce = 0;
-//		printf("done all blocks, t:%x b:%x count:%d\n",
-//			tri, block, tri->count);
 	}
 
 	return bx | (by<<8);
-
-//	QUEUE_JOB(tri, triangle_handler);
-//	READY_JOB(tri);
-//	return;
-
-
-//	QUEUE_JOB(tri, finish_triangle_handler);
-//	READY_JOB(tri);
-//	last_triangle = if_then_else(cmp_eq(last_triangle,tri->id), -1, last_triangle);
 }
 
 static void imp_triangle(struct __TRIANGLE * triangle)
@@ -325,37 +294,10 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 
 	unsigned long advance_ptr_mask = spu_extract(fcgt_area, 0);
 
-//	static int qqq=0;
-//	printf("add triangle, a=%d, q=%d\n", advance_ptr_mask, ++qqq);
-
 	triangle->count = 1 & advance_ptr_mask;
 
 	triangle->init_block = &dummyBlock;
 	triangle->produce = (void*)( ((u32)&triangleProducer)&advance_ptr_mask );
-
-/*
-//	printf("   f=%08lx r=%08lx a=%08lx id=%d last=%d\n", free_job_queues, ready_job_queues, advance_ptr_mask,
-//		free_queue, last_triangle);
-
-	free_queue_mask &= advance_ptr_mask;
-	free_job_queues &= ~free_queue_mask;
-	QUEUE_JOB(queue, triangle_handler);
-	
-	queue->next = -1;
-
-	unsigned long has_last = cmp_ge0(last_triangle);
-	short dummy;
-	short* nextp = (short*)if_then_else(has_last,
-			(unsigned long)&(job_queue[last_triangle].next),(unsigned long)&dummy);
-//	if (last_triangle >= 0) {
-//		job_queue[last_triangle].next = free_queue | ~advance_ptr_mask;
-	*nextp = free_queue | ~advance_ptr_mask;
-//	} else {
-//		ready_job_queues |= free_queue_mask;
-	ready_job_queues |= free_queue_mask & ~has_last;
-//	}
-	last_triangle = if_then_else(advance_ptr_mask, free_queue, last_triangle);
-*/
 }
 
 //////////////////////////////////////////////////////////////////////////////

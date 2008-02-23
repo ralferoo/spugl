@@ -27,6 +27,7 @@ void activeBlockInit(ActiveBlock* active)
 	active->current_dma = &active->dma2[0];
 	active->current_length = 0;
 	active->eah = 0;
+	active->ea_copy = 0;
 }
 
 void activeBlockFlush(ActiveBlock* active, int tag)
@@ -116,6 +117,11 @@ void blockActivater(Block* block, ActiveBlock* active, int tag)
 	block->pixels = (vec_uint4*) ((void*)&active->pixels[0]);
 	block->tex_temp = (char*) ((void*)&active->textemp[0]);
 	block->tex_override = -1;
+
+	if (active->ea_copy == ea)
+		return;
+	
+	active->ea_copy = ea;
 
 	unsigned long stride = screen.bytes_per_line;
 	unsigned int lines = 32;
