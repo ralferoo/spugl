@@ -30,6 +30,20 @@ void activeBlockInit(ActiveBlock* active)
 	active->eah = 0;
 }
 
+void activeBlockFlush(ActiveBlock* active, int tag)
+{
+	unsigned long len = active->current_length;
+
+	if (len) {
+		unsigned long eah = active->eah;
+		unsigned long eal = (unsigned long) ((void*)active->current_dma);
+		spu_mfcdma64(&active->pixels[0], eah, eal, len, tag, MFC_PUTLF_CMD);
+		active->current_length = 0;
+//		printf("flush_screen_block: block=%lx ea=%lx:%lx len=%d                 \n",
+//			active, eah, eal, len);
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////////
 
 static inline void build_blit_list(
@@ -217,20 +231,6 @@ void init_screen_block(screen_block* block, unsigned long tagid)
 
 void flush_screen_block(screen_block* block)
 {
-	unsigned long len = block->current_length;
-
-	if (len) {
-		unsigned long eah = block->eah;
-		unsigned long eal = (unsigned long) ((void*)block->current_dma);
-		spu_mfcdma64(&block->pixels[0], eah, eal, len, block->tagid,
-			MFC_PUTLF_CMD);
-		block->current_length = 0;
-#ifdef DEBUG_1
-	printf("flush_screen_block: block=%lx eal=%llx len=%d\n",
-		block, eal, len);
-#endif
-
-	}
 }
 
 extern SPU_CONTROL control;

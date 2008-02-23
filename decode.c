@@ -130,16 +130,13 @@ u32 current_texture = 0;
 	return from;
 }
 
-extern unsigned int free_job_queues;
-extern unsigned int ready_job_queues;
-extern void debug_queue(void);
+extern void flush_queue();	
 
 /*26*/void* imp_sync(u32* from, struct __TRIANGLE * triangle) {
-	if (has_finished())
+	if (has_finished()) {
+		flush_queue();		// force all blocks out
 		return &from[0];
-	else {
-//		printf("imp_sync, free jobs=%lx, ready=%lx\n", free_job_queues, ready_job_queues);
-//		debug_queue();
+	} else {
 		return 0;
 	}
 }

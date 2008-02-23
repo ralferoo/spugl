@@ -44,6 +44,7 @@ typedef int (TriangleHandler)(Triangle* tri, Block* block);
 typedef void* (BlockHandler)(void* self, Block* block, int tag);
 typedef void (BlockActivater)(Block* block, ActiveBlock* active, int tag);
 typedef void (ActiveBlockInit)(ActiveBlock* active);
+typedef void (ActiveBlockFlush)(ActiveBlock* active, int tag);
 
 // this holds a triangle, i.e. something that creates blocks to be rendered
 struct __TRIANGLE {
@@ -124,8 +125,8 @@ typedef char constraint_violated[1 - 2*(sizeof(struct __QUEUE) != 16*(1+QUEUE_PA
 ///////////////////////////////////////////////////////////////////////////////
 */
 
-
-extern void init_queue(ActiveBlockInit* init);
+extern void flush_queue();		// push all active blocks to the screen
+extern void init_queue(ActiveBlockInit* init, ActiveBlockFlush* flush);
 extern void process_queue(TriangleGenerator* generator, BlockActivater* activate);
 
 extern void _init_buffers();

@@ -17,6 +17,7 @@
 static Triangle triangles[NUMBER_OF_TRIS];
 static Block blocks[NUMBER_OF_QUEUED_BLOCKS];
 static ActiveBlock active[NUMBER_OF_ACTIVE_BLOCKS];
+static ActiveBlockFlush* block_flusher = 0;
 
 static unsigned int triangle_count = 0;
 static unsigned int triangle_next_read = 0;
@@ -37,6 +38,15 @@ static inline void debug()
 	}
 	printf("\n");
 */
+}
+
+void flush_queue()
+{
+	for (int i=0; i<NUMBER_OF_ACTIVE_BLOCKS; i++) {
+		(*block_flusher)(&active[i],i);
+	}
+	mfc_write_tag_mask((1<<NUMBER_OF_ACTIVE_BLOCKS)-1);
+	mfc_read_tag_status_all();
 }
 
 void process_queue(TriangleGenerator* generator, BlockActivater* activate)
@@ -125,8 +135,9 @@ queue_next:
 	debug();
 }
 
-void init_queue(ActiveBlockInit* init)
+void init_queue(ActiveBlockInit* init, ActiveBlockFlush* flush)
 {
+	block_flusher = flush;
 	for (int i=0; i<NUMBER_OF_TRIS; i++) {
 		triangles[i].count = 0;
 		triangles[i].produce = 0;
