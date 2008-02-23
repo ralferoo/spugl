@@ -80,35 +80,13 @@ static inline unsigned int chain_hash(unsigned short hash, int idx)
 
 //	if (1) return -1;
 
-//	if (old!=32)
-//		printf("%08x: hash %04x held by %2d now held by %2d     \n", ready_blocks, hash, old, idx);
+//	if (old!=32) printf("%08x: hash %04x held by %2d now held by %2d     \n", ready_blocks, hash, old, idx);
+
+//		for (int c=0; c<33; c++) printf("%2d|",c); printf("\n");
+//		for (int c=0; c<33; c++) printf("%2d ",chained_block[c]); printf("\n");
 
 	chained_block[old] = idx;
-/*
-//	if (old!=32)
-	{
-
-		for (int c=0; c<33; c++)
-			printf("%2d|",c);
-		printf("\n");
-		for (int c=0; c<33; c++)
-			printf("%2d ",chained_block[c]);
-		printf("\n");
-	}
-*/
-
 	return spu_extract(spu_cmpeq(old_v,spu_splats((unsigned int)32)),0);
-}
-
-static inline void debug()
-{
-/*
-	printf("%08x: ",ready_blocks);
-	for (int q=0; q<NUMBER_OF_TRIS; q++) {
-		printf("%3d%c",(signed short)triangles[q].count,triangles[q].produce?'P':' ');
-	}
-	printf("\n");
-*/
 }
 
 void flush_queue()
@@ -151,9 +129,7 @@ void process_queue(TriangleGenerator* generator, BlockActivater* activate)
 					if (next_bit>=0) {
 //						printf("from %d, next_bit %d\n", id, next_bit);
 						chained_block[id] = -1;
-//						printf("ready %08x -> ",ready_blocks);
 						ready_blocks |= 1<<next_bit;
-//						printf("%08x\n",ready_blocks);
 						goto queue_chained;
 					}
 					goto queue_next;
@@ -179,8 +155,6 @@ queue_chained:
 		}
 	}
 
-	debug();
-
 	while (free_blocks && triangles[triangle_next_read].produce) {
 		unsigned int rest_mask = ((1<<last_block_added)-1);
 		int bit1 = first_bit(free_blocks);
@@ -194,27 +168,15 @@ queue_chained:
 		blocks[next_bit].hash = hash;
 
 		unsigned int chain = chain_hash(hash, next_bit);
-//		if (!chain)
-//			printf("blocking %08x\n", next_mask);
 		ready_blocks |= next_mask & chain;
 		last_block_added = next_bit;
 		free_blocks &= ~next_mask;
-
-//		for (int c=0; c<33; c++)
-//			printf("%2d ",chained_block[c]);
-//		printf("\n");
 
 		if (tri->produce == 0) {
 //			printf("finished producing on %d\n", triangle_next_read);
 			triangle_next_read = (triangle_next_read+1)%NUMBER_OF_TRIS;
 		}
 	}
-
-	if (triangles[triangle_next_write].count!=0) {
-//		printf("t[%d].c=%d\n",triangle_next_write, triangles[triangle_next_write].count);
-	}
-
-	debug();
 
 	while (triangles[triangle_next_write].count==0) {
 		Triangle* tri = &triangles[triangle_next_write];
@@ -225,8 +187,6 @@ queue_chained:
 			break;
 		}
 	}
-
-	debug();
 }
 
 void init_queue(ActiveBlockInit* init, ActiveBlockFlush* flush)
@@ -239,22 +199,12 @@ void init_queue(ActiveBlockInit* init, ActiveBlockFlush* flush)
 	for (int j=0; j<NUMBER_OF_ACTIVE_BLOCKS; j++) {
 		(*init)(&active[j]);
 	}
-
-//	for (int i=0; i<70; i++)
-//		chain_hash(0x120+(i%3)+(i>>2), i);
-
-//	chain_hash(-1, 3);
-
-//	for (int i=0; i<70; i++)
-//		chain_hash(0x120+(i%3)+(i>>2), i);
-	
 	for (int i=0; i<sizeof(chained_block); i++)
 		chained_block[i] = -1;
 }
 
 int has_finished()
 {
-//	printf("busy %d\n", busy);
+//	printf("busy %d...\r", busy);
 	return busy==0;
-//	return ready_blocks==0 && triangles[triangle_next_read].count==0;
 }

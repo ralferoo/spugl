@@ -24,8 +24,8 @@
 // NUMBER_OF_QUEUED_BLOCKS	maximum and optimally 32; needs to fit in bitmask
 // NUMBER_OF_ACTIVE_BLOCKS	should be at least 2; any more than 4 and the DMA queue could fill
 
-#define NUMBER_OF_TRIS	35
-#define NUMBER_OF_QUEUED_BLOCKS 9
+#define NUMBER_OF_TRIS	10	
+#define NUMBER_OF_QUEUED_BLOCKS 32
 #define NUMBER_OF_ACTIVE_BLOCKS 3
 
 typedef struct __BLOCK Block;

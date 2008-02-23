@@ -118,8 +118,10 @@ void blockActivater(Block* block, ActiveBlock* active, int tag)
 	block->tex_temp = (char*) ((void*)&active->textemp[0]);
 	block->tex_override = -1;
 
-	if (active->ea_copy == ea)
+	if (active->ea_copy == ea) {
+//		printf("re-using same ea %llx in %x -> %x\n", ea, block, active);
 		return;
+	}
 	
 	active->ea_copy = ea;
 

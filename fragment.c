@@ -82,14 +82,16 @@ u32* getFragment(unsigned int id, unsigned long dma_tag)
 	void* lb = malloc( (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT) + BYTE_ALIGNMENT);
 	u32* p = (u32*)((u32)(lb+BYTE_ALIGNMENT-1) & ~BYTE_ALIGNMENT);
 	int i;
+	static int r=0;
+	r+=0x10000;
 	for (i=0; i<screen.width; i++)
-		p[i] = ((i&255)<<1) | ((i>>7)<<20);
+		p[i] = ((i&255)<<1) | ((i>>7)<<20); // + r;
 	for (i=0; i<screen.height; i++) {
 		u64 addr = screen.address + screen.bytes_per_line*i;
 		mfc_putf(lb, addr, (((screen.width<<2)+BYTE_ALIGNMENT)&~BYTE_ALIGNMENT), 0, 0, 0);
-		mfc_write_tag_mask(1);
 	}
-	mfc_read_tag_status_any();
+		mfc_write_tag_mask(1);
+		mfc_read_tag_status_all();
 	free(lb);
 	return from;
 }
