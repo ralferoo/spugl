@@ -26,7 +26,7 @@
 
 #define NUMBER_OF_TRIS	10	
 #define NUMBER_OF_QUEUED_BLOCKS 32
-#define NUMBER_OF_ACTIVE_BLOCKS 3
+#define NUMBER_OF_ACTIVE_BLOCKS 1
 
 typedef struct __BLOCK Block;
 typedef struct __TRIANGLE Triangle;
