@@ -62,22 +62,32 @@ void* loadMissingTextures(void* self, Block* block, int tag,
 	block->pixels = ptr;
 
 	unsigned int l = block->left;
-	vec_uint4 z = spu_splats((unsigned int)63);
-	while (l--)
-		*ptr++ = z;
+//	vec_uint4 z = spu_splats((unsigned int)63);
+//	while (l--)
+//		*ptr++ = z;
 	
 //////////////////////////////////////////////////////////////////////
 
         vec_ushort8 needs = spu_splats((unsigned short)-1); 
 
+/*
 	printf("tex failed, tex_keep=%08x left=%d\n", spu_extract(tex_keep,0), l);
 
-	printf("req: %d%c %d%c %d%c %d%c\n",
+	printf("req: %04x%c %04x%c %04x%c %04x%c\n",
 			spu_extract(block_id,0), spu_extract(cache_not_found,0)?'*':' ',
 			spu_extract(block_id,1), spu_extract(cache_not_found,1)?'*':' ',
 			spu_extract(block_id,2), spu_extract(cache_not_found,2)?'*':' ',
 			spu_extract(block_id,3), spu_extract(cache_not_found,3)?'*':' ');
-
+	printf("cache = %04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x\n",
+		spu_extract(TEXcache1,0), spu_extract(TEXcache2,0),
+		spu_extract(TEXcache1,1), spu_extract(TEXcache2,1),
+		spu_extract(TEXcache1,2), spu_extract(TEXcache2,2),
+		spu_extract(TEXcache1,3), spu_extract(TEXcache2,3),
+		spu_extract(TEXcache1,4), spu_extract(TEXcache2,4),
+		spu_extract(TEXcache1,5), spu_extract(TEXcache2,5),
+		spu_extract(TEXcache1,6), spu_extract(TEXcache2,6),
+		spu_extract(TEXcache1,7), spu_extract(TEXcache2,7));
+*/
 			vec_uchar16 shuf_cmp_0 = spu_splats((unsigned short)0x203);
 			vec_ushort8 copy_cmp_0 = spu_shuffle(block_id,block_id,shuf_cmp_0);
 
@@ -166,6 +176,7 @@ void* loadMissingTextures(void* self, Block* block, int tag,
 //				continue;
 //			}
 
+/*
 	printf("cache = %04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x\n",
 		spu_extract(TEXcache1,0), spu_extract(TEXcache2,0),
 		spu_extract(TEXcache1,1), spu_extract(TEXcache2,1),
@@ -175,7 +186,6 @@ void* loadMissingTextures(void* self, Block* block, int tag,
 		spu_extract(TEXcache1,5), spu_extract(TEXcache2,5),
 		spu_extract(TEXcache1,6), spu_extract(TEXcache2,6),
 		spu_extract(TEXcache1,7), spu_extract(TEXcache2,7));
-/*
 */
 			if (nextIndex&1) {
 				TEXcache2 = spu_insert(-1,   TEXcache2, nextIndex>>1);
@@ -187,6 +197,7 @@ void* loadMissingTextures(void* self, Block* block, int tag,
 				TEXblitting1 = spu_insert(want, TEXblitting1, nextIndex>>1);
 			}
 
+/*
 	printf(" now -> %04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x\n",
 		spu_extract(TEXcache1,0), spu_extract(TEXcache2,0),
 		spu_extract(TEXcache1,1), spu_extract(TEXcache2,1),
@@ -196,7 +207,6 @@ void* loadMissingTextures(void* self, Block* block, int tag,
 		spu_extract(TEXcache1,5), spu_extract(TEXcache2,5),
 		spu_extract(TEXcache1,6), spu_extract(TEXcache2,6),
 		spu_extract(TEXcache1,7), spu_extract(TEXcache2,7));
-/*
 */
 			unsigned int desired = spu_extract(needs_sub, i);
 //			unsigned long long ea = control.texture_hack[0] + (desired<<(5+5+2));
@@ -207,8 +217,8 @@ void* loadMissingTextures(void* self, Block* block, int tag,
 			unsigned long eal = ea & ~127;
 			u32* texture = &textureCache[nextIndex].textureBuffer[0];
 
-			printf("desired %d->%d, reading to %x from %x:%08x len %d tag %d\n",
-				desired, nextIndex, texture, eah, eal, len, tag);
+//			printf("desired %d->%d, reading to %x from %x:%08x len %d tag %d\n",
+//				desired, nextIndex, texture, eah, eal, len, tag);
 
 			if (mfc_stat_cmd_queue() == 0) {
 				printf("DMA queue full; bailing...\n");
@@ -221,7 +231,6 @@ void* loadMissingTextures(void* self, Block* block, int tag,
 			lastLoadedTextureMap = nextIndex;
 			texturesMask |= nextMask;
 		}
-		printf("...\n");
 
 //		dma_wait_job_queues |= 1 << queue->id;
 		block->TEXmerge1 = TEXmerge1;
@@ -254,7 +263,8 @@ void* finishTextureLoad(void* self, Block* block, int tag)
 	TEXcache2 &= block->TEXmerge2;
 	freeTextureMaps |= block->texturesMask;
 
-	printf("cache = %04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x\n",
+/*
+	printf(" load = %04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x\n",
 		spu_extract(TEXcache1,0), spu_extract(TEXcache2,0),
 		spu_extract(TEXcache1,1), spu_extract(TEXcache2,1),
 		spu_extract(TEXcache1,2), spu_extract(TEXcache2,2),
@@ -263,6 +273,7 @@ void* finishTextureLoad(void* self, Block* block, int tag)
 		spu_extract(TEXcache1,5), spu_extract(TEXcache2,5),
 		spu_extract(TEXcache1,6), spu_extract(TEXcache2,6),
 		spu_extract(TEXcache1,7), spu_extract(TEXcache2,7));
+*/
 
 	return block->tex_continue;
 //	return &textureMapFill;

@@ -183,7 +183,6 @@ extern void* loadMissingTextures(void* self, Block* block, int tag,
 
 void* textureMapFill(void* self, Block* block, int tag)
 {
-	printf("tex map\n");
 	Triangle* tri = block->triangle;
 
 	vec_float4 A_dx = tri->A_dx;
@@ -278,7 +277,8 @@ void* textureMapFill(void* self, Block* block, int tag)
 			vec_uint4 gather = spu_or(gather_01,gather_23);
 			tex_keep = spu_or(tex_keep, gather);
 			vec_uint4 cache = spu_cntlz(gather);
-			vec_uint4 cache_not_found = spu_and(pixel,spu_cmpeq(cache,spu_splats((unsigned int)32)));
+			//vec_uint4 cache_not_found = spu_and(pixel,spu_cmpeq(cache,spu_splats((unsigned int)32)));
+			vec_uint4 cache_not_found = spu_cmpeq(cache,spu_splats((unsigned int)32));
 			unsigned int cache_orx = spu_extract(spu_orx(cache_not_found),0);
 			if (cache_orx) {  // amazingly gcc does move this out of the loop :)
 				return loadMissingTextures(self, block, tag,

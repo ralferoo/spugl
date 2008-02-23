@@ -262,11 +262,8 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 
 	triangle->count = 1 & advance_ptr_mask;
 
-	static int a = 0;
-	if (a++&1) 
-		triangle->init_block = &linearColourFill;
-	else
-		triangle->init_block = &textureMapFill;
+//	triangle->init_block = &linearColourFill;
+	triangle->init_block = &textureMapFill;
 
 	triangle->produce = (void*)( ((u32)&triangleProducer)&advance_ptr_mask );
 }
