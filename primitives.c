@@ -66,15 +66,20 @@ static const vec_uchar16 minimax_add = {
 //extern RenderFuncs _standard_simple_texture_triangle;
 //extern RenderFuncs _standard_colour_triangle;
 
-void* dummyBlock(void* self, Block* block)
+void* dummyBlock(void* self, Block* block, int tag)
 {
 	static int a = 3;
+	u32* pixels = (u32*)(block->pixels);
+//	printf("dummy block, p=%x\n", pixels);
+	for (int i=0; i<1024; i++)
+		*pixels++ = i+a*42;
+
 	if (a++%6) {
 		block->triangle->count--;
-		printf("dummy block s:%x t:%x b:%x c:%d coord:%d,%d\n", self, block->triangle, block, block->triangle->count, block->bx, block->by);
+//		printf("dummy block s:%x t:%x b:%x c:%d coord:%d,%d tag:%d\n", self, block->triangle, block, block->triangle->count, block->bx, block->by, tag);
 		return 0;
 	} else {
-		printf("dummy block stalling s:%x t:%x b:%x c:%d coord:%d,%d\n", self, block->triangle, block, block->triangle->count, block->bx, block->by);
+//		printf("dummy block stalling s:%x t:%x b:%x c:%d coord:%d,%d tag:%d\n", self, block->triangle, block, block->triangle->count, block->bx, block->by, tag);
 		return self;
 	}
 }
@@ -157,9 +162,6 @@ int triangleProducer(Triangle* tri, Block* block)
 	vec_float4 A_dy32 = spu_nmsub(pixels_wide,A_dx,spu_mul(muls32,A_dy));
 	vec_float4 blockA_dy = spu_madd(mulsn28,A_dx,A_dy);
 
-//	printf("producing block t:%x b:%x @%d,%d left:%d count:%d\n",
-//			tri, block, bx,by, left, tri->count);
-
 	block->process = tri->init_block;
 	block->bx = bx;
 	block->by = by;
@@ -169,6 +171,9 @@ int triangleProducer(Triangle* tri, Block* block)
 	block->A_dy=blockA_dy;
 //	block->next = -1;
 	tri->count++;
+
+//	printf("producing block t:%x b:%x @%d,%d left:%d count:%d\n",
+//			tri, block, bx,by, left, tri->count);
 
 	vec_uint4 step_eq0 = spu_cmpeq(step,spu_splats(0));
 	vec_float4 A_d32 = spu_sel(A_dx32,A_dy32,step_eq0);
@@ -185,6 +190,12 @@ int triangleProducer(Triangle* tri, Block* block)
 	tri->step = spu_extract(step,0);
 	tri->left = left;
 	tri->A = A;
+
+	if (left==0) {
+		tri->count--;
+//		printf("done all blocks, t:%x b:%x count:%d\n",
+//			tri, block, tri->count);
+	}
 
 	return left;
 
@@ -263,9 +274,6 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	triangle->texture_base = control.texture_hack[current_texture]; // * (256*256/32/32);
 	triangle->texture_y_shift = 8-5;
 
-	triangle->init_block = &dummyBlock;
-	triangle->produce = &triangleProducer;
-
 //	triangle->functions = &_standard_texture_triangle;
 
 //	triangle->functions = &_standard_simple_texture_triangle;
@@ -282,6 +290,10 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 //	printf("add triangle, a=%d, q=%d\n", advance_ptr_mask, ++qqq);
 
 	triangle->count = 1 & advance_ptr_mask;
+
+	triangle->init_block = &dummyBlock;
+	triangle->produce = (void*)( ((u32)&triangleProducer)&advance_ptr_mask );
+
 /*
 //	printf("   f=%08lx r=%08lx a=%08lx id=%d last=%d\n", free_job_queues, ready_job_queues, advance_ptr_mask,
 //		free_queue, last_triangle);

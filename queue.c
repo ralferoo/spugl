@@ -28,6 +28,17 @@ static unsigned int last_block_started = 0;
 static unsigned int last_block_added = 0;
 static vector unsigned short active_blocks = (vector unsigned short)(-1);
 
+static inline void debug()
+{
+/*
+	printf("%08x: ",ready_blocks);
+	for (int q=0; q<NUMBER_OF_TRIS; q++) {
+		printf("%3d%c",(signed short)triangles[q].count,triangles[q].produce?'P':' ');
+	}
+	printf("\n");
+*/
+}
+
 void process_queue(TriangleGenerator* generator, BlockActivater* activate)
 {	
 	mfc_write_tag_mask((1<<NUMBER_OF_ACTIVE_BLOCKS)-1);
@@ -42,7 +53,7 @@ void process_queue(TriangleGenerator* generator, BlockActivater* activate)
 				unsigned short id = spu_extract(active_blocks,i);
 //				printf("busy %d: %d\n", i, id);
 				Block* block = &blocks[id];
-				BlockHandler* next = block->process(block->process, block);
+				BlockHandler* next = block->process(block->process, block, i);
 				if (next) {
 					block->process = next;
 				} else {
@@ -65,14 +76,16 @@ queue_next:
 					last_block_started = next_bit;
 					active_blocks = spu_insert( (unsigned short)next_bit,
 								    active_blocks, i);
-					activate(&blocks[next_bit], &active[i]);
+					activate(&blocks[next_bit], &active[i], i);
 //					printf("queued %d: %d\n", i, next_bit);
 				}
 			}
 		}
 	}
 
-	while (free_blocks && triangles[triangle_next_read].count) {
+	debug();
+
+	while (free_blocks && triangles[triangle_next_read].produce) {
 		unsigned int rest_mask = ((1<<last_block_added)-1);
 		int bit1 = first_bit(free_blocks);
 		int bit2 = first_bit(free_blocks & rest_mask);
@@ -80,17 +93,24 @@ queue_next:
 		int next_mask = 1<<next_bit;
 
 		Triangle* tri = &triangles[triangle_next_read];
-//		printf("calling triangle produce %08x on %d\n", tri->produce, next_bit);
+//		printf("calling triangle produce on tri %d(%x) on block %d\n", triangle_next_read, tri, next_bit);
 		int next = tri->produce(tri, &blocks[next_bit]);
+		last_block_added = next_bit;
+		ready_blocks |= next_mask;
+		free_blocks &= ~next_mask;
 		if (next) {
-			last_block_added = next_bit;
-			ready_blocks |= next_mask;
-			free_blocks &= ~next_mask;
 		} else {
 //			printf("finished producing on %d\n", triangle_next_read);
+			tri->produce = 0;
 			triangle_next_read = (triangle_next_read+1)%NUMBER_OF_TRIS;
 		}
 	}
+
+	if (triangles[triangle_next_write].count!=0) {
+//		printf("t[%d].c=%d\n",triangle_next_write, triangles[triangle_next_write].count);
+	}
+
+	debug();
 
 	while (triangles[triangle_next_write].count==0) {
 		Triangle* tri = &triangles[triangle_next_write];
@@ -101,17 +121,22 @@ queue_next:
 			break;
 		}
 	}
+
+	debug();
 }
 
-void init_queue(void)
+void init_queue(ActiveBlockInit* init)
 {
 	for (int i=0; i<NUMBER_OF_TRIS; i++) {
 		triangles[i].count = 0;
 		triangles[i].produce = 0;
 	}
+	for (int j=0; j<NUMBER_OF_ACTIVE_BLOCKS; j++) {
+		(*init)(&active[j]);
+	}
 }
 
 int has_finished()
 {
-	return 1;
+	return ready_blocks==0 && triangles[triangle_next_read].count==0;
 }

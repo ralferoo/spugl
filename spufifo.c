@@ -91,11 +91,8 @@ int fifoTriangleGenerator(Triangle* tri)
 	return tri->count;
 }
 
-
-void blockActivater(Block* block, ActiveBlock* active)
-{
-	printf("activating block %x on %x\n", block, active);
-}
+extern void blockActivater(Block* block, ActiveBlock* active, int tag);
+extern void activeBlockInit(ActiveBlock* active);
 
 /* I'm deliberately going to ignore the arguments passed in as early versions
  * of libspe2 have the upper and lower 32 bits swapped.
@@ -112,7 +109,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 	control.block_count = 0;
 	spu_write_out_mbox((u32)&control);
 
-	init_queue();
+	init_queue(activeBlockInit);
 //	_init_buffers();
 //	_init_texture_cache();
 

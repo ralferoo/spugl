@@ -41,8 +41,9 @@ typedef struct __ACTIVE ActiveBlock;
 
 typedef int (TriangleGenerator)(Triangle* tri);
 typedef int (TriangleHandler)(Triangle* tri, Block* block);
-typedef void* (BlockHandler)(void* self, Block* block);
-typedef void (BlockActivater)(Block* block, ActiveBlock* active);
+typedef void* (BlockHandler)(void* self, Block* block, int tag);
+typedef void (BlockActivater)(Block* block, ActiveBlock* active, int tag);
+typedef void (ActiveBlockInit)(ActiveBlock* active);
 
 // this holds a triangle, i.e. something that creates blocks to be rendered
 struct __TRIANGLE {
@@ -91,8 +92,8 @@ struct __ACTIVE {
 	vec_uint4* new_dma;
 	unsigned long current_length;
 	unsigned long eah;
-	unsigned long tagid;
-	unsigned long pad;
+//	unsigned long tagid;
+//	unsigned long pad;
 } __attribute__((aligned(16)));
 
 
@@ -124,7 +125,7 @@ typedef char constraint_violated[1 - 2*(sizeof(struct __QUEUE) != 16*(1+QUEUE_PA
 */
 
 
-extern void init_queue(void);
+extern void init_queue(ActiveBlockInit* init);
 extern void process_queue(TriangleGenerator* generator, BlockActivater* activate);
 
 extern void _init_buffers();
