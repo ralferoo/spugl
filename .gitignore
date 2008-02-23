@@ -2,7 +2,10 @@
 .*.swp
 # object files, PPU and SPU
 *.[o0]
+*.o32
 # embeddable SPU executable
 *.spe
 .gen
 test
+#source dist
+*.tar.gz
