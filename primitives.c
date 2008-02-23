@@ -243,7 +243,7 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	triangle->A_dy = area_dy;
 	triangle->left = -1;
 
-	triangle->tex_id_base = 0; //current_texture<<6;
+	triangle->tex_id_base = current_texture<<6;
 	triangle->tex_id_mask = (1<<6)-1;
 	triangle->texture_base = control.texture_hack[current_texture]; // * (256*256/32/32);
 	triangle->texture_y_shift = 8-5;

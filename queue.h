@@ -76,6 +76,7 @@ struct __BLOCK {
 
 	vec_ushort8	TEXmerge1,TEXmerge2;	// for texture blits
 	unsigned int	texturesMask;
+	BlockHandler*	tex_continue;
 } __attribute__ ((aligned(16)));
 
 // this holds the temporary data used when rendering one of the above blocks

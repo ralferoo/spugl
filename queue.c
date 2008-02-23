@@ -116,7 +116,7 @@ void process_queue(TriangleGenerator* generator, BlockActivater* activate)
 				BlockHandler* next = block->process(block->process, block, i);
 				if (next) {
 					block->process = next;
-					printf("stalled %d: %d\n", i, id);
+//					printf("stalled %d: %d\n", i, id);
 				} else {
 //					printf("finished %d: %d\n", i, id);
 					busy--;

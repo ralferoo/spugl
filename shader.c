@@ -183,6 +183,7 @@ extern void* loadMissingTextures(void* self, Block* block, int tag,
 
 void* textureMapFill(void* self, Block* block, int tag)
 {
+	printf("tex map\n");
 	Triangle* tri = block->triangle;
 
 	vec_float4 A_dx = tri->A_dx;
