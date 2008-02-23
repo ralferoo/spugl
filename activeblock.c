@@ -23,7 +23,6 @@ extern _bitmap_image screen;
 
 void activeBlockInit(ActiveBlock* active)
 {
-	printf("init active block %x\n", active);
 	active->new_dma = &active->dma1[0];
 	active->current_dma = &active->dma2[0];
 	active->current_length = 0;
@@ -33,14 +32,11 @@ void activeBlockInit(ActiveBlock* active)
 void activeBlockFlush(ActiveBlock* active, int tag)
 {
 	unsigned long len = active->current_length;
-
 	if (len) {
 		unsigned long eah = active->eah;
 		unsigned long eal = (unsigned long) ((void*)active->current_dma);
 		spu_mfcdma64(&active->pixels[0], eah, eal, len, tag, MFC_PUTLF_CMD);
 		active->current_length = 0;
-//		printf("flush_screen_block: block=%lx ea=%lx:%lx len=%d                 \n",
-//			active, eah, eal, len);
 	}
 }
 
@@ -111,27 +107,32 @@ static inline void build_blit_list(
 
 //////////////////////////////////////////////////////////////////////////////
 
-// BUGS: this only works if lines is a multiple of 2, and <=32
-void load_screen_block(ActiveBlock* block, 
-		unsigned long long ea, unsigned long stride, unsigned int lines, unsigned int tag)
+void blockActivater(Block* block, ActiveBlock* active, int tag)
 {
-#ifdef DEBUG_2
-	printf("load_screen_block: block=%lx screen=%llx stride=%d lines=%d\n",
-		block, ea, stride, lines);
-#endif
+	unsigned int bx=block->bx, by=block->by;
+	unsigned long long ea = screen.address + screen.bytes_per_line*by*32+bx*128;
+
+	block->pixels = (vec_uint4*) ((void*)&active->pixels[0]);
+	block->tex_temp = (char*) ((void*)&active->textemp[0]);
+	block->tex_override = -1;
+
+	unsigned long stride = screen.bytes_per_line;
+	unsigned int lines = 32;
+
+	/////////////
 
 	unsigned long eah = ea >> 32;
 	unsigned long eal = ((unsigned long) (ea&0xffffffff));
 
-	build_blit_list(block->new_dma, eal, stride);
+	build_blit_list(active->new_dma, eal, stride);
 
-	unsigned long old_size = block->current_length;
+	unsigned long old_size = active->current_length;
 	unsigned long half_new_size = lines * 4;
 	unsigned long new_size = half_new_size * 2;
 	unsigned long store_new_size = new_size;
 
-	unsigned long eal_old = (unsigned long) ((void*)block->current_dma);
-	unsigned long eal_new = (unsigned long) ((void*)block->new_dma);
+	unsigned long eal_old = (unsigned long) ((void*)active->current_dma);
+	unsigned long eal_new = (unsigned long) ((void*)active->new_dma);
 
 	// if this is an unused block, then we have no data to blit out
 	// so to avoid branches, split the read block in half
@@ -144,45 +145,25 @@ void load_screen_block(ActiveBlock* block,
 
 #ifdef DEBUG_2
 	printf("old_size %d, is_new %d store_new %d\n",
-		block->current_length, is_new&1, store_new_size);
+		active->current_length, is_new&1, store_new_size);
 	printf("DMA[%02X]: ls=%lx eah=%lx list=%lx, size=%d, tag=%d\n",
-		cmd, &block->pixels[0],eah,eal_old,old_size,tag);
+		cmd, &active->pixels[0],eah,eal_old,old_size,tag);
 	printf("DMA[%02X]: ls=%lx eah=%lx list=%lx, size=%d, tag=%d\n",
-		MFC_GETLF_CMD, &block->pixels[0],eah,eal_new,new_size,tag);
+		MFC_GETLF_CMD, &active->pixels[0],eah,eal_new,new_size,tag);
 #endif
 
-	spu_mfcdma64(&block->pixels[0],eah,eal_old,old_size,tag, cmd);
-	spu_mfcdma64(&block->pixels[0],eah,eal_new,new_size,tag, MFC_GETLF_CMD);
+	spu_mfcdma64(&active->pixels[0],eah,eal_old,old_size,tag, cmd);
+	spu_mfcdma64(&active->pixels[0],eah,eal_new,new_size,tag, MFC_GETLF_CMD);
 
 	// update the buffer pointers
-	block->current_length = store_new_size;
-	vec_uint4* t = block->current_dma; 
-	block->current_dma = block->new_dma; 
-	block->new_dma = t;
-	block->eah = eah;
+	active->current_length = store_new_size;
+	vec_uint4* t = active->current_dma; 
+	active->current_dma = active->new_dma; 
+	active->new_dma = t;
+	active->eah = eah;
 }
 
 //////////////////////////////////////////////////////////////////////////////
-
-void blockActivater(Block* block, ActiveBlock* active, int tag)
-{
-//	printf("activating block %x on %x (tag %d)\n", block, active, tag);
-
-	unsigned int bx=block->bx, by=block->by;
-	u64 scrbuf = screen.address + screen.bytes_per_line*by*32+bx*128;
-
-//	printf("   -> screen address %llx width %d\n", scrbuf, screen.bytes_per_line);
-
-	load_screen_block(active, scrbuf, screen.bytes_per_line, 32, tag);
-/*
-	screen_block* current_block = &buffer;
-	wait_screen_block(current_block);
-*/
-
-	block->pixels = (vec_uint4*) ((void*)&active->pixels[0]);
-	block->tex_temp = (char*) ((void*)&active->textemp[0]);
-	block->tex_override = -1;
-}
 
 
 
@@ -190,81 +171,11 @@ void blockActivater(Block* block, ActiveBlock* active, int tag)
 #ifdef __IGNORE_ALL_JUNK
 
 
-// #define DEBUG_2		// corrupt each block we load in
-// #define DEBUG_3
-
-#define COUNT_BLOCKED_DMA
-//#define TRY_TO_CULL_BLOCKS
-
 int qs(int a) { return a>>5; }
-
 unsigned int qu(unsigned int a) { return a>>5; }
 
 float myrecip(float b) { return 1.0/b; }
 float mydiv(float a,float b) { return a/b; }
-
-//////////////////////////////////////////////////////////////////////////////
-
-typedef struct {
-	u32 pixels[32*32];
-	char textemp[32*8];
-	vec_uint4 dma1[16];
-	vec_uint4 dma2[16];
-
-	vec_uint4* current_dma;
-	vec_uint4* new_dma;
-	unsigned long current_length;
-	unsigned long eah;
-	unsigned long tagid;
-	unsigned long pad;
-} screen_block __attribute__((aligned(16)));
-
-void init_screen_block(screen_block* block, unsigned long tagid)
-{
-	block->new_dma = &block->dma1[0];
-	block->current_dma = &block->dma2[0];
-	block->current_length = 0;
-	block->tagid = tagid;
-//	printf("new block %lx, dma lists at %lx and %lx\n",
-//		block, block->current_dma, block->new_dma);
-}
-
-void flush_screen_block(screen_block* block)
-{
-}
-
-extern SPU_CONTROL control;
-
-unsigned long wait_for_dma(unsigned long mask)
-{
-#ifndef COUNT_BLOCKED_DMA
-	mfc_write_tag_mask(mask);
-	unsigned long mask = mfc_read_tag_status_any();
-	return mask;
-#else
-	unsigned long done;
-	do {
-		mfc_write_tag_mask(mask);
-		done = mfc_read_tag_status_any();
-		control.block_count+=9;		// guesstimate how much longer this takes than nop
-	} while (!(done&mask));
-	return done&mask;
-#endif
-}
-unsigned long wait_screen_block(screen_block* block)
-{
-	return wait_for_dma(1 << block->tagid);
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-
-screen_block buffer __attribute__((aligned(128)));
-
-void _init_buffers()
-{
-	init_screen_block(&buffer, 31);
-}
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -502,30 +413,6 @@ void finish_texmap_blit_handler(Queue* queue)
 
 //	queue->block.triangle->triangle.count --;
 	real_block_handler(queue);
-}
-
-void block_handler(Queue* queue)
-{
-	Queue* tri = queue->block.triangle;
-
-	unsigned int bx=queue->block.bx, by=queue->block.by;
-	u64 scrbuf = screen.address + screen.bytes_per_line*by*32+bx*128;
-
-	screen_block* current_block = &buffer;
-	load_screen_block(current_block, scrbuf, screen.bytes_per_line, 32);
-	wait_screen_block(current_block);
-
-	queue->block.pixels = (vec_uint4*) ((void*)&current_block->pixels[0]);
-	queue->block.tex_temp = (char*) ((void*)&current_block->textemp[0]);
-	queue->block.tex_override = -1;
-	
-	real_block_handler(queue);
-
-	// this shouldn't be necessary... AND... it sometimes causes duff
-	// stuff to be blitted to screen, but i haven't sorted out the block
-	// cache stuff yet
-	flush_screen_block(&buffer);
-	wait_screen_block(&buffer);
 }
 
 //////////////////////////////////////////////////////////////////////////////
