@@ -62,9 +62,6 @@ void* loadMissingTextures(void* self, Block* block, int tag,
 	block->pixels = ptr;
 
 	unsigned int l = block->left;
-//	vec_uint4 z = spu_splats((unsigned int)63);
-//	while (l--)
-//		*ptr++ = z;
 	
 //////////////////////////////////////////////////////////////////////
 
@@ -160,8 +157,8 @@ void* loadMissingTextures(void* self, Block* block, int tag,
 			int nextMask = 1<<nextIndex;
 
 			if (! (freeTextureMaps&nextMask) ) {
-				printf("ERROR: freeTextureMaps=%lx, next=%d,%d->%d, mask=%lx\n",
-					freeTextureMaps, nextBit1, nextBit2, nextIndex, nextMask);
+//				printf("ERROR: freeTextureMaps=%lx, next=%d,%d->%d, mask=%lx\n",
+//					freeTextureMaps, nextBit1, nextBit2, nextIndex, nextMask);
 				break;
 			}
 
@@ -209,7 +206,6 @@ void* loadMissingTextures(void* self, Block* block, int tag,
 		spu_extract(TEXcache1,7), spu_extract(TEXcache2,7));
 */
 			unsigned int desired = spu_extract(needs_sub, i);
-//			unsigned long long ea = control.texture_hack[0] + (desired<<(5+5+2));
 			unsigned long long ea = block->triangle->texture_base + (desired<<(5+5+2));
 			unsigned long len = 32*32*4;
 			
@@ -221,7 +217,7 @@ void* loadMissingTextures(void* self, Block* block, int tag,
 //				desired, nextIndex, texture, eah, eal, len, tag);
 
 			if (mfc_stat_cmd_queue() == 0) {
-				printf("DMA queue full; bailing...\n");
+//				printf("DMA queue full; bailing...\n");
 				break;
 			}
 
@@ -232,22 +228,9 @@ void* loadMissingTextures(void* self, Block* block, int tag,
 			texturesMask |= nextMask;
 		}
 
-//		dma_wait_job_queues |= 1 << queue->id;
 		block->TEXmerge1 = TEXmerge1;
 		block->TEXmerge2 = TEXmerge2;
 		block->texturesMask = texturesMask;
-//		QUEUE_JOB(queue, finish_texmap_blit_handler);
-//		printf("queued texmap_blit on %d\n", queue->id);
-
-/*
-	printf("block %2d @(%2d,%2d) ", queue->id, queue->block.bx, queue->block.by);
-	printf("needs %02x -> %04x %04x %04x %04x %04x %04x %04x %04x\n",
-		spu_extract(need_bits,0),
-		spu_extract(needs,0), spu_extract(needs,1),
-		spu_extract(needs,2), spu_extract(needs,3),
-		spu_extract(needs,4), spu_extract(needs,5),
-		spu_extract(needs,6), spu_extract(needs,7)); 
-*/
 				
 //////////////////////////////////////////////////////////////////////
 
@@ -263,62 +246,14 @@ void* finishTextureLoad(void* self, Block* block, int tag)
 	TEXcache2 &= block->TEXmerge2;
 	freeTextureMaps |= block->texturesMask;
 
-/*
-	printf(" load = %04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x\n",
-		spu_extract(TEXcache1,0), spu_extract(TEXcache2,0),
-		spu_extract(TEXcache1,1), spu_extract(TEXcache2,1),
-		spu_extract(TEXcache1,2), spu_extract(TEXcache2,2),
-		spu_extract(TEXcache1,3), spu_extract(TEXcache2,3),
-		spu_extract(TEXcache1,4), spu_extract(TEXcache2,4),
-		spu_extract(TEXcache1,5), spu_extract(TEXcache2,5),
-		spu_extract(TEXcache1,6), spu_extract(TEXcache2,6),
-		spu_extract(TEXcache1,7), spu_extract(TEXcache2,7));
-*/
-
-	return block->tex_continue;
-//	return &textureMapFill;
-
-//	block->triangle->count--;
-//	return 0;
-}
-
-static inline void updateTextureCache(int index,int value) {
-	if (index&1)
-		TEXcache1 = spu_insert(value, TEXcache1, index>>1);
-	else
-		TEXcache2 = spu_insert(value, TEXcache2, index>>1);
+	// loaded some texture maps, chain on to original request
+	return block->tex_continue(block->tex_continue, block, tag);
 }
 
 void init_texture_cache()
 {
-	u32* texture = &textureCache[0].textureBuffer[0];
-
-	int i;
-	for (i=0; i<NUMBER_TEX_MAPS*32*32; i++) {
-		texture[i] = (i<<4) | (i<<9) | (i<<19);
-	}
-
-
 	freeTextureMaps = (1<<NUMBER_TEX_MAPS)-1;
 	TEXcache1 = TEXcache2 = spu_splats((unsigned short)-1);
 	TEXblitting1 = TEXblitting2 = spu_splats((unsigned short)-1);
-
-	TEXcache1 = spu_insert(20, TEXcache1, 0);	// 0
-	TEXcache1 = spu_insert(21, TEXcache1, 1);	// 2
-	TEXcache1 = spu_insert(22, TEXcache1, 2);
-	TEXcache1 = spu_insert(23, TEXcache1, 3);
-	TEXcache1 = spu_insert(36, TEXcache1, 4);
-	TEXcache1 = spu_insert(37, TEXcache1, 5);
-	TEXcache1 = spu_insert(38, TEXcache1, 6);
-	TEXcache1 = spu_insert(39, TEXcache1, 7);	// 14
-
-	TEXcache2 = spu_insert(40, TEXcache2, 0);	// 1
-	TEXcache2 = spu_insert(41, TEXcache2, 1);	// 3
-	TEXcache2 = spu_insert(42, TEXcache2, 2);	// 5
-	TEXcache2 = spu_insert(43, TEXcache2, 3);
-	TEXcache2 = spu_insert(48, TEXcache2, 4);
-	TEXcache2 = spu_insert(49, TEXcache2, 5);
-	TEXcache2 = spu_insert(50, TEXcache2, 6);
-	TEXcache2 = spu_insert(51, TEXcache2, 7);	// 15
 }
 

@@ -16,15 +16,24 @@
 
 //#define CHECK_STATE_TABLE
 
+typedef struct {
+	vec_float4	x,y,z,w;	// coords
+	vec_float4	r,g,b,a;	// primary colour
+	vec_float4	s,t,u,v;	// primary texture
+	vec_float4	A,dAdx,dAdy;	// weight information
+	vec_float4	minmax;		// bounding box (xmin,ymin,xmax,ymax)
+
+	u32 		texture;
+	void *		shader;
+	unsigned int dummy;
+} triangle;
+
 extern void _draw_imp_triangle(triangle* tri);
 
 extern float4 current_colour;
 extern float4 current_texcoord;
 extern u32 current_texture;
 extern _bitmap_image screen;
-
-//extern void block_handler(Queue* queue);
-//extern void triangle_handler(Queue* queue);
 
 extern SPU_CONTROL control;
 

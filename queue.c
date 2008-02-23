@@ -205,6 +205,5 @@ void init_queue(ActiveBlockInit* init, ActiveBlockFlush* flush)
 
 int has_finished()
 {
-//	printf("busy %d...\r", busy);
 	return busy==0;
 }

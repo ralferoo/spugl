@@ -14,9 +14,6 @@
 
 #include "types.h"
 
-//static const vec_uchar16 rgba_argb = {
-//	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
-
 u32* prepare_texture(gimp_image* source)
 {
 	int width = (source->width+31)&~31;

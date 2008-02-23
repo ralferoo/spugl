@@ -38,18 +38,12 @@ static struct {
 	screen.width = *from++;
 	screen.height = *from++;
 	screen.bytes_per_line = *from++;
-//	printf("screen at %llx, width %d, height %d, bpl %d\n",
-//		screen.address, screen.width, screen.height, screen.bytes_per_line);
 
 	frags.wide = (screen.width+FRAGMENT_WIDTH-1)/FRAGMENT_WIDTH;
 	frags.high = (screen.width+FRAGMENT_HEIGHT-1)/FRAGMENT_HEIGHT;
 	frags.base_ea = control.fragment_buffer;
 	frags.buffer_length = control.fragment_buflen;
 	frags.num_fragments = frags.buffer_length/FRAGMENT_SIZE;
-
-//	printf("screen is %dx%d frags, we have %d fragments at 0x%llx, local 0x%lx\n",
-//		frags.wide, frags.high, frags.num_fragments, frags.base_ea,
-//		frags.fragment_local_base);
 
 	return from;
 }

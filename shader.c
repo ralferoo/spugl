@@ -36,6 +36,8 @@ static inline vec_float4 extract(
 		spu_mul (spu_splats(spu_extract(what,2)),tAc)));
 }
 	
+//////////////////////////////////////////////////////////////////////////////
+
 void* linearColourFill(void* self, Block* block, int tag)
 {
 	Triangle* tri = block->triangle;
@@ -90,7 +92,6 @@ void* linearColourFill(void* self, Block* block, int tag)
 			vec_uint4 current = *ptr;
 			*ptr = spu_sel(current, colour, pixel);
 //PROCESS_BLOCK_END
-
 		} 
 		vec_uint4 which = spu_and(left,spu_splats((unsigned int)7));
 		vec_uint4 sel = spu_cmpeq(which,1);
@@ -105,68 +106,6 @@ void* linearColourFill(void* self, Block* block, int tag)
 	return 0;
 
 }
-
-#define PROCESS_BLOCK_HEAD(name) vec_ushort8 name (Block* queue, \
-		vec_float4 Aa,vec_float4 Ab,vec_float4 Ac, \
-		vec_float4 Aa_dx4,vec_float4 Ab_dx4,vec_float4 Ac_dx4, \
-		vec_float4 Aa_dy,vec_float4 Ab_dy,vec_float4 Ac_dy) { \
-	vec_uint4 left = spu_splats(32*8); \
-	vec_uint4* ptr = queue->pixels; \
-	Triangle* tri = queue->triangle; \
-	do { \
-		vec_uint4 uAa = (vec_uint4) Aa; \
-		vec_uint4 uAb = (vec_uint4) Ab; \
-		vec_uint4 uAc = (vec_uint4) Ac; \
-		vec_uint4 allNeg = spu_and(spu_and(uAa,uAb),uAc); \
-		vec_uint4 pixel = spu_rlmaska(allNeg,-31); \
-		vec_uint4 bail = spu_orx(pixel); \
-		if (spu_extract(bail,0)) { \
-			vec_float4 t_w = extract(tri->w, Aa, Ab, Ac); \
-			vec_float4 w = spu_splats(1.0f)/t_w; \
-			vec_float4 tAa = spu_mul(Aa,w); \
-			vec_float4 tAb = spu_mul(Ab,w); \
-			vec_float4 tAc = spu_mul(Ac,w);
-
-#define PROCESS_BLOCK_END \
-			} \
-		vec_uint4 which = spu_and(left,spu_splats((unsigned int)7)); \
-		vec_uint4 sel = spu_cmpeq(which,1); \
-		ptr++; \
-		left -= spu_splats(1); \
-		Aa += spu_sel(Aa_dx4,Aa_dy,sel); \
-		Ab += spu_sel(Ab_dx4,Ab_dy,sel); \
-		Ac += spu_sel(Ac_dx4,Ac_dy,sel); \
-	} while (spu_extract(left,0)>0); \
-	return (vec_ushort8) spu_splats((unsigned short)-1); \
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-//
-// This is the simplest shader function; just does a linear interpolation of
-// colours between the vertices
-//
-PROCESS_BLOCK_HEAD(process_colour_block)
-{
-	vec_float4 t_r = extract(tri->r, tAa, tAb, tAc);
-	vec_float4 t_g = extract(tri->g, tAa, tAb, tAc);
-	vec_float4 t_b = extract(tri->b, tAa, tAb, tAc);
-
-	vec_uint4 red = spu_and(spu_rlmask(spu_convtu(t_r,32),-8), 0xff0000);
-	vec_uint4 green = spu_and(spu_rlmask(spu_convtu(t_g,32),-16), 0xff00);
-	vec_uint4 blue = spu_rlmask(spu_convtu(t_b,32),-24);
-
-	vec_uint4 colour = spu_or(spu_or(blue, green),red);
-
-	vec_uint4 current = *ptr;
-	*ptr = spu_sel(current, colour, pixel);
-}
-PROCESS_BLOCK_END
-
-//////////////////////////////////////////////////////////////////////////////
-
-//static const vec_uchar16 rgba_argb = {
-//	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
 
 //////////////////////////////////////////////////////////////////////////////
 

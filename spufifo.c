@@ -75,7 +75,6 @@ void process_fifo(u32* from, u32* to, Triangle* tri) {
 
 int fifoTriangleGenerator(Triangle* tri)
 {
-//	write(1,">",1);
 	// check to see if there's any data waiting on FIFO
 	u64 read = control.fifo_read;
 	u64 written = control.fifo_written;
@@ -87,7 +86,6 @@ int fifoTriangleGenerator(Triangle* tri)
 		process_fifo(from, to, tri);
 		u64 new_read = control.fifo_read;
 	}
-//	write(1,"<",1);
 	return tri->count;
 }
 

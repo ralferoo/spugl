@@ -38,33 +38,6 @@ typedef struct {
 } vertex_state;
 
 ///////////////////////////////////////////////////////////////////////////////
-
-#ifdef SPU_REGS
-#include <spu_intrinsics.h>
-
-typedef struct {
-	vec_float4	x,y,z,w;	// coords
-	vec_float4	r,g,b,a;	// primary colour
-	vec_float4	s,t,u,v;	// primary texture
-	vec_float4	A,dAdx,dAdy;	// weight information
-	vec_float4	minmax;		// bounding box (xmin,ymin,xmax,ymax)
-
-	u32 		texture;
-	void *		shader;
-	unsigned int dummy;
-} triangle;
-
-typedef struct {
-	
-} deferred;
-
-//#include "queue.h"
-
-#endif
-
-///////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////
 //
 // application errors
 #define ERROR_NONE			0 //GL_NO_ERROR
