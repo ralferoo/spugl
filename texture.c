@@ -51,9 +51,9 @@ static const vec_uchar16 splats[] = {
 	/* 1111 */ {18,19, 22,23,26,27,30,31, 0,1, 2,3,4,5, 6,7},
 };
 	
-void* finishTextureLoad(void* self, Block* block, int tag);
+void* finishTextureLoad(void* self, Block* block, ActiveBlock* active, int tag);
 
-void* loadMissingTextures(void* self, Block* block, int tag,
+void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag,
 			vec_float4 A, vec_uint4 left, vec_uint4* ptr, vec_uint4 tex_keep,
 			vec_uint4 block_id, vec_uint4 cache_not_found, vec_uint4 pixel)
 {
@@ -228,26 +228,24 @@ void* loadMissingTextures(void* self, Block* block, int tag,
 			texturesMask |= nextMask;
 		}
 
-		block->TEXmerge1 = TEXmerge1;
-		block->TEXmerge2 = TEXmerge2;
-		block->texturesMask = texturesMask;
+		active->TEXmerge1 = TEXmerge1;
+		active->TEXmerge2 = TEXmerge2;
+		active->texturesMask = texturesMask;
 				
 //////////////////////////////////////////////////////////////////////
 
-	block->tex_continue = self;
+	active->tex_continue = self;
 	return &finishTextureLoad;
 }
 
-extern void* textureMapFill(void* self, Block* block, int tag);
-
-void* finishTextureLoad(void* self, Block* block, int tag)
+void* finishTextureLoad(void* self, Block* block, ActiveBlock* active, int tag)
 {
-	TEXcache1 &= block->TEXmerge1;
-	TEXcache2 &= block->TEXmerge2;
-	freeTextureMaps |= block->texturesMask;
+	TEXcache1 &= active->TEXmerge1;
+	TEXcache2 &= active->TEXmerge2;
+	freeTextureMaps |= active->texturesMask;
 
 	// loaded some texture maps, chain on to original request
-	return block->tex_continue(block->tex_continue, block, tag);
+	return active->tex_continue(active->tex_continue, block, active, tag);
 }
 
 void init_texture_cache()

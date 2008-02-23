@@ -38,7 +38,7 @@ static inline vec_float4 extract(
 	
 //////////////////////////////////////////////////////////////////////////////
 
-void* linearColourFill(void* self, Block* block, int tag)
+void* linearColourFill(void* self, Block* block, ActiveBlock* active, int tag)
 {
 	Triangle* tri = block->triangle;
 
@@ -116,11 +116,11 @@ static const vec_uchar16 shuf_gath_23 = {
 	SEL_00 SEL_00 2,3,128,128, 18,19,128,128,};
 
 extern void* textureCache;
-extern void* loadMissingTextures(void* self, Block* block, int tag,
+extern void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag,
 			vec_float4 A, vec_uint4 left, vec_uint4* ptr, vec_uint4 tex_keep,
 			vec_uint4 block_id, vec_uint4 cache_not_found, vec_uint4 pixel);
 
-void* textureMapFill(void* self, Block* block, int tag)
+void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 {
 	Triangle* tri = block->triangle;
 
@@ -220,7 +220,7 @@ void* textureMapFill(void* self, Block* block, int tag)
 			vec_uint4 cache_not_found = spu_cmpeq(cache,spu_splats((unsigned int)32));
 			unsigned int cache_orx = spu_extract(spu_orx(cache_not_found),0);
 			if (cache_orx) {  // amazingly gcc does move this out of the loop :)
-				return loadMissingTextures(self, block, tag,
+				return loadMissingTextures(self, block, active, tag,
 					A, left, ptr, tex_keep,
 					block_id, cache_not_found, pixel);
 			}

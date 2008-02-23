@@ -86,8 +86,8 @@ static const vec_float4 muls31y = {0.0f, 0.0f, 31.0f, 31.0f};
 
 //////////////////////////////////////////////////////////////////////////////
 
-extern void* linearColourFill(void* self, Block* block, int tag);
-extern void* textureMapFill(void* self, Block* block, int tag);
+extern void* linearColourFill(void* self, Block* block, ActiveBlock* active, int tag);
+extern void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag);
 
 int dummyProducer(Triangle* tri, Block* block)
 {

@@ -34,7 +34,7 @@ typedef struct __ACTIVE ActiveBlock;
 
 typedef int (TriangleGenerator)(Triangle* tri);
 typedef int (TriangleHandler)(Triangle* tri, Block* block);
-typedef void* (BlockHandler)(void* self, Block* block, int tag);
+typedef void* (BlockHandler)(void* self, Block* block, ActiveBlock* active, int tag);
 typedef void (BlockActivater)(Block* block, ActiveBlock* active, int tag);
 typedef void (ActiveBlockInit)(ActiveBlock* active);
 typedef void (ActiveBlockFlush)(ActiveBlock* active, int tag);
@@ -73,10 +73,6 @@ struct __BLOCK {
 	unsigned int	bx,by;
 //	unsigned int	hash;
 	unsigned int	left;
-
-	vec_ushort8	TEXmerge1,TEXmerge2;	// for texture blits
-	unsigned int	texturesMask;
-	BlockHandler*	tex_continue;
 } __attribute__ ((aligned(16)));
 
 // this holds the temporary data used when rendering one of the above blocks
@@ -91,6 +87,10 @@ struct __ACTIVE {
 	unsigned long eah;
 	unsigned long long ea_copy;
 	unsigned long long pad;
+
+	vec_ushort8	TEXmerge1,TEXmerge2;	// for texture blits
+	unsigned int	texturesMask;
+	BlockHandler*	tex_continue;
 } __attribute__((aligned(16)));
 
 

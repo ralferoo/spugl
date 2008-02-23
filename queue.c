@@ -113,7 +113,7 @@ void process_queue(TriangleGenerator* generator, BlockActivater* activate)
 			if (spu_extract(idle_blocks, i)==0) {
 				unsigned short id = spu_extract(active_blocks,i);
 				Block* block = &blocks[id];
-				BlockHandler* next = block->process(block->process, block, i);
+				BlockHandler* next = block->process(block->process, block, &active[i], i);
 				if (next) {
 					block->process = next;
 //					printf("stalled %d: %d\n", i, id);
