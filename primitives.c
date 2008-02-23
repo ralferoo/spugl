@@ -231,7 +231,7 @@ int triangleProducer(Triangle* tri, Block* block)
 
 	if (left==0) {
 		tri->count--;
-		return -1;
+		tri->produce = 0;
 //		printf("done all blocks, t:%x b:%x count:%d\n",
 //			tri, block, tri->count);
 	}

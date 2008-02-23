@@ -29,7 +29,9 @@ static unsigned int last_block_started = 0;
 static unsigned int last_block_added = 0;
 static vector unsigned short active_blocks = (vector unsigned short)(-1);
 
-static inline void chain_hash(unsigned short hash, int idx)
+static signed char chained_block[33];
+
+static inline unsigned int chain_hash(unsigned short hash, int idx)
 {
 	static vector unsigned short hash0 = (vector unsigned short)(-1);
 	static vector unsigned short hash1 = (vector unsigned short)(-1);
@@ -56,11 +58,17 @@ static inline void chain_hash(unsigned short hash, int idx)
 	// determine what index previous held the hash
 	const static vector unsigned char sel01 = { 128, 128, 19, 3 };
 	const static vector unsigned char sel23 = { 19, 3, 128, 128 };
-	unsigned int old = spu_extract(spu_cntlz(spu_or(
+	vector unsigned int old_v = spu_cntlz(spu_or(
 		spu_shuffle(spu_gather(mask0), spu_gather(mask1), sel01), 
-		spu_shuffle(spu_gather(mask2), spu_gather(mask3), sel23))),0);
+		spu_shuffle(spu_gather(mask2), spu_gather(mask3), sel23)));
+	unsigned int old = spu_extract(old_v,0);
 
-	printf("hash %4x held by %2d now held by %2d\n", hash, old, idx);
+	if (old!=32)
+		printf("hash %4x held by %2d now held by %2d\n", hash, old, idx);
+
+	chained_block[old] = idx;
+
+	return spu_extract(spu_cmpeq(old_v,spu_splats((unsigned int)32)),0);
 }
 
 static inline void debug()
@@ -91,6 +99,8 @@ void process_queue(TriangleGenerator* generator, BlockActivater* activate)
 	vector unsigned short idle_blocks = spu_cmpeq(active_blocks,(vector unsigned short)(-1));
 
 	unsigned int mask;
+	int next_bit;
+	int next_mask;
 	for (int i=0, mask=1; i<NUMBER_OF_ACTIVE_BLOCKS; i++, mask<<=1) {
 		if (completed&mask) {
 			if (spu_extract(idle_blocks, i)==0) {
@@ -106,6 +116,14 @@ void process_queue(TriangleGenerator* generator, BlockActivater* activate)
 					free_blocks |= 1<<id;
 					active_blocks = spu_insert( (unsigned short)-1,
 								    active_blocks, i);
+					next_bit = chained_block[i];
+//						static int aaa = -2;
+//					chain_hash(aaa--, i);
+//					printf("next_bit %d\n", next_bit);
+					if (next_bit>=0) {
+						chained_block[i] = -1;
+//						goto queue_chained;
+					}
 					goto queue_next;
 				}
 			} else {
@@ -114,8 +132,9 @@ queue_next:
 					unsigned int rest_mask = ((1<<last_block_started)-1);
 					int bit1 = first_bit(ready_blocks);
 					int bit2 = first_bit(ready_blocks & rest_mask);
-					int next_bit = bit2<0 ? bit1 : bit2;
-					int next_mask = 1<<next_bit;
+					next_bit = bit2<0 ? bit1 : bit2;
+queue_chained:
+					next_mask = 1<<next_bit;
 					ready_blocks &= ~next_mask;
 					last_block_started = next_bit;
 					active_blocks = spu_insert( (unsigned short)next_bit,
@@ -138,18 +157,19 @@ queue_next:
 
 		Triangle* tri = &triangles[triangle_next_read];
 //		printf("calling triangle produce on tri %d(%x) on block %d\n", triangle_next_read, tri, next_bit);
+		int hash = tri->produce(tri, &blocks[next_bit]);
+
+		ready_blocks |= next_mask ;// & chain_hash(hash, next_bit);
 		last_block_added = next_bit;
-		ready_blocks |= next_mask;
 		free_blocks &= ~next_mask;
 
-		int hash = tri->produce(tri, &blocks[next_bit]);
-		if (hash<0) {
+//		for (int c=0; c<33; c++)
+//			printf("%2d ",chained_block[c]);
+//		printf("\n");
+
+		if (tri->produce == 0) {
 //			printf("finished producing on %d\n", triangle_next_read);
-			tri->produce = 0;
 			triangle_next_read = (triangle_next_read+1)%NUMBER_OF_TRIS;
-		} else {
-//			printf("production -> hash %x\n", hash);
-			chain_hash(hash, next_bit);
 		}
 	}
 
@@ -183,13 +203,16 @@ void init_queue(ActiveBlockInit* init, ActiveBlockFlush* flush)
 		(*init)(&active[j]);
 	}
 
-	for (int i=0; i<70; i++)
-		chain_hash(0x120+(i%3)+(i>>2), i);
+//	for (int i=0; i<70; i++)
+//		chain_hash(0x120+(i%3)+(i>>2), i);
 
-	chain_hash(-1, 3);
+//	chain_hash(-1, 3);
 
-	for (int i=0; i<70; i++)
-		chain_hash(0x120+(i%3)+(i>>2), i);
+//	for (int i=0; i<70; i++)
+//		chain_hash(0x120+(i%3)+(i>>2), i);
+	
+	for (int i=0; i<sizeof(chained_block); i++)
+		chained_block[i] = -1;
 }
 
 int has_finished()
