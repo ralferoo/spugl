@@ -38,6 +38,7 @@ void activeBlockFlush(ActiveBlock* active, int tag)
 		spu_mfcdma64(&active->pixels[0], eah, eal, len, tag, MFC_PUTLF_CMD);
 		active->current_length = 0;
 	}
+//	printf("flushed...\n");
 }
 
 //////////////////////////////////////////////////////////////////////////////

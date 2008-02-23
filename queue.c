@@ -30,9 +30,12 @@ static unsigned int last_block_added = 0;
 static vector unsigned short active_blocks = (vector unsigned short)(-1);
 
 static signed char chained_block[33];
+static int busy = 0;
 
 static inline unsigned int chain_hash(unsigned short hash, int idx)
 {
+	if (1) return -1;
+
 	static vector unsigned short hash0 = (vector unsigned short)(-1);
 	static vector unsigned short hash1 = (vector unsigned short)(-1);
 	static vector unsigned short hash2 = (vector unsigned short)(-1);
@@ -64,6 +67,7 @@ static inline unsigned int chain_hash(unsigned short hash, int idx)
 	unsigned int old = spu_extract(old_v,0);
 
 	chained_block[old] = idx;
+/*
 //	if (old!=32)
 	{
 		printf("%08x: hash %04x held by %2d now held by %2d     \n", ready_blocks, hash, old, idx);
@@ -75,7 +79,7 @@ static inline unsigned int chain_hash(unsigned short hash, int idx)
 			printf("%2d ",chained_block[c]);
 		printf("\n");
 	}
-
+*/
 
 	return spu_extract(spu_cmpeq(old_v,spu_splats((unsigned int)32)),0);
 }
@@ -120,21 +124,22 @@ void process_queue(TriangleGenerator* generator, BlockActivater* activate)
 					block->process = next;
 					printf("stalled %d: %d\n", i, id);
 				} else {
-					printf("finished %d: %d\n", i, id);
+//					printf("finished %d: %d\n", i, id);
+					busy--;
 					block->process = next;
 					free_blocks |= 1<<id;
 					active_blocks = spu_insert( (unsigned short)-1,
 								    active_blocks, i);
 					next_bit = chained_block[id];
+				static int aaa = -2;
+				chain_hash(aaa--, id);
 					if (next_bit>=0) {
-						printf("from %d, next_bit %d\n", id, next_bit);
-						static int aaa = -2;
-					chain_hash(aaa--, id);
+//						printf("from %d, next_bit %d\n", id, next_bit);
 						chained_block[id] = -1;
-						printf("ready %08x -> ",ready_blocks);
+//						printf("ready %08x -> ",ready_blocks);
 						ready_blocks |= 1<<next_bit;
-						printf("%08x\n",ready_blocks);
-//						goto queue_chained;
+//						printf("%08x\n",ready_blocks);
+						goto queue_chained;
 					}
 					goto queue_next;
 				}
@@ -152,6 +157,7 @@ queue_chained:
 					active_blocks = spu_insert( (unsigned short)next_bit,
 								    active_blocks, i);
 					activate(&blocks[next_bit], &active[i], i);
+					busy++;
 //					printf("queued %d: %d\n", i, next_bit);
 				}
 			}
@@ -172,6 +178,8 @@ queue_chained:
 		int hash = tri->produce(tri, &blocks[next_bit]);
 
 		unsigned int chain = chain_hash(hash, next_bit);
+//		if (!chain)
+//			printf("blocking %08x\n", next_mask);
 		ready_blocks |= next_mask & chain;
 		last_block_added = next_bit;
 		free_blocks &= ~next_mask;
@@ -230,5 +238,7 @@ void init_queue(ActiveBlockInit* init, ActiveBlockFlush* flush)
 
 int has_finished()
 {
-	return ready_blocks==0 && triangles[triangle_next_read].count==0;
+//	printf("busy %d\n", busy);
+	return busy==0;
+//	return ready_blocks==0 && triangles[triangle_next_read].count==0;
 }
