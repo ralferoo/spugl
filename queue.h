@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * SPU 3d rasterisation library
+ * SPU GL - 3d rasterisation library for the PS3
  *
  * (c) 2008 Ranulf Doswell <dev@ranulf.net> 
  *

@@ -1,6 +1,6 @@
 ############################################################################
 #
-# SPU 3d rasterisation library
+# SPU GL - 3d rasterisation library for the PS3
 #
 # (c) 2008 Ranulf Doswell <dev@ranulf.net> 
 #
@@ -260,8 +260,18 @@ spufifo.0: spuregs.h struct.h types.h
 spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
 spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h fifo.h
-spufifo.0: gen_spu_command_defs.h queue.h gen_spu_command_exts.h
-spufifo.0: gen_spu_command_table.h
+spufifo.0: gen_spu_command_defs.h queue.h /usr/include/stdio.h
+spufifo.0: /usr/include/features.h /usr/include/sys/cdefs.h
+spufifo.0: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
+spufifo.0: /usr/include/gnu/stubs-32.h
+spufifo.0: /usr/lib/gcc/spu/4.0.2/include/stddef.h /usr/include/bits/types.h
+spufifo.0: /usr/include/bits/typesizes.h /usr/include/libio.h
+spufifo.0: /usr/include/_G_config.h /usr/include/wchar.h
+spufifo.0: /usr/include/bits/wchar.h /usr/include/gconv.h
+spufifo.0: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+spufifo.0: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
+spufifo.0: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
+spufifo.0: gen_spu_command_exts.h gen_spu_command_table.h
 decode.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 decode.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 decode.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
@@ -275,10 +285,6 @@ primitives.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 primitives.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 primitives.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
 primitives.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
-triangleColourSpan.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
-triangleColourSpan.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
-triangleColourSpan.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h struct.h
-triangleColourSpan.0: types.h spuregs.h
 fragment.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 fragment.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 fragment.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
@@ -288,15 +294,24 @@ fragment.0: /usr/include/inttypes.h /usr/include/features.h
 fragment.0: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 fragment.0: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
 fragment.0: /usr/include/stdint.h /usr/include/bits/wchar.h
+queue.0: spuregs.h struct.h types.h
+queue.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+queue.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h queue.h
+queue.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h /usr/include/stdio.h
+queue.0: /usr/include/features.h /usr/include/sys/cdefs.h
+queue.0: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
+queue.0: /usr/include/gnu/stubs-32.h /usr/lib/gcc/spu/4.0.2/include/stddef.h
+queue.0: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+queue.0: /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h
+queue.0: /usr/include/bits/wchar.h /usr/include/gconv.h
+queue.0: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+queue.0: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
+queue.0: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
+activeblock.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
+activeblock.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+activeblock.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
+activeblock.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
 shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
 shader.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
-queue.0: spuregs.h struct.h types.h
-queue.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
-queue.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h queue.h
-queue.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
-blocks.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
-blocks.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
-blocks.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
-blocks.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
