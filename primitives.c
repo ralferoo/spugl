@@ -118,44 +118,16 @@ int dummyProducer(Triangle* tri, Block* block)
 
 int triangleProducer(Triangle* tri, Block* block)
 {
-	vec_float4 minmax_ = tri->minmax;
-	vec_int4 minmax = spu_convts(tri->minmax,0);
-	vec_int4 minmax_block = spu_rlmaska(minmax,-5);
-	vec_int4 minmax_block_mask = minmax & spu_splats(~31);
-	vec_float4 minmax_block_topleft = spu_convtf(minmax_block_mask,0);
-
-	int block_left = spu_extract(minmax_block,0);
-	int block_top = spu_extract(minmax_block,1);
-	int block_right = spu_extract(minmax_block,2);
-	int block_bottom = spu_extract(minmax_block,3);
-
-	vec_float4 pixels_wide = spu_splats(spu_extract(minmax_block_topleft,2)-spu_extract(minmax_block_topleft,0));
-
-////////////////////////////////////////////
-
-	int bx = tri->cur_x, by = tri->cur_y;
-	int left = tri->left;
-	vec_int4 step = spu_splats((int)tri->step);
 	vec_float4 A = tri->A;
-
-	vec_int4 step_start = spu_splats(block_right - block_left);
-	if (left<0) {
-		bx = block_left;
-		by = block_top;
-		step = step_start;
-		left = (block_bottom+1-block_top)*(block_right+1-block_left);
-		A = spu_madd(spu_splats(spu_extract(minmax_block_topleft,0)),tri->A_dx,
-	            spu_madd(spu_splats(spu_extract(minmax_block_topleft,1)),tri->A_dy,A));
-	}
-
-////////////////////////////////////////////
-
 	vec_float4 A_dx = tri->A_dx;
 	vec_float4 A_dy = tri->A_dy;
-	vec_float4 A_dx4 = spu_mul(muls4,A_dx);
-	vec_float4 A_dx32 = spu_mul(muls32,A_dx);
-	vec_float4 A_dy32 = spu_nmsub(pixels_wide,A_dx,spu_mul(muls32,A_dy));
-	vec_float4 blockA_dy = spu_madd(mulsn28,A_dx,A_dy);
+	vec_float4 A_dx4 = tri->A_dx4;
+	vec_float4 A_dx32 = tri->A_dx32;
+	vec_float4 A_dy32 = tri->A_dy32;
+	vec_float4 blockA_dy = tri->blockA_dy;
+	int bx = tri->cur_x, by = tri->cur_y, block_left=tri->block_left;
+	vec_int4 step = spu_splats((int)tri->step);
+	vec_int4 step_start = spu_splats((int)tri->step_start);
 
 	block->process = tri->init_block;
 	block->bx = bx;
@@ -176,6 +148,8 @@ int triangleProducer(Triangle* tri, Block* block)
 	by = if_then_else(spu_extract(step_eq0,0), by+1, by);
 	vec_int4 t_step = spu_add(step, spu_splats(-1));
 	step = spu_sel(t_step, step_start, step_eq0);
+
+	unsigned int left = tri->left;
 	left--;
 
 	tri->cur_x = bx;
@@ -206,7 +180,7 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 
 	vec_uchar16 shuf_minmax_base = spu_shuffle(shuf_x, shuf_y, minimax_merge);
 	vec_uchar16 shuf_minmax = spu_or(shuf_minmax_base, minimax_add);
-	vec_float4 minmax = spu_shuffle(TRIx, TRIy, shuf_minmax);
+	vec_float4 minmax_ = spu_shuffle(TRIx, TRIy, shuf_minmax);
 
 	vec_float4 v_x_cw = spu_shuffle(TRIx, TRIx, shuffle_tri_cw);
 	vec_float4 v_x_ccw = spu_shuffle(TRIx, TRIx, shuffle_tri_ccw);
@@ -246,35 +220,55 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	triangle->u = TRIu;
 	triangle->v = TRIv;
 	
-	triangle->minmax = minmax;
-	triangle->A = spu_sub(base_area, area_ofs);
 	triangle->A_dx = area_dx;
 	triangle->A_dy = area_dy;
-	triangle->left = -1;
+
+	vec_int4 minmax = spu_convts(minmax_,0);
+	vec_int4 minmax_block = spu_rlmaska(minmax,-5);
+	vec_int4 minmax_block_mask = minmax & spu_splats(~31);
+	vec_float4 minmax_block_topleft = spu_convtf(minmax_block_mask,0);
+
+	int block_left = spu_extract(minmax_block,0);
+	int block_top = spu_extract(minmax_block,1);
+	int block_right = spu_extract(minmax_block,2);
+	int block_bottom = spu_extract(minmax_block,3);
+
+	triangle->step = triangle->step_start = block_right - block_left;
+	triangle->cur_x = block_left;
+	triangle->cur_y = block_top;
+	triangle->block_left = block_left;
+	triangle->left = (block_bottom+1-block_top)*(block_right+1-block_left);
+
+	triangle->A = spu_madd(spu_splats(spu_extract(minmax_block_topleft,0)),area_dx,
+	              spu_madd(spu_splats(spu_extract(minmax_block_topleft,1)),area_dy,
+		      spu_sub(base_area, area_ofs)));
+
+	triangle->blockA_dy = spu_madd(mulsn28,area_dx,area_dy);
+	triangle->A_dx32 = spu_mul(muls32,area_dx);
+
+	vec_float4 pixels_wide = spu_splats(spu_extract(minmax_block_topleft,2) -
+				            spu_extract(minmax_block_topleft,0));
+	triangle->A_dy32 = spu_nmsub(pixels_wide,area_dx,spu_mul(muls32,area_dy));
+	triangle->A_dx4 = spu_mul(muls4,area_dx);
+
+///////////////////////////////////////////
 
 	triangle->tex_id_base = current_texture<<6;
 	triangle->tex_id_mask = (1<<6)-1;
 	triangle->texture_base = control.texture_hack[current_texture]; // * (256*256/32/32);
 	triangle->texture_y_shift = 8-5;
 
-//	triangle->functions = &_standard_texture_triangle;
-
-//	triangle->functions = &_standard_simple_texture_triangle;
-//	triangle->functions = &_standard_colour_triangle;
+//	triangle->init_block = &linearColourFill;
+	triangle->init_block = &textureMapFill;
 
 // if the triangle is visible (i.e. area>0), then we increment the triangle
 // out ptr to just past the triangle data we've just written to memory.
 // if the triangle is invisible (i.e. area<0) then leave the pointer in the
 // same place so that we re-use the triangle slot on the next triangle.
 
-	unsigned long advance_ptr_mask = spu_extract(fcgt_area, 0);
-
-	triangle->count = 1 & advance_ptr_mask;
-
-//	triangle->init_block = &linearColourFill;
-	triangle->init_block = &textureMapFill;
-
-	triangle->produce = (void*)( ((u32)&triangleProducer)&advance_ptr_mask );
+	unsigned long triangle_is_visible_mask = spu_extract(fcgt_area, 0);
+	triangle->count = 1 & triangle_is_visible_mask;
+	triangle->produce = (void*)( ((u32)&triangleProducer) & triangle_is_visible_mask );
 }
 
 //////////////////////////////////////////////////////////////////////////////

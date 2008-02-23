@@ -46,7 +46,7 @@ struct __TRIANGLE {
 	vec_float4	s,t,u,v;	// primary texture
 
 	vec_float4	A,A_dx,A_dy;	// weight information
-	vec_float4	minmax;		// bounding box (xmin,ymin,xmax,ymax)
+	vec_float4	A_dx4,A_dx32,A_dy32,blockA_dy;		// block init values
 
 	TriangleHandler*	produce;
 	BlockHandler*	init_block;
@@ -55,9 +55,11 @@ struct __TRIANGLE {
 	unsigned short	count;		// count of blocks that still have reference
 	unsigned long	texture_base;	// the base texture address for block(0,0)
 	unsigned char	texture_y_shift;// log2(texture_width_in_blocks)
-	unsigned char	step, cur_x, cur_y;	// current x and y values
+	unsigned char	step, step_start;
+	unsigned char	cur_x, cur_y;	// current x and y values
 	unsigned short	tex_id_base;	// base of texture ids (to guarantee unique)
 	unsigned short	tex_id_mask;	// mask of valid bits of texture id
+	int	block_left;
 } __attribute__ ((aligned(16)));
 
 // this holds a block waiting to be rendered, in whatever state it is in
