@@ -62,8 +62,8 @@ struct __TRIANGLE {
 
 // this holds a block waiting to be rendered, in whatever state it is in
 struct __BLOCK {
-	vec_float4	A,A_dx,A_dy;	// the weighting of the top left of the block
-	Triangle*	triangle;	// used to get parametric data
+	vec_float4	A,A_dx,A_dy,A_dx4;	// the weighting of the top left of the block
+	Triangle*	triangle;		// used to get parametric data
 	vec_float4*	z_buffer;
 	vec_uint4*	pixels;
 	char*		tex_temp;
@@ -72,6 +72,7 @@ struct __BLOCK {
 
 	unsigned int	bx,by;
 	unsigned int	hash;
+	unsigned int	left;
 
 	vec_ushort8	TEXmerge1,TEXmerge2;	// for texture blits
 	unsigned int	texturesMask;
