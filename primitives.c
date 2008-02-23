@@ -78,6 +78,7 @@ static const vec_float4 muls31y = {0.0f, 0.0f, 31.0f, 31.0f};
 //////////////////////////////////////////////////////////////////////////////
 
 extern void* linearColourFill(void* self, Block* block, int tag);
+extern void* textureMapFill(void* self, Block* block, int tag);
 
 int dummyProducer(Triangle* tri, Block* block)
 {
@@ -242,7 +243,7 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	triangle->A_dy = area_dy;
 	triangle->left = -1;
 
-	triangle->tex_id_base = current_texture<<6;
+	triangle->tex_id_base = 0; //current_texture<<6;
 	triangle->tex_id_mask = (1<<6)-1;
 	triangle->texture_base = control.texture_hack[current_texture]; // * (256*256/32/32);
 	triangle->texture_y_shift = 8-5;
@@ -261,7 +262,12 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 
 	triangle->count = 1 & advance_ptr_mask;
 
-	triangle->init_block = &linearColourFill;
+	static int a = 0;
+	if (a++&1) 
+		triangle->init_block = &linearColourFill;
+	else
+		triangle->init_block = &textureMapFill;
+
 	triangle->produce = (void*)( ((u32)&triangleProducer)&advance_ptr_mask );
 }
 

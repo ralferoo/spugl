@@ -90,6 +90,7 @@ struct __ACTIVE {
 	unsigned long current_length;
 	unsigned long eah;
 	unsigned long long ea_copy;
+	unsigned long long pad;
 } __attribute__((aligned(16)));
 
 

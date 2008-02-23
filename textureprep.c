@@ -14,6 +14,9 @@
 
 #include "types.h"
 
+//static const vec_uchar16 rgba_argb = {
+//	3,0,1,2, 7,4,5,6, 11,8,9,10, 15,12,13,14}; 
+
 u32* prepare_texture(gimp_image* source)
 {
 	int width = (source->width+31)&~31;
@@ -37,7 +40,9 @@ u32* prepare_texture(gimp_image* source)
 				for (x=0;x<32;x++) {
 					u32* s = (u32*) (source->pixel_data + 
 							((by+y)*source->width + (bx+x))*4);
-					*p++ = *s;
+					u32 rgba = *s;
+					u32 argb = ((rgba&0xff)<<24) | ((rgba>>8)&0xffffff);
+					*p++ = argb;
 				}
 			}
 		}
