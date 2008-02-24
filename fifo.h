@@ -31,24 +31,6 @@ typedef void* DriverContext;
 
 //////////////////////////////////////////////////////////////////////////////
 
-#define FIFO_PROLOGUE(fifo,minsize) \
-DriverContext __fifo = (fifo); \
-u32* __fifo_head = _begin_fifo(__fifo, (minsize)*4); \
-u32* __fifo_ptr = __fifo_head;
-
-#define FIFO_EPILOGUE(fifo) _end_fifo(__fifo, __fifo_head, __fifo_ptr); \
-__fifo_ptr = 0UL;
-
-#define OUT_RING(v) { *(__fifo_ptr)++ = (u32)v; }
-#define OUT_RINGf(v) { union __f2i temp; temp.f = v;  *(__fifo_ptr)++ = temp.i; }
-#define BEGIN_RING(c,s) OUT_RING(c)
-
-union __f2i
-{
-  float f;
-  u32 i;
-};
-
 #if defined(USERLAND_32_BITS)
 #define _MAKE_EA(x) ( (u64) ((u32)((void*)x)) )
 #define _FROM_EA(x) ((void*)((u32)((u64)x)))
@@ -83,6 +65,33 @@ union __f2i
 
 //////////////////////////////////////////////////////////////////////////////
 
+//#define FIFO_PROLOGUE \
+//u32* __fifo_ptr = (u32*)_FROM_EA( *_fifo_write_pointer ); \
+//printf("prologue %llx\n", __fifo_ptr);
+
+//#define FIFO_EPILOGUE \
+//*_fifo_write_pointer = _MAKE_EA(__fifo_ptr);
+
+#define FIFO_PROLOGUE(fifo,minsize) \
+DriverContext __fifo = (fifo); \
+u32* __fifo_head = _begin_fifo(__fifo, (minsize)*4); \
+u32* __fifo_ptr = __fifo_head;
+
+#define FIFO_EPILOGUE(fifo) _end_fifo(__fifo, __fifo_head, __fifo_ptr); \
+__fifo_ptr = 0UL;
+
+#define OUT_RING(v) { *(__fifo_ptr)++ = (u32)v; }
+#define OUT_RINGf(v) { union __f2i temp; temp.f = v;  *(__fifo_ptr)++ = temp.i; }
+#define BEGIN_RING(c,s) OUT_RING(c | (s<<24))
+
+union __f2i
+{
+  float f;
+  u32 i;
+};
+
+//////////////////////////////////////////////////////////////////////////////
+
 #define SPU_MIN_FIFO 128
 
 // this structure implements a FIFO command buffer.
@@ -114,6 +123,7 @@ typedef struct {
 	volatile u32 pad2[32-8];
 } SPU_CONTROL;
 
+extern u64* _get_fifo_address(DriverContext _context);
 extern DriverContext _init_3d_driver(int master);
 extern int _exit_3d_driver(DriverContext _context);
 extern u32* _begin_fifo(DriverContext _context, u32 minsize);

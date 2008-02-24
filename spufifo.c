@@ -15,31 +15,14 @@
 #include "queue.h"
 #include <stdio.h>
 
+#define FIFO_SIZE 1024
+#define FIFO_DMA_TAG 12
+
 SPU_CONTROL control __CACHE_ALIGNED__;
 
 void raise_error(int error) {
 	if (control.error == ERROR_NONE)
 		control.error = error;
-}
-
-int init_fifo(int fifo_size) {
-	u64 ls = control.my_local_address;
-
-	if (control.fifo_start)
-		free(control.fifo_start);
-
-	control.fifo_start = (u32) (fifo_size ? malloc(fifo_size) : 0UL);
-	if (fifo_size>0 && control.fifo_start == 0UL)
-		return 1;
-
-	u64 ea = fifo_size > 0 ? ls + ((u64)control.fifo_start) : 0;
-
-	control.fifo_size = fifo_size;
-	control.fifo_read = ea;
-	control.fifo_written = ea;
-	control.fifo_host_start = ea;
-	control.error = ERROR_NONE;
-	return 0;
 }
 
 #include "gen_spu_command_exts.h"
@@ -48,43 +31,73 @@ SPU_COMMAND* spu_commands[] = {
 #include "gen_spu_command_table.h"
 };
 
-/* Process commands on the FIFO */
-void process_fifo(u32* from, u32* to, Triangle* tri) {
-	while (!tri->count && from != to) { // && (COUNT_ONES(free_job_queues)>8)) {
-		u32* addr = from;
-
-		u32 command = *from++;
-		SPU_COMMAND* func = command < sizeof(spu_commands)
-					? spu_commands[command] : 0;
-
-		if (func) {
-			from = (*func)(from, tri);
-			if (!from)
-				return;
-		} else {
-			printf("%06lx: command %lx\n", addr, command);
-			from++;
-		}
-		u64 ls = control.my_local_address;
-		control.fifo_read = ls+((u64)((u32)from));
-	}
-}
-
-
 // extern int fifoTriangleGenerator(Triangle* tri);
+
+static u64 cache_read_base = 0ULL;
+static u64 cache_read_upto = 0ULL;
+
+static unsigned char fifo_area[FIFO_SIZE] __attribute__((aligned(128)));
 
 int fifoTriangleGenerator(Triangle* tri)
 {
+	mfc_write_tag_mask(1<<FIFO_DMA_TAG);
+	unsigned int completed = mfc_read_tag_status_all();
+	
 	// check to see if there's any data waiting on FIFO
 	u64 read = control.fifo_read;
 	u64 written = control.fifo_written;
 	u64 ls = control.my_local_address;
 	tri->count = 0;
-	if (read!=written && !tri->count) {
-		u32* to = (u32*) ((u32)(written-ls));
-		u32* from = (u32*) ((u32)(read-ls));
-		process_fifo(from, to, tri);
-		u64 new_read = control.fifo_read;
+	while (read!=written && !tri->count) {
+//		printf("fifo: buffer=%llx-%llx, read_ptr=%llx, write_ptr=%llx\n",
+//			cache_read_base, cache_read_upto, read, written);
+
+		if (cache_read_base<=read && cache_read_upto>=(read+4)) {
+			// we have at least one word in our buffer
+			void* start_cmd = &fifo_area[read-cache_read_base];
+			u32* from = (u32*) start_cmd;
+			u32 cmd = *from++;
+			int size = cmd>>24;
+			u32 command = cmd & (1<<24)-1;
+//			printf("fifo cmd: %08lx -> size %d command %d\n", cmd, size, command);
+
+			if (cache_read_upto>=(read+4+4*size)) {
+				// entire command has already been read
+				SPU_COMMAND* func = command < sizeof(spu_commands)
+							? spu_commands[command] : 0;
+				if (func) {
+					from = (*func)(from, tri);
+//					printf("%llx (%06lx): Processed command %d from %lx to %lx\n",
+//						read, start_cmd, command, start_cmd, from);
+					if (!from) {
+						// null return from func means it can't be
+						// processed currently or it has managed the
+						// fifo_read directly (JMP)
+						return 0;
+					}
+				} else {
+					printf("%llx (%06lx): command %d(%lx) not recognised\n",
+						read, start_cmd, command, cmd);
+				}
+				int len = ((void*)from)-start_cmd;
+				read += len;
+				control.fifo_read = read;
+
+				continue;	// repeat loop
+			}
+		}
+
+		cache_read_base = read & ~127;
+
+		u32 length = (u32)(written-cache_read_base);
+		if (written<read || length>FIFO_SIZE)
+			length = FIFO_SIZE;
+
+		cache_read_upto = cache_read_base+length;
+		spu_mfcdma64(&fifo_area[0], mfc_ea2h(cache_read_base), mfc_ea2l(cache_read_base), 
+				(length+127)&~127, FIFO_DMA_TAG, MFC_GET_CMD);
+
+		return 0;
 	}
 	return tri->count;
 }
@@ -93,15 +106,13 @@ extern void blockActivater(Block* block, ActiveBlock* active, int tag);
 extern void activeBlockInit(ActiveBlock* active);
 extern void activeBlockFlush(ActiveBlock* active, int tag);
 
-/* I'm deliberately going to ignore the arguments passed in as early versions
- * of libspe2 have the upper and lower 32 bits swapped.
- */
 int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned long long env) {
-	control.fifo_start = 0;
+	control.fifo_start = program_data_ea;
 	control.fifo_size = 0;
-	control.fifo_written = 0;
-	control.fifo_read = 0;
+	control.fifo_written = program_data_ea;
+	control.fifo_read = program_data_ea;
 	control.fifo_host_start = 0;
+	control.error = ERROR_NONE;
 
 	control.last_count = 0;
 	control.idle_count = 0;
@@ -113,38 +124,6 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 
 	int running = 1;
 	while (running) {
-		while (spu_stat_in_mbox() == 0) {
-			process_queue(&fifoTriangleGenerator, &blockActivater);
-			control.idle_count += 9;
-		}
-
-		unsigned long msg = spu_read_in_mbox();
-		switch (msg) {
-			case SPU_MBOX_3D_TERMINATE:
-				running = 0;
-				continue;
-			case SPU_MBOX_3D_FLUSH:
-				spu_write_out_mbox(0);
-				break; 
-			case SPU_MBOX_3D_INITIALISE_MASTER:
-				if (init_fifo(512)) {
-					printf("couldn't allocate FIFO\n");
-					spu_write_out_mbox(0);
-					running = 0;
-				} else {
-					spu_write_out_mbox((u32)&control);
-				}
-				break;
-			case SPU_MBOX_3D_INITIALISE_NORMAL:
-				if (init_fifo(512)) {
-					printf("couldn't allocate FIFO\n");
-					spu_write_out_mbox(0);
-					running = 0;
-				} else {
-					spu_write_out_mbox((u32)&control);
-				}
-				break;
-		}
+		process_queue(&fifoTriangleGenerator, &blockActivater);
 	}
-
 }

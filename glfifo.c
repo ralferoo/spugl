@@ -85,7 +85,7 @@ GLAPI void GLAPIENTRY glspuWait(void)
 GLAPI void GLAPIENTRY glFlush()
 {
 	FIFO_PROLOGUE(ctx,2);
-	BEGIN_RING(SPU_COMMAND_SYNC,1);
+	BEGIN_RING(SPU_COMMAND_SYNC,0);
 	FIFO_EPILOGUE();
 	_flush_3d_driver(ctx);
 }

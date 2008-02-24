@@ -315,3 +315,7 @@ shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
 shader.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
+texture.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
+texture.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+texture.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
+texture.0: gen_spu_command_defs.h struct.h spuregs.h queue.h

@@ -175,6 +175,7 @@ queue_chained:
 		if (tri->produce == 0) {
 //			printf("finished producing on %d\n", triangle_next_read);
 			triangle_next_read = (triangle_next_read+1)%NUMBER_OF_TRIS;
+			busy--;
 		}
 	}
 
@@ -183,6 +184,7 @@ queue_chained:
 		if ( (*generator)(tri) ) {
 //			printf("generated triangle on %d\n", triangle_next_write);
 			triangle_next_write = (triangle_next_write+1)%NUMBER_OF_TRIS;
+			busy++;
 		} else {
 			break;
 		}

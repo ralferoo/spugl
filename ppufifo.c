@@ -23,7 +23,10 @@
 // to store a z-buffer and we will need other fragments as well
 // for partially rendered things
 #define FRAGMENT_SLOP 1024
-#define FRAGMENT_BUFFER_SIZE (1920*1080*4 + FRAGMENT_SLOP*1024)
+#define FRAGMENT_BUFFER_SIZE 4096
+//(1920*1080*4 + FRAGMENT_SLOP*1024)
+
+#define FIFO_BUFFER_SIZE (2*1024*1024)
 
 extern spe_program_handle_t spu_3d_handle;
 spe_program_handle_t* spu_3d_program = &spu_3d_handle;
@@ -34,6 +37,7 @@ typedef struct {
 	SPU_CONTROL* control;
 	int master;
 	void* fragment_buffer;
+	void* fifo_buffer;
 } __DRIVER_CONTEXT;
 
 static u32 spe_read(speid_t spe_id);
@@ -53,21 +57,33 @@ DriverContext _init_3d_driver(int master)
 	if (context == NULL)
 		return NULL;
 
+	context->fragment_buffer = NULL;
+	context->fifo_buffer = NULL;
+
 	if (master) {
-		context->fragment_buffer = mmap(NULL, FRAGMENT_BUFFER_SIZE,
+		void *fragment = mmap(NULL, FRAGMENT_BUFFER_SIZE,
 			PROT_READ | PROT_WRITE, 
 			MAP_SHARED | MAP_NORESERVE | MAP_ANONYMOUS,
 			-1, 0);
-		if (context->fragment_buffer == (void*)-1)
-			context->fragment_buffer = NULL;
-	} else {
-		context->fragment_buffer = NULL;
+		if (context->fragment_buffer != (void*)-1) {
+			context->fragment_buffer = fragment;
+		}
+
+		void *fifo = mmap(NULL, FIFO_BUFFER_SIZE,
+			PROT_READ | PROT_WRITE, 
+			MAP_SHARED | MAP_NORESERVE | MAP_ANONYMOUS,
+			-1, 0);
+		if (context->fifo_buffer != (void*)-1) {
+			context->fifo_buffer = fifo;
+		}
 	}
 
-	context->spe_id = spe_create_thread(0, spu_3d_program, NULL, NULL, -1, 0);
+	context->spe_id = spe_create_thread(0, spu_3d_program, context->fifo_buffer, NULL, -1, 0);
 	context->master = master;
 
 	if (context->spe_id==0) {
+		if (context->fifo_buffer)
+			munmap(context->fragment_buffer, FIFO_BUFFER_SIZE);
 		if (context->fragment_buffer)
 			munmap(context->fragment_buffer, FRAGMENT_BUFFER_SIZE);
 		free(context);
@@ -82,14 +98,9 @@ DriverContext _init_3d_driver(int master)
 	u32 addr = spe_read(context->spe_id);
 	context->control = addr + ls;
 	context->control->my_local_address = _MAKE_EA(ls);
-
-	spe_write_in_mbox(context->spe_id, 
-		 master ? SPU_MBOX_3D_INITIALISE_MASTER
-			: SPU_MBOX_3D_INITIALISE_NORMAL); 
-	spe_read(context->spe_id);
-
 	context->control->fragment_buffer = _MAKE_EA(context->fragment_buffer);
 	context->control->fragment_buflen = FRAGMENT_BUFFER_SIZE;
+	context->control->fifo_size = FIFO_BUFFER_SIZE;
 
 	// TODO: ugly hack!
 	context->control->texture_hack[0] = (u64)prepare_texture(&berlin);
@@ -106,13 +117,17 @@ int _flush_3d_driver(DriverContext _context)
 {
 	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;
 
-	if (context->control->fifo_written != context->control->fifo_read) {
-//		printf("glFlush() wait...\n");
-		while (context->control->fifo_written !=
-				context->control->fifo_read) 
+	SPU_CONTROL* control = context->control;
+
+	// use a flush as an opportunity to reset the fifo buffer
+	u32* __fifo_ptr = (u32*)_FROM_EA(control->fifo_written);
+	BEGIN_RING(SPU_COMMAND_JUMP,1);
+	OUT_RINGea(context->fifo_buffer);
+	control->fifo_written = context->fifo_buffer;
+
+	if (control->fifo_written != control->fifo_read) {
+		while (control->fifo_written != control->fifo_read) 
 			sched_yield();
-//			usleep(2000);
-//		printf("glFlush() done...\n");
 	}
 }
 
@@ -164,50 +179,17 @@ u32 _3d_error(DriverContext _context)
 	return error;
 }
 
+u64* _get_fifo_address(DriverContext _context)
+{
+	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;
+	SPU_CONTROL* control = context->control;
+	return &(control->fifo_written);
+}
+
 u32* _begin_fifo(DriverContext _context, u32 minsize)
 {
 	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;
 	SPU_CONTROL* control = context->control;
-
-	u64 read = control->fifo_read;
-	u64 written = control->fifo_written;
-
-	if (read<=written) {
- 		u64 end = control->fifo_host_start + control->fifo_size;
-		u32* __fifo_ptr = (u32*)_FROM_EA(written);
-		if (written + minsize + 40 < end) {
-#ifdef DOTS_WHEN_WAITING_FOR_FIFO
-			printf(".");
-//			printf("_begin_fifo: written %llx + size %d = %llx < %llx\n",
-//				written, minsize, written+minsize, end);
-#endif
-			return __fifo_ptr;
-		} else {
-			while (read==control->fifo_host_start) {
-//				printf("_begin_fifo: Waiting for them to start reading... %llx\n", read);
-				sched_yield();
-				// usleep(10000);
-				read = context->control->fifo_read;
-			};
-
-			u32* sptr = (u32*)_FROM_EA(control->fifo_host_start);
-			BEGIN_RING(SPU_COMMAND_JUMP,1);
-			OUT_RINGea(sptr);
-			written = control->fifo_host_start;
-			control->fifo_written = written;
-//			printf("_begin_fifo: jumped back to beginning of buffer %llx\n",
-//				control->fifo_host_start);
-		}
-	}
-
-	while (written != control->fifo_read &&
-			written + minsize + 40 > control->fifo_read) {
-//		printf("_begin_fifo: Still not enough space... read=%llx, written=%llx, need until=%llx, want=%d\n", control->fifo_read, written, written + minsize + 40);
-		sched_yield();
-		//usleep(10000);
-	}
-
-//	printf("_begin_fifo: returning %llx for %d bytes\n", control->fifo_written, minsize);
 	return (u32*)_FROM_EA(control->fifo_written);
 }
 
@@ -215,13 +197,7 @@ void _end_fifo(DriverContext _context, u32* fifo_head, u32* fifo)
 {
 	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;
 	SPU_CONTROL* control = context->control;
-
 	control->fifo_written = _MAKE_EA(fifo);
-
-	u32 used = ((void*)fifo) - ((void*)fifo_head);
-	
-//	printf("_end_fifo used %d, updated %llx\n",
-//		used, control->fifo_written);
 }
 
 /*
