@@ -172,8 +172,8 @@ void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 			vec_uint4 t_sub = spu_and(spu_rlmask(spu_convtu(t_t,32),-22), 0x7c);	//24-2
 			vec_uint4 sub_block_pixel = spu_or(s_sub,t_sub);
 
-			vec_uint4 s_blk = spu_and(spu_rlmask(spu_convtu(t_s,32),-26), 0x38);	//24+2
-			vec_uint4 t_blk = spu_and(spu_rlmask(spu_convtu(t_t,32),-29), 0x7);	//24+5
+			vec_uint4 s_blk = spu_and(spu_rlmask(spu_convtu(t_s,32),-29), 0x7);	//24+5
+			vec_uint4 t_blk = spu_and(spu_rlmask(spu_convtu(t_t,32),-26), 0x38);	//24+2
 			vec_uint4 block_id = spu_add(tex_id_base,spu_or(s_blk,t_blk));
 
 			vec_uchar16 shuf_cmp_0 = spu_splats((unsigned short)0x203);

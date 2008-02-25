@@ -31,8 +31,8 @@ u32* prepare_texture(gimp_image* source)
 	int bx,by,x,y;
 
 	u32* p = pixels;
-	for (by=0; by<height; by+=32) {
-		for (bx=0; bx<width; bx+=32) {
+	for (bx=0; bx<width; bx+=32) {
+		for (by=0; by<height; by+=32) {
 			for (y=0;y<32;y++) {
 				for (x=0;x<32;x++) {
 					u32* s = (u32*) (source->pixel_data + 
