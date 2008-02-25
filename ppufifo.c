@@ -221,6 +221,6 @@ void _bind_child(DriverContext _parent, DriverContext _child, int assign)
 
 static u32 spe_read(speid_t spe_id) {
 	while(!spe_stat_out_mbox(spe_id))
-		; //usleep(10);
+		sched_yield();
 	return spe_read_out_mbox(spe_id);
 }
