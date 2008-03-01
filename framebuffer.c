@@ -61,8 +61,8 @@ static void switchMode(ScreenObject* self, int gfxMode) {
 //			transition is documented as unblanking the screen... <sigh>
 //			int i =  TIOCL_UNBLANKSCREEN;
 //			ioctl(fd, TIOCLINUX, &i);
-			ioctl(fd, KDSETMODE, KD_GRAPHICS);
-			ioctl(fd, KDSETMODE, KD_TEXT);
+	//		ioctl(fd, KDSETMODE, KD_GRAPHICS);
+	//		ioctl(fd, KDSETMODE, KD_TEXT);
 			self->hasUnblankedScreen = 1;
 		}
 		ioctl(fd, KDSETMODE, gfxMode ? KD_GRAPHICS : KD_TEXT);
@@ -209,6 +209,9 @@ BitmapImage _getScreen(void)
 		_screen.image.bytes_per_line = _screen.res.xres * 4;
 		_screen.image.address = _MAKE_EA(_screen.current) +
 		    4*(_screen.res.xres * _screen.res.xoff + _screen.res.yoff);
+
+		printf("screen size is %dx%d pixels\n", _screen.image.width, _screen.image.height);
+
 		return &(_screen.image);
 	}
 	return NULL;

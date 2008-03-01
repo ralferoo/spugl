@@ -217,7 +217,19 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	triangle->A_dx = area_dx;
 	triangle->A_dy = area_dy;
 
+
+	////////////////////////////////
+	//
+	// clip minmax to screen boundary
+
 	vec_int4 minmax = spu_convts(minmax_,0);
+
+	vec_int4 mm_gt = { 0, 0, screen.width-32, screen.height-32 };
+	vec_uint4 mm_cmp = spu_cmpgt(minmax,mm_gt);
+	vec_uint4 mm_inv = { -1, -1, 0, 0 };
+	vec_uint4 mm_sel = spu_xor(mm_cmp, mm_inv);
+	minmax = spu_sel(minmax, mm_gt, mm_sel);
+
 	vec_int4 minmax_block = spu_rlmaska(minmax,-5);
 	vec_int4 minmax_block_mask = minmax & spu_splats(~31);
 	vec_float4 minmax_block_topleft = spu_convtf(minmax_block_mask,0);
@@ -416,7 +428,7 @@ void* imp_vertex(void* from, float4 in, struct __TRIANGLE * triangle)
 	// transformations here. they'll probably live here anyway, just
 	// done with matrices.
 
-	float recip = 420.0f / (in.z-420.0f);
+	float recip = 420.0f / (in.z-252.0f);
 	float4 s = {.x=in.x*recip+screen.width/2, .y = in.y*recip+screen.height/2, .z = in.z*recip, .w = recip};
 
 	float4 c= current_colour;

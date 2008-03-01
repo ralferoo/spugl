@@ -20,6 +20,7 @@
 extern SPU_CONTROL control;
 _bitmap_image screen = { .address = 0};
 
+/*
 static struct {
 	unsigned int wide;
 	unsigned int high;
@@ -28,6 +29,7 @@ static struct {
 	unsigned int num_fragments;
 } frags = {
 };
+*/
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -38,13 +40,14 @@ static struct {
 	screen.width = *from++;
 	screen.height = *from++;
 	screen.bytes_per_line = *from++;
+//	screen.frag_width = (screen.width+FRAGMENT_WIDTH-1)/FRAGMENT_WIDTH;
+//	screen.frag_height = (screen.width+FRAGMENT_HEIGHT-1)/FRAGMENT_HEIGHT;
 
-	frags.wide = (screen.width+FRAGMENT_WIDTH-1)/FRAGMENT_WIDTH;
-	frags.high = (screen.width+FRAGMENT_HEIGHT-1)/FRAGMENT_HEIGHT;
+/*
 	frags.base_ea = control.fragment_buffer;
 	frags.buffer_length = control.fragment_buflen;
 	frags.num_fragments = frags.buffer_length/FRAGMENT_SIZE;
-
+*/
 	return from;
 }
 	

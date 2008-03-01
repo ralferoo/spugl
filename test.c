@@ -154,6 +154,10 @@ cheat:
 		glspuFlip();
 #ifdef SYNC_WITH_FRAME
 		glspuWait();
+
+//		double x1 = getTimeSince(startPoint);
+//		if (x1<(1.0/45.0))
+//			glspuWait();
 #endif
 		unsigned long _end = glspuCounter();
 		unsigned long _endBlocked = glspuBlockedCounter();
