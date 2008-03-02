@@ -18,7 +18,7 @@
 #define NUMBER_TEX_PIXELS (32*32)
 
 typedef struct {
-	u32 textureBuffer[33*32] __attribute__((aligned(128)));
+	u32 textureBuffer[33*32+64] __attribute__((aligned(128)));
 } TextureBlock;
 
 TextureBlock textureCache[NUMBER_TEX_MAPS] __attribute__((aligned(128)));

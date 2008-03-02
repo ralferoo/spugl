@@ -230,7 +230,7 @@ void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 			// pixel is mask of 1's where we want to draw
 		
 			vec_uint4 local_tex_base = spu_splats((unsigned int)&textureCache);
-			vec_uint4 tex_ofs = spu_mulo( (vec_ushort8)cache, (vec_ushort8) (33*32*4));
+			vec_uint4 tex_ofs = spu_mulo( (vec_ushort8)cache,(vec_ushort8)((33*32+64)*4));
 			//vec_uint4 tex_ofs = spu_sl(cache, 5+5+2);	// offset into texture
 			vec_uint4 addr = spu_add(tex_ofs,spu_add(sub_block_pixel,local_tex_base));
 		
@@ -407,7 +407,7 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			vec_uint4 sub_block_pixel = spu_or(s_sub,t_sub);
 
 			vec_uint4 local_tex_base = spu_splats((unsigned int)&textureCache);
-			vec_uint4 tex_ofs = spu_mulo( (vec_ushort8)cache, (vec_ushort8) (33*32*4));
+			vec_uint4 tex_ofs = spu_mulo( (vec_ushort8)cache,(vec_ushort8)((33*32+64)*4));
 			vec_uint4 tex_ofs32 = spu_add(tex_ofs, spu_splats((unsigned int)(33*32*4)));
 			vec_uint4 addr00 = spu_add(tex_ofs,spu_add(sub_block_pixel,local_tex_base));
 		
