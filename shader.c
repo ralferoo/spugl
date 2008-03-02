@@ -441,6 +441,12 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			unsigned long pixel3_11 = *((u32*)spu_extract(addr11,3));
 //			vec_uint4 colour11 = {pixel0_11, pixel1_11, pixel2_11, pixel3_11};
 		
+
+//			pixel0_01=pixel0_00; pixel0_10=pixel0_00; pixel0_11=pixel0_00;
+//			pixel1_01=pixel1_00; pixel1_10=pixel1_00; pixel1_11=pixel1_00;
+//			pixel2_01=pixel2_00; pixel2_10=pixel2_00; pixel2_11=pixel2_00;
+//			pixel3_01=pixel3_00; pixel3_10=pixel3_00; pixel3_11=pixel3_00;
+
 			vec_uint4 s_pxofs = spu_and(spu_rlmask(spu_convtu(t_s,32),-16), 0xff);
 			vec_uint4 t_pxofs = spu_and(spu_rlmask(spu_convtu(t_t,32),-16), 0xff);
 
@@ -499,10 +505,12 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 
 			// now merge the high part of each word to get the correct argb values
 
-			vec_uint4 pixel = spu_or(spu_shuffle(pixel0wide,pixel1wide,merge_pixels_01),
-						 spu_shuffle(pixel0wide,pixel1wide,merge_pixels_01));
+			vec_uint4 joined = spu_or(spu_shuffle(pixel0wide,pixel1wide,merge_pixels_01),
+						 spu_shuffle(pixel2wide,pixel3wide,merge_pixels_23));
 
-			vec_uint4 colour = spu_sel(pixel, colour00, topleft);
+//			vec_uint4 colour = spu_sel(joined, colour00, topleft);
+			vec_uint4 colour = joined;
+//			vec_uint4 colour = colour00;
 
 
 //			colour = spu_shuffle(colour, colour, rgba_argb);
