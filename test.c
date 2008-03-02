@@ -9,7 +9,7 @@
  *
  ****************************************************************************/
 
-#define SYNC_WITH_FRAME
+// #define SYNC_WITH_FRAME
 // #define BLACK_MIDDLES
 
 #include <stdlib.h>

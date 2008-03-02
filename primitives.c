@@ -88,6 +88,7 @@ static const vec_float4 muls31y = {0.0f, 0.0f, 31.0f, 31.0f};
 
 extern void* linearColourFill(void* self, Block* block, ActiveBlock* active, int tag);
 extern void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag);
+extern void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int tag);
 
 int dummyProducer(Triangle* tri, Block* block)
 {
@@ -265,7 +266,8 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	triangle->texture_y_shift = 8-5;
 
 //	triangle->init_block = &linearColourFill;
-	triangle->init_block = &textureMapFill;
+//	triangle->init_block = &textureMapFill;
+	triangle->init_block = &linearTextureMapFill;
 
 // if the triangle is visible (i.e. area>0), then we increment the triangle
 // out ptr to just past the triangle data we've just written to memory.
@@ -428,7 +430,7 @@ void* imp_vertex(void* from, float4 in, struct __TRIANGLE * triangle)
 	// transformations here. they'll probably live here anyway, just
 	// done with matrices.
 
-	float recip = 420.0f / (in.z-252.0f);
+	float recip = 420.0f / (in.z-202.0f);
 	float4 s = {.x=in.x*recip+screen.width/2, .y = in.y*recip+screen.height/2, .z = in.z*recip, .w = recip};
 
 	float4 c= current_colour;
