@@ -447,19 +447,27 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 //			pixel2_01=pixel2_00; pixel2_10=pixel2_00; pixel2_11=pixel2_00;
 //			pixel3_01=pixel3_00; pixel3_10=pixel3_00; pixel3_11=pixel3_00;
 
-			vec_uint4 s_pxofs = spu_and(spu_rlmask(spu_convtu(t_s,32),-16), 0x0);
-			vec_uint4 t_pxofs = spu_and(spu_rlmask(spu_convtu(t_t,32),-16), 0x0);
+			vec_uint4 s_pxofs = spu_and(spu_rlmask(spu_convtu(t_s,32),-16), (vec_uint4)0xff);
+			vec_uint4 t_pxofs = spu_and(spu_rlmask(spu_convtu(t_t,32),-16), (vec_uint4)0xff);
 
-			s_pxofs = (vec_uint4) 0x20;
-			t_pxofs = (vec_uint4) 0x20;
+/*
+		int a;
+		for (a=0; a<4; a++)
+			printf("%d %6x -> %2x,%4x,%2x        %6x -> %2x,%4x,%2x\n", a, 
+				spu_extract(spu_convtu(t_s,32),a), spu_extract(s_blk,a), spu_extract(s_sub,a), spu_extract(s_pxofs,a),
+				spu_extract(spu_convtu(t_t,32),a), spu_extract(t_blk,a), spu_extract(t_sub,a), spu_extract(t_pxofs,a));
+*/
+
+			s_pxofs = (vec_uint4) 0x1;
+//			t_pxofs = (vec_uint4) 0x1;
 
 			vec_uint4 s_n_pxofs = spu_sub(0x100, s_pxofs);
 			vec_uint4 t_n_pxofs = spu_sub(0x100, t_pxofs);
 
-			vec_uint4 fact_00 = spu_mulo((vec_ushort8)s_n_pxofs, (vec_ushort8)t_n_pxofs);
-			vec_uint4 fact_01 = spu_mulo((vec_ushort8)s_n_pxofs, (vec_ushort8)t_pxofs);
-			vec_uint4 fact_10 = spu_mulo((vec_ushort8)s_pxofs, (vec_ushort8)t_n_pxofs);
-			vec_uint4 fact_11 = spu_mulo((vec_ushort8)s_pxofs, (vec_ushort8)t_pxofs);
+			vec_uint4 fact_00 = spu_mulo((vec_ushort8)t_n_pxofs, (vec_ushort8)s_n_pxofs);
+			vec_uint4 fact_01 = spu_mulo((vec_ushort8)t_n_pxofs, (vec_ushort8)s_pxofs);
+			vec_uint4 fact_10 = spu_mulo((vec_ushort8)t_pxofs, (vec_ushort8)s_n_pxofs);
+			vec_uint4 fact_11 = spu_mulo((vec_ushort8)t_pxofs, (vec_ushort8)s_pxofs);
 
 			vec_ushort8 fact_01_00 = spu_shuffle(fact_00, fact_01, merge_lo);
 			vec_ushort8 fact_11_10 = spu_shuffle(fact_10, fact_11, merge_lo);
