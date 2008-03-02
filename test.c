@@ -62,6 +62,8 @@ int main(int argc, char* argv[]) {
 		struct timespec startPoint;
 		clock_gettime(CLOCK_MONOTONIC,&startPoint);
 
+/*
+*/
 		a += 0.011;
 		b += 0.037;
 		c += 0.017;

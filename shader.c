@@ -272,6 +272,9 @@ static vec_uchar16 get0 = (vec_uchar16) {
 static vec_uchar16 merge = (vec_uchar16) {         // high 16 bits -> low 16 bits, merge alternately
         16,17, 0,1,  20,21,4,5,  24,25,8,9,  28,29,12,13};
 
+static vec_uchar16 merge_shr8 = (vec_uchar16) {
+        17,18, 1,2,  21,22,5,6,  25,26,9,10,  29,30,13,14};
+
 static vec_uchar16 merge_lo = (vec_uchar16) {         // low 16 bits, merge alternately
         18,19, 2,3,  22,23,6,7,  26,27,10,11,  30,31,14,15};
 
@@ -281,8 +284,16 @@ static vec_uchar16 merge_pixels_01 = (vec_uchar16) {
 static vec_uchar16 merge_pixels_23 = (vec_uchar16) {
 	S_0,S_0,S_0,S_0, S_0,S_0,S_0,S_0, 1,5,9,13, 17,21,25,29};
 
-static vec_uchar16 copy_lo_to_hi = (vec_uchar16) {         
-        0,1, 0,1,  4,5,4,5,  8,9,8,9,  12,13,12,13};
+//static vec_uchar16 copy_lo_to_hi = (vec_uchar16) {         
+//        0,1, 0,1,  4,5,4,5,  8,9,8,9,  12,13,12,13};
+
+static vec_uchar16 splats_01 = (vec_uchar16) {         // low 16 bits, copy alternately
+        6,7, 2,3, 6,7, 2,3, 6,7, 2,3, 6,7, 2,3}; 
+static vec_uchar16 splats_23 = (vec_uchar16) {         // low 16 bits, copy alternately
+	14,15,10,11, 14,15,10,11, 14,15,10,11, 14,15,10,11}; 
+
+static vec_uchar16 rejoin = (vec_uchar16) {
+	3,7,11,15,	1,5,9,13,	19,23,27,31,	17,21,25,29};
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -442,90 +453,69 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 //			vec_uint4 colour11 = {pixel0_11, pixel1_11, pixel2_11, pixel3_11};
 		
 
-//			pixel0_01=pixel0_00; pixel0_10=pixel0_00; pixel0_11=pixel0_00;
-//			pixel1_01=pixel1_00; pixel1_10=pixel1_00; pixel1_11=pixel1_00;
-//			pixel2_01=pixel2_00; pixel2_10=pixel2_00; pixel2_11=pixel2_00;
-//			pixel3_01=pixel3_00; pixel3_10=pixel3_00; pixel3_11=pixel3_00;
-
 			vec_uint4 s_pxofs = spu_and(spu_rlmask(spu_convtu(t_s,32),-16), (vec_uint4)0xff);
 			vec_uint4 t_pxofs = spu_and(spu_rlmask(spu_convtu(t_t,32),-16), (vec_uint4)0xff);
 
-/*
-		int a;
-		for (a=0; a<4; a++)
-			printf("%d %6x -> %2x,%4x,%2x        %6x -> %2x,%4x,%2x\n", a, 
-				spu_extract(spu_convtu(t_s,32),a), spu_extract(s_blk,a), spu_extract(s_sub,a), spu_extract(s_pxofs,a),
-				spu_extract(spu_convtu(t_t,32),a), spu_extract(t_blk,a), spu_extract(t_sub,a), spu_extract(t_pxofs,a));
-*/
-
-			s_pxofs = (vec_uint4) 0x1;
+//			s_pxofs = (vec_uint4) 0x80;
 //			t_pxofs = (vec_uint4) 0x1;
 
-			vec_uint4 s_n_pxofs = spu_sub(0x100, s_pxofs);
-			vec_uint4 t_n_pxofs = spu_sub(0x100, t_pxofs);
+///////////
+			vec_short8 pixel01_ = (vec_short8) spu_shuffle((vec_uint4)pixel0_00, (vec_uint4)pixel1_00, get0);
+			vec_short8 pixel01_x = (vec_short8) spu_shuffle((vec_uint4)pixel0_01, (vec_uint4)pixel1_01, get0);
+			vec_short8 pixel01_xy = (vec_short8) spu_shuffle((vec_uint4)pixel0_11, (vec_uint4)pixel1_11, get0);
+			vec_short8 pixel01_y = (vec_short8) spu_shuffle((vec_uint4)pixel0_10, (vec_uint4)pixel1_10, get0);
+			vec_short8 pixel01_h = spu_sub(pixel01_x,pixel01_);
+			vec_short8 pixel01_yh = spu_sub(pixel01_xy,pixel01_y);
 
-			vec_uint4 fact_00 = spu_mulo((vec_ushort8)t_n_pxofs, (vec_ushort8)s_n_pxofs);
-			vec_uint4 fact_01 = spu_mulo((vec_ushort8)t_n_pxofs, (vec_ushort8)s_pxofs);
-			vec_uint4 fact_10 = spu_mulo((vec_ushort8)t_pxofs, (vec_ushort8)s_n_pxofs);
-			vec_uint4 fact_11 = spu_mulo((vec_ushort8)t_pxofs, (vec_ushort8)s_pxofs);
+			vec_short8 pixel01_multx = (vec_short8)spu_shuffle(s_pxofs,s_pxofs,splats_01);
+			vec_short8 pixel01_multy = (vec_short8)spu_shuffle(t_pxofs,t_pxofs,splats_01);
 
-			vec_ushort8 fact_01_00 = spu_shuffle(fact_00, fact_01, merge_lo);
-			vec_ushort8 fact_11_10 = spu_shuffle(fact_10, fact_11, merge_lo);
+			vec_int4 pixel0_th = spu_mulo(pixel01_h, pixel01_multx);
+			vec_int4 pixel0_bh = spu_mulo(pixel01_yh, pixel01_multx);
+			vec_int4 pixel1_th = spu_mule(pixel01_h, pixel01_multx);
+			vec_int4 pixel1_bh = spu_mule(pixel01_yh, pixel01_multx);
+			vec_short8 pixel01_th = (vec_short8)spu_shuffle(pixel0_th, pixel1_th, merge_shr8);
+			vec_short8 pixel01_bh = (vec_short8)spu_shuffle(pixel0_bh, pixel1_bh, merge_shr8);
 
-			// to counter overflow in the multiply, if the coord is (0,0) we always
-			// use colour00, as the only thing that *can* overflow is fact_00
-			vec_uint4 topleft = spu_cmpeq(spu_or(s_pxofs,t_pxofs),0);
-			vec_uint4 colour00 = {pixel0_00, pixel1_00, pixel2_00, pixel3_00};
+			vec_short8 pixel01_tm = spu_add(pixel01_, pixel01_th);
+			vec_short8 pixel01_bm = spu_add(pixel01_y, pixel01_bh);
 
-			// a01 a00 r01 r00 g01 g00 b01 b00 // a11 a10 r11 r10 g11 g10 b11 b10
-			vec_ushort8 p0_01_00 = (vec_ushort8) spu_shuffle( (vec_uint4)pixel0_00, (vec_uint4)pixel0_01, get0);
-			vec_ushort8 p0_11_10 = (vec_ushort8) spu_shuffle( (vec_uint4)pixel0_10, (vec_uint4)pixel0_11, get0);
-			
-			vec_ushort8 p1_01_00 = (vec_ushort8) spu_shuffle( (vec_uint4)pixel1_00, (vec_uint4)pixel1_01, get0);
-			vec_ushort8 p1_11_10 = (vec_ushort8) spu_shuffle( (vec_uint4)pixel1_10, (vec_uint4)pixel1_11, get0);
-			
-			vec_ushort8 p2_01_00 = (vec_ushort8) spu_shuffle( (vec_uint4)pixel2_00, (vec_uint4)pixel2_01, get0);
-			vec_ushort8 p2_11_10 = (vec_ushort8) spu_shuffle( (vec_uint4)pixel2_10, (vec_uint4)pixel2_11, get0);
-			
-			vec_ushort8 p3_01_00 = (vec_ushort8) spu_shuffle( (vec_uint4)pixel3_00, (vec_uint4)pixel3_01, get0);
-			vec_ushort8 p3_11_10 = (vec_ushort8) spu_shuffle( (vec_uint4)pixel3_10, (vec_uint4)pixel3_11, get0);
-			
-			vec_uint4 pixel0wide = spu_add(spu_add(
-						spu_mulo(p0_01_00,fact_01_00),
-						spu_mule(p0_01_00,fact_01_00)),
-					spu_add(spu_mulo(p0_11_10,fact_11_10),
-						spu_mule(p0_11_10,fact_11_10)));
+			vec_short8 pixel01_d = spu_sub(pixel01_bm,pixel01_tm);
+			vec_int4 pixel0_d = spu_mulo(pixel01_d, pixel01_multy);
+			vec_int4 pixel1_d = spu_mule(pixel01_d, pixel01_multy);
+			vec_short8 pixel01_mm = (vec_short8)spu_shuffle(pixel0_d, pixel1_d, merge_shr8);
+			vec_short8 pixel01_done = spu_add(pixel01_mm, pixel01_tm);
 
-			vec_uint4 pixel1wide = spu_add(spu_add(
-						spu_mulo(p1_01_00,fact_01_00),
-						spu_mule(p1_01_00,fact_01_00)),
-					spu_add(spu_mulo(p1_11_10,fact_11_10),
-						spu_mule(p1_11_10,fact_11_10)));
+///////////
+			vec_short8 pixel23_ = (vec_short8) spu_shuffle((vec_uint4)pixel2_00, (vec_uint4)pixel3_00, get0);
+			vec_short8 pixel23_x = (vec_short8) spu_shuffle((vec_uint4)pixel2_01, (vec_uint4)pixel3_01, get0);
+			vec_short8 pixel23_xy = (vec_short8) spu_shuffle((vec_uint4)pixel2_11, (vec_uint4)pixel3_11, get0);
+			vec_short8 pixel23_y = (vec_short8) spu_shuffle((vec_uint4)pixel2_10, (vec_uint4)pixel3_10, get0);
+			vec_short8 pixel23_h = spu_sub(pixel23_x,pixel23_);
+			vec_short8 pixel23_yh = spu_sub(pixel23_xy,pixel23_y);
 
-			vec_uint4 pixel2wide = spu_add(spu_add(
-						spu_mulo(p2_01_00,fact_01_00),
-						spu_mule(p2_01_00,fact_01_00)),
-					spu_add(spu_mulo(p2_11_10,fact_11_10),
-						spu_mule(p2_11_10,fact_11_10)));
+			vec_short8 pixel23_multx = (vec_short8)spu_shuffle(s_pxofs,s_pxofs,splats_23);
+			vec_short8 pixel23_multy = (vec_short8)spu_shuffle(t_pxofs,t_pxofs,splats_23);
 
-			vec_uint4 pixel3wide = spu_add(spu_add(
-						spu_mulo(p3_01_00,fact_01_00),
-						spu_mule(p3_01_00,fact_01_00)),
-					spu_add(spu_mulo(p3_11_10,fact_11_10),
-						spu_mule(p3_11_10,fact_11_10)));
+			vec_int4 pixel2_th = spu_mulo(pixel23_h, pixel23_multx);
+			vec_int4 pixel2_bh = spu_mulo(pixel23_yh, pixel23_multx);
+			vec_int4 pixel3_th = spu_mule(pixel23_h, pixel23_multx);
+			vec_int4 pixel3_bh = spu_mule(pixel23_yh, pixel23_multx);
+			vec_short8 pixel23_th = (vec_short8)spu_shuffle(pixel2_th, pixel3_th, merge_shr8);
+			vec_short8 pixel23_bh = (vec_short8)spu_shuffle(pixel2_bh, pixel3_bh, merge_shr8);
 
-			// now merge the high part of each word to get the correct argb values
+			vec_short8 pixel23_tm = spu_add(pixel23_, pixel23_th);
+			vec_short8 pixel23_bm = spu_add(pixel23_y, pixel23_bh);
 
-			vec_uint4 joined = spu_or(spu_shuffle(pixel0wide,pixel1wide,merge_pixels_01),
-						 spu_shuffle(pixel2wide,pixel3wide,merge_pixels_23));
+			vec_short8 pixel23_d = spu_sub(pixel23_bm,pixel23_tm);
+			vec_int4 pixel2_d = spu_mulo(pixel23_d, pixel23_multy);
+			vec_int4 pixel3_d = spu_mule(pixel23_d, pixel23_multy);
+			vec_short8 pixel23_mm = (vec_short8)spu_shuffle(pixel2_d, pixel3_d, merge_shr8);
+			vec_short8 pixel23_done = spu_add(pixel23_mm, pixel23_tm);
 
-			vec_uint4 colour = spu_sel(joined, colour00, topleft);
-//			vec_uint4 colour = joined;
-//			vec_uint4 colour = colour00;
+///////////
+			vec_uint4 colour = (vec_uint4) spu_shuffle(pixel01_done,pixel23_done,rejoin);
 
-
-//			colour = spu_shuffle(colour, colour, rgba_argb);
-		
 			vec_uint4 current = *ptr;
 			*ptr = spu_sel(current, colour, pixel);
 //PROCESS_BLOCK_END
