@@ -55,7 +55,8 @@ void* finishTextureLoad(void* self, Block* block, ActiveBlock* active, int tag);
 
 void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag,
 			vec_float4 A, vec_uint4 left, vec_uint4* ptr, vec_uint4 tex_keep,
-			vec_uint4 block_id, vec_uint4 cache_not_found, vec_uint4 pixel)
+			vec_uint4 block_id, vec_uint4 s, vec_uint4 t,
+			vec_uint4 cache_not_found, vec_uint4 pixel)
 {
 	block->A = A;
 	block->left = spu_extract(left,0);
@@ -66,25 +67,9 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 //////////////////////////////////////////////////////////////////////
 
         vec_ushort8 needs = spu_splats((unsigned short)-1); 
+//        vec_ushort8 s_needs = spu_splats((unsigned short)-1); 
+//        vec_ushort8 t_needs= spu_splats((unsigned short)-1); 
 
-/*
-	printf("tex failed, tex_keep=%08x left=%d\n", spu_extract(tex_keep,0), l);
-
-	printf("req: %04x%c %04x%c %04x%c %04x%c\n",
-			spu_extract(block_id,0), spu_extract(cache_not_found,0)?'*':' ',
-			spu_extract(block_id,1), spu_extract(cache_not_found,1)?'*':' ',
-			spu_extract(block_id,2), spu_extract(cache_not_found,2)?'*':' ',
-			spu_extract(block_id,3), spu_extract(cache_not_found,3)?'*':' ');
-	printf("cache = %04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x\n",
-		spu_extract(TEXcache1,0), spu_extract(TEXcache2,0),
-		spu_extract(TEXcache1,1), spu_extract(TEXcache2,1),
-		spu_extract(TEXcache1,2), spu_extract(TEXcache2,2),
-		spu_extract(TEXcache1,3), spu_extract(TEXcache2,3),
-		spu_extract(TEXcache1,4), spu_extract(TEXcache2,4),
-		spu_extract(TEXcache1,5), spu_extract(TEXcache2,5),
-		spu_extract(TEXcache1,6), spu_extract(TEXcache2,6),
-		spu_extract(TEXcache1,7), spu_extract(TEXcache2,7));
-*/
 			vec_uchar16 shuf_cmp_0 = spu_splats((unsigned short)0x203);
 			vec_ushort8 copy_cmp_0 = spu_shuffle(block_id,block_id,shuf_cmp_0);
 
@@ -128,6 +113,14 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 			vec_uint4 want_gather = spu_gather(want_textures);
 			needs = spu_shuffle(needs,(vec_ushort8)block_id,
 							splats[spu_extract(want_gather,0)]);
+
+/*
+ 			s_needs = spu_shuffle(s_needs,(vec_ushort8)s,
+							splats[spu_extract(want_gather,0)]);
+
+			t_needs = spu_shuffle(t_needs,(vec_ushort8)t,
+							splats[spu_extract(want_gather,0)]);
+*/
 
 //////////////////////////////////////////////////////////////////////
 
