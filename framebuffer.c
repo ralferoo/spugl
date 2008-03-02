@@ -66,6 +66,7 @@ static void switchMode(ScreenObject* self, int gfxMode) {
 			self->hasUnblankedScreen = 1;
 		}
 		ioctl(fd, KDSETMODE, gfxMode ? KD_GRAPHICS : KD_TEXT);
+		ioctl(self->fd, PS3FB_IOCTL_ON, 0);
 		close(fd);
 	} else {
 		printf("Warning: Cannot open /dev/console, so cannot change console mode.\n");
