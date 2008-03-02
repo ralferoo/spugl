@@ -453,10 +453,10 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			vec_uint4 s_n_pxofs = spu_sub(0x100, s_pxofs);
 			vec_uint4 t_n_pxofs = spu_sub(0x100, t_pxofs);
 
-			vec_uint4 fact_00 = spu_mulo((vec_ushort8)s_n_pxofs, (vec_ushort8)t_n_pxofs);
-			vec_uint4 fact_01 = spu_mulo((vec_ushort8)s_n_pxofs, (vec_ushort8)t_pxofs);
-			vec_uint4 fact_10 = spu_mulo((vec_ushort8)s_pxofs, (vec_ushort8)t_n_pxofs);
-			vec_uint4 fact_11 = spu_mulo((vec_ushort8)s_pxofs, (vec_ushort8)t_pxofs);
+			vec_uint4 fact_00 = spu_mulo((vec_ushort8)s_pxofs, (vec_ushort8)t_pxofs);
+			vec_uint4 fact_01 = spu_mulo((vec_ushort8)s_pxofs, (vec_ushort8)t_n_pxofs);
+			vec_uint4 fact_10 = spu_mulo((vec_ushort8)s_n_pxofs, (vec_ushort8)t_pxofs);
+			vec_uint4 fact_11 = spu_mulo((vec_ushort8)s_n_pxofs, (vec_ushort8)t_n_pxofs);
 
 			vec_ushort8 fact_01_00 = spu_shuffle(fact_00, fact_01, merge_lo);
 			vec_ushort8 fact_11_10 = spu_shuffle(fact_10, fact_11, merge_lo);
@@ -508,8 +508,8 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			vec_uint4 joined = spu_or(spu_shuffle(pixel0wide,pixel1wide,merge_pixels_01),
 						 spu_shuffle(pixel2wide,pixel3wide,merge_pixels_23));
 
-//			vec_uint4 colour = spu_sel(joined, colour00, topleft);
-			vec_uint4 colour = joined;
+			vec_uint4 colour = spu_sel(joined, colour00, topleft);
+//			vec_uint4 colour = joined;
 //			vec_uint4 colour = colour00;
 
 
