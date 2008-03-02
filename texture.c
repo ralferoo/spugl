@@ -18,7 +18,7 @@
 #define NUMBER_TEX_PIXELS (32*32)
 
 typedef struct {
-	u32 textureBuffer[NUMBER_TEX_PIXELS] __attribute__((aligned(128)));
+	u32 textureBuffer[33*32] __attribute__((aligned(128)));
 } TextureBlock;
 
 TextureBlock textureCache[NUMBER_TEX_MAPS] __attribute__((aligned(128)));
@@ -207,7 +207,7 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 */
 			unsigned int desired = spu_extract(needs_sub, i);
 			unsigned long long ea = block->triangle->texture_base + (desired<<(5+5+2));
-			unsigned long len = 32*32*4;
+			unsigned long len = 33*32*4;
 			
 			unsigned long eah = 0; // TODO: fix this
 			unsigned long eal = ea & ~127;
