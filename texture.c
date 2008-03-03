@@ -18,7 +18,7 @@
 #define NUMBER_TEX_PIXELS (32*32)
 
 typedef struct {
-	u32 textureBuffer[33*32+64] __attribute__((aligned(128)));
+	u32 textureBuffer[33*32+4*40] __attribute__((aligned(128)));
 } TextureBlock;
 
 TextureBlock textureCache[NUMBER_TEX_MAPS] __attribute__((aligned(128)));
@@ -147,17 +147,21 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 
 			unsigned int s_blk = spu_extract(s, i);
 			unsigned int t_blk = spu_extract(t, i);
+			unsigned int t_next = (t_blk+1)&7;
 
 			// this sucks with the mults, but hey!
 			unsigned int ofs = s_blk*32*32*4 + t_blk*8*32*32*4;
+			unsigned int ofs_next = s_blk*32*32*4 + t_next*8*32*32*4;
 			unsigned long long ea = block->triangle->texture_base + ofs;
+			unsigned long long ea_next = block->triangle->texture_base + ofs_next;
 
 //			unsigned int desired = spu_extract(needs_sub, i);
 //			unsigned long long ea = block->triangle->texture_base + (desired<<(5+5+2));
 			unsigned long len = 33*32*4;
 			
-			unsigned long eah = 0; // TODO: fix this
+			unsigned long eah = ea >> 32;
 			unsigned long eal = ea & ~127;
+			unsigned long eal_next = ea_next & ~127;
 			u32* texture = &textureCache[nextIndex].textureBuffer[0];
 
 //			printf("desired %d->%d, reading to %x from %x:%08x len %d tag %d\n",
@@ -168,7 +172,29 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 				break;
 			}
 
-			spu_mfcdma64(texture, eah, eal, len, tag, MFC_GET_CMD);
+	static vec_uint4 load_dma_list[NUMBER_TEX_MAPS][34];
+
+			vec_uint4* dma_list = &load_dma_list[nextIndex][0];
+			vec_uint4* list_ptr = dma_list;
+
+			vec_uint4 block0 = { len, eal, 16, eal_next };
+			*list_ptr++ = block0;
+
+			vec_uint4 block = { 16, eal_next+32*4, 16, eal_next+32*4*2 };
+			vec_uint4 step = { 0, 32*4*2, 0, 32*4*2 };
+	
+			int qq;
+			for (qq=0; qq<16; qq++) {
+				*list_ptr++ = block;
+				block += step;
+			}
+
+//	vec_uint4 step2 = { 0, stride2, 0, stride2};
+//	vec_uint4 step4 = spu_add(step2, step2);
+
+			unsigned int list_len = ((void*)list_ptr)-((void*)dma_list);
+
+			spu_mfcdma64(texture, eah, dma_list, list_len, tag, MFC_GETL_CMD);
 
 			freeTextureMaps &= ~nextMask;
 			lastLoadedTextureMap = nextIndex;
