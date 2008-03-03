@@ -25,6 +25,8 @@ typedef struct {
 	u32 width;
 	u32 height;
 	u32 bytes_per_line;
+//	short frag_height;
+//	short frag_width;
 } _bitmap_image;
 typedef _bitmap_image* BitmapImage;
 

@@ -18,7 +18,7 @@
 #define NUMBER_TEX_PIXELS (32*32)
 
 typedef struct {
-	u32 textureBuffer[NUMBER_TEX_PIXELS] __attribute__((aligned(128)));
+	u32 textureBuffer[33*32+64] __attribute__((aligned(128)));
 } TextureBlock;
 
 TextureBlock textureCache[NUMBER_TEX_MAPS] __attribute__((aligned(128)));
@@ -55,7 +55,8 @@ void* finishTextureLoad(void* self, Block* block, ActiveBlock* active, int tag);
 
 void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag,
 			vec_float4 A, vec_uint4 left, vec_uint4* ptr, vec_uint4 tex_keep,
-			vec_uint4 block_id, vec_uint4 cache_not_found, vec_uint4 pixel)
+			vec_uint4 block_id, vec_uint4 s, vec_uint4 t,
+			vec_uint4 cache_not_found, vec_uint4 pixel)
 {
 	block->A = A;
 	block->left = spu_extract(left,0);
@@ -65,91 +66,52 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 	
 //////////////////////////////////////////////////////////////////////
 
-        vec_ushort8 needs = spu_splats((unsigned short)-1); 
+	vec_uchar16 shuf_cmp_0 = spu_splats((unsigned short)0x203);
+	vec_ushort8 copy_cmp_0 = spu_shuffle(block_id,block_id,shuf_cmp_0);
 
-/*
-	printf("tex failed, tex_keep=%08x left=%d\n", spu_extract(tex_keep,0), l);
+	vec_uchar16 shuf_cmp_1 = spu_splats((unsigned short)0x607);
+	vec_ushort8 copy_cmp_1 = spu_shuffle(block_id,block_id,shuf_cmp_1);
 
-	printf("req: %04x%c %04x%c %04x%c %04x%c\n",
-			spu_extract(block_id,0), spu_extract(cache_not_found,0)?'*':' ',
-			spu_extract(block_id,1), spu_extract(cache_not_found,1)?'*':' ',
-			spu_extract(block_id,2), spu_extract(cache_not_found,2)?'*':' ',
-			spu_extract(block_id,3), spu_extract(cache_not_found,3)?'*':' ');
-	printf("cache = %04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x\n",
-		spu_extract(TEXcache1,0), spu_extract(TEXcache2,0),
-		spu_extract(TEXcache1,1), spu_extract(TEXcache2,1),
-		spu_extract(TEXcache1,2), spu_extract(TEXcache2,2),
-		spu_extract(TEXcache1,3), spu_extract(TEXcache2,3),
-		spu_extract(TEXcache1,4), spu_extract(TEXcache2,4),
-		spu_extract(TEXcache1,5), spu_extract(TEXcache2,5),
-		spu_extract(TEXcache1,6), spu_extract(TEXcache2,6),
-		spu_extract(TEXcache1,7), spu_extract(TEXcache2,7));
-*/
-			vec_uchar16 shuf_cmp_0 = spu_splats((unsigned short)0x203);
-			vec_ushort8 copy_cmp_0 = spu_shuffle(block_id,block_id,shuf_cmp_0);
-
-			vec_uchar16 shuf_cmp_1 = spu_splats((unsigned short)0x607);
-			vec_ushort8 copy_cmp_1 = spu_shuffle(block_id,block_id,shuf_cmp_1);
-
-			vec_uchar16 shuf_cmp_2 = spu_splats((unsigned short)0xa0b);
-			vec_ushort8 copy_cmp_2 = spu_shuffle(block_id,block_id,shuf_cmp_2);
+	vec_uchar16 shuf_cmp_2 = spu_splats((unsigned short)0xa0b);
+	vec_ushort8 copy_cmp_2 = spu_shuffle(block_id,block_id,shuf_cmp_2);
 		
-			vec_uchar16 shuf_cmp_3 = spu_splats((unsigned short)0xe0f);
-			vec_ushort8 copy_cmp_3 = spu_shuffle(block_id,block_id,shuf_cmp_3);
+	vec_uchar16 shuf_cmp_3 = spu_splats((unsigned short)0xe0f);
+	vec_ushort8 copy_cmp_3 = spu_shuffle(block_id,block_id,shuf_cmp_3);
 		
-			// pixel is mask of 1's where we want to draw
-			//
-			// cache_not_found mask of 0's where we have valid data
-			// tex_mask is mask of 1's where we need to draw
-			pixel = spu_andc(pixel, cache_not_found);
+	// pixel is mask of 1's where we want to draw
+	//
+	// cache_not_found mask of 0's where we have valid data
+	// tex_mask is mask of 1's where we need to draw
+	pixel = spu_andc(pixel, cache_not_found);
 			
-			// now try to work out what textures were missing
-			// copy_cmp_[0123] hold required texture ids splatted across all 8 halfwords
+	// now try to work out what textures were missing
+	// copy_cmp_[0123] hold required texture ids splatted across all 8 halfwords
 		
-			vec_uint4 check_dups0 = spu_cmpeq(block_id,
-						spu_shuffle(block_id,block_id,dup_check0));
-			vec_uint4 check_dups1 = spu_cmpeq(block_id,
-						spu_shuffle(block_id,block_id,dup_check1));
-			vec_uint4 check_dups2 = spu_cmpeq(block_id,
-						spu_shuffle(block_id,block_id,dup_check2));
-			vec_uint4 is_duplicate = spu_or(spu_or(check_dups0,check_dups1), check_dups2);
+	vec_uint4 check_dups0 = spu_cmpeq(block_id,
+				spu_shuffle(block_id,block_id,dup_check0));
+	vec_uint4 check_dups1 = spu_cmpeq(block_id,
+				spu_shuffle(block_id,block_id,dup_check1));
+	vec_uint4 check_dups2 = spu_cmpeq(block_id,
+				spu_shuffle(block_id,block_id,dup_check2));
+	vec_uint4 is_duplicate = spu_or(spu_or(check_dups0,check_dups1), check_dups2);
 
-			vec_uint4 gotneeds_0 = spu_gather(spu_cmpeq(needs,copy_cmp_0));
-			vec_uint4 gotneeds_1 = spu_gather(spu_cmpeq(needs,copy_cmp_1));
-			vec_uint4 gotneeds_2 = spu_gather(spu_cmpeq(needs,copy_cmp_2));
-			vec_uint4 gotneeds_3 = spu_gather(spu_cmpeq(needs,copy_cmp_3));
+	vec_uint4 want_textures = cache_not_found;
+	vec_uint4 want_gather = spu_gather(want_textures);
 
-			vec_uint4 gotneeds_all = {spu_extract(gotneeds_0,0),spu_extract(gotneeds_1,0),
-				  		spu_extract(gotneeds_2,0), spu_extract(gotneeds_3,0)};
-			vec_uint4 gotneeds_mask = spu_andc(spu_cmpeq(gotneeds_all,0),is_duplicate);
-			
-			vec_uint4 want_textures = spu_and(cache_not_found,gotneeds_mask);
-			
-			vec_uint4 want_gather = spu_gather(want_textures);
-			needs = spu_shuffle(needs,(vec_ushort8)block_id,
-							splats[spu_extract(want_gather,0)]);
+////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////
+	vec_uint4 tex_id_base = spu_splats((unsigned int)block->triangle->tex_id_base);
+	vec_uint4 needs_sub = spu_sub(block_id,tex_id_base);
 
-	vec_ushort8 need_mask=spu_cmpeq(needs,spu_splats((unsigned short)-1));
-	vec_uint4 need_bits = spu_gather(need_mask);
+	vec_ushort8 TEXmerge1 = spu_splats((unsigned short)-1);
+	vec_ushort8 TEXmerge2 = spu_splats((unsigned short)-1);
+	int texturesMask = 0;
 
-	vec_uint4 need_any = spu_cmpeq(need_bits,spu_splats((unsigned int)0xff));
-
-	vec_ushort8 tex_id_base = spu_splats((unsigned short)block->triangle->tex_id_base);
-	vec_ushort8 needs_sub = spu_sub(needs,tex_id_base);
-
-		vec_ushort8 TEXmerge1 = spu_splats((unsigned short)-1);
-		vec_ushort8 TEXmerge2 = spu_splats((unsigned short)-1);
-		int texturesMask = 0;
-
-		int m,i;
-		int n = spu_extract(need_bits,0);
-		for (i=0,m=0x80; m && freeTextureMaps; m>>=1,i++) {
-			if (n&m) {			// as soon as we find a 1 bit we are done
-				break;
-			}
-			unsigned short want = spu_extract(needs,i);
+	int m,i;
+	int n = spu_extract(want_gather,0);
+	for (i=0,m=0x8; m && freeTextureMaps; m>>=1,i++) {
+		if (n&m) {			// as soon as we find a 1 bit we are done
+			unsigned int want = spu_extract(block_id,i);
 			unsigned short want_sub = spu_extract(needs_sub,i);
 			int nextBit1 = first_bit(freeTextureMaps);
 			int nextBit2 = first_bit(freeTextureMaps & ((1<<lastLoadedTextureMap)-1) );
@@ -173,17 +135,6 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 //				continue;
 //			}
 
-/*
-	printf("cache = %04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x\n",
-		spu_extract(TEXcache1,0), spu_extract(TEXcache2,0),
-		spu_extract(TEXcache1,1), spu_extract(TEXcache2,1),
-		spu_extract(TEXcache1,2), spu_extract(TEXcache2,2),
-		spu_extract(TEXcache1,3), spu_extract(TEXcache2,3),
-		spu_extract(TEXcache1,4), spu_extract(TEXcache2,4),
-		spu_extract(TEXcache1,5), spu_extract(TEXcache2,5),
-		spu_extract(TEXcache1,6), spu_extract(TEXcache2,6),
-		spu_extract(TEXcache1,7), spu_extract(TEXcache2,7));
-*/
 			if (nextIndex&1) {
 				TEXcache2 = spu_insert(-1,   TEXcache2, nextIndex>>1);
 				TEXmerge2 = spu_insert(want, TEXmerge2, nextIndex>>1);
@@ -194,20 +145,16 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 				TEXblitting1 = spu_insert(want, TEXblitting1, nextIndex>>1);
 			}
 
-/*
-	printf(" now -> %04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x%04x\n",
-		spu_extract(TEXcache1,0), spu_extract(TEXcache2,0),
-		spu_extract(TEXcache1,1), spu_extract(TEXcache2,1),
-		spu_extract(TEXcache1,2), spu_extract(TEXcache2,2),
-		spu_extract(TEXcache1,3), spu_extract(TEXcache2,3),
-		spu_extract(TEXcache1,4), spu_extract(TEXcache2,4),
-		spu_extract(TEXcache1,5), spu_extract(TEXcache2,5),
-		spu_extract(TEXcache1,6), spu_extract(TEXcache2,6),
-		spu_extract(TEXcache1,7), spu_extract(TEXcache2,7));
-*/
-			unsigned int desired = spu_extract(needs_sub, i);
-			unsigned long long ea = block->triangle->texture_base + (desired<<(5+5+2));
-			unsigned long len = 32*32*4;
+			unsigned int s_blk = spu_extract(s, i);
+			unsigned int t_blk = spu_extract(t, i);
+
+			// this sucks with the mults, but hey!
+			unsigned int ofs = s_blk*32*32*4 + t_blk*8*32*32*4;
+			unsigned long long ea = block->triangle->texture_base + ofs;
+
+//			unsigned int desired = spu_extract(needs_sub, i);
+//			unsigned long long ea = block->triangle->texture_base + (desired<<(5+5+2));
+			unsigned long len = 33*32*4;
 			
 			unsigned long eah = 0; // TODO: fix this
 			unsigned long eal = ea & ~127;
@@ -227,10 +174,11 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 			lastLoadedTextureMap = nextIndex;
 			texturesMask |= nextMask;
 		}
+	}
 
-		active->TEXmerge1 = TEXmerge1;
-		active->TEXmerge2 = TEXmerge2;
-		active->texturesMask = texturesMask;
+	active->TEXmerge1 = TEXmerge1;
+	active->TEXmerge2 = TEXmerge2;
+	active->texturesMask = texturesMask;
 				
 //////////////////////////////////////////////////////////////////////
 

@@ -44,6 +44,7 @@ static u32 spe_read(speid_t spe_id);
 
 u32* prepare_texture(gimp_image* source);
 extern gimp_image berlin;
+extern gimp_image oranges;
 extern gimp_image mim;
 extern gimp_image ralf;
 extern gimp_image gate;
@@ -104,11 +105,12 @@ DriverContext _init_3d_driver(int master)
 
 	// TODO: ugly hack!
 	context->control->texture_hack[0] = (u64)prepare_texture(&berlin);
-	context->control->texture_hack[1] = (u64)prepare_texture(&mim);
+	context->control->texture_hack[1] = (u64)prepare_texture(&oranges);
 	context->control->texture_hack[2] = (u64)prepare_texture(&ralf);
 	context->control->texture_hack[3] = (u64)prepare_texture(&gate);
 	context->control->texture_hack[4] = (u64)prepare_texture(&space);
 	context->control->texture_hack[5] = (u64)prepare_texture(&tongariro);
+	context->control->texture_hack[6] = (u64)prepare_texture(&mim);
 
 	return (DriverContext) context;
 }
@@ -221,6 +223,6 @@ void _bind_child(DriverContext _parent, DriverContext _child, int assign)
 
 static u32 spe_read(speid_t spe_id) {
 	while(!spe_stat_out_mbox(spe_id))
-		; //usleep(10);
+		sched_yield();
 	return spe_read_out_mbox(spe_id);
 }

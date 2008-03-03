@@ -179,7 +179,9 @@ glfifo.o: /usr/include/bits/wchar.h /usr/include/gconv.h
 glfifo.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 glfifo.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
 glfifo.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
-glfifo.o: fifo.h types.h gen_spu_command_defs.h struct.h spuregs.h ./GL/gl.h
+glfifo.o: /usr/include/math.h /usr/include/bits/huge_val.h
+glfifo.o: /usr/include/bits/mathdef.h /usr/include/bits/mathcalls.h fifo.h
+glfifo.o: types.h gen_spu_command_defs.h struct.h spuregs.h ./GL/gl.h
 glfifo.o: ./GL/glext.h /usr/include/inttypes.h /usr/include/stdint.h
 framebuffer.o: /usr/include/fcntl.h /usr/include/features.h
 framebuffer.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h

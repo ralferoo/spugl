@@ -11,6 +11,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "fifo.h"
 #include "struct.h"
@@ -196,8 +197,49 @@ GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
 	FIFO_EPILOGUE();
 }
 
+/*
+GLAPI void GLAPIENTRY glLoadMatrixd( const GLdouble *m );
+GLAPI void GLAPIENTRY glLoadMatrixf( const GLfloat *m );
+
+GLAPI void GLAPIENTRY glMultMatrixd( const GLdouble *m );
+GLAPI void GLAPIENTRY glMultMatrixf( const GLfloat *m );
+
+// http://publib.boulder.ibm.com/infocenter/systems/index.jsp?topic=/com.ibm.aix.opengl/doc/openglrf/gluPerspective.htm
+GLAPI void GLAPIENTRY glFrustum( GLdouble left, GLdouble right,
+                                   GLdouble bottom, GLdouble top,
+                                   GLdouble near_val, GLdouble far_val )
+{
+	GLdouble A = (right+left)/(right-left);
+	GLdouble B = (top+bottom)/(top-bottom);
+	GLdouble C = (far+near)/(far-near);
+	GLdouble D = (2*far*near)/(far-near);
+
+	GLdouble mat[16] = {
+		2.0*near/(right-left),	0.0,			0.0,	 0.0,
+		0.0,			2.0*near/(top-0bottom),	0.0,	 0.0,
+		A,			B,			C,	-1.0,
+		0.0,			0.0,			D,	 0.0};
+
+	glMultMatrixd(mat);
+}
 
 
+// http://publib.boulder.ibm.com/infocenter/systems/index.jsp?topic=/com.ibm.aix.opengl/doc/openglrf/gluPerspective.htm
+
+void
+gluPerspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar)
+{
+   GLdouble xmin, xmax, ymin, ymax;
+
+   ymax = zNear * tan(fovy * M_PI / 360.0);
+   ymin = -ymax;
+   xmin = ymin * aspect;
+   xmax = ymax * aspect;
+
+
+   glFrustum(xmin, xmax, ymin, ymax, zNear, zFar);
+}
+*/
 
 /*
  * Transformation
@@ -210,10 +252,6 @@ GLAPI void GLAPIENTRY glOrtho( GLdouble left, GLdouble right,
                                  GLdouble bottom, GLdouble top,
                                  GLdouble near_val, GLdouble far_val );
 
-GLAPI void GLAPIENTRY glFrustum( GLdouble left, GLdouble right,
-                                   GLdouble bottom, GLdouble top,
-                                   GLdouble near_val, GLdouble far_val );
-
 GLAPI void GLAPIENTRY glViewport( GLint x, GLint y,
                                     GLsizei width, GLsizei height );
 
@@ -222,12 +260,6 @@ GLAPI void GLAPIENTRY glPushMatrix( void );
 GLAPI void GLAPIENTRY glPopMatrix( void );
 
 GLAPI void GLAPIENTRY glLoadIdentity( void );
-
-GLAPI void GLAPIENTRY glLoadMatrixd( const GLdouble *m );
-GLAPI void GLAPIENTRY glLoadMatrixf( const GLfloat *m );
-
-GLAPI void GLAPIENTRY glMultMatrixd( const GLdouble *m );
-GLAPI void GLAPIENTRY glMultMatrixf( const GLfloat *m );
 
 GLAPI void GLAPIENTRY glRotated( GLdouble angle,
                                    GLdouble x, GLdouble y, GLdouble z );

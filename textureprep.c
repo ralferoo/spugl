@@ -18,19 +18,17 @@ u32* prepare_texture(gimp_image* source)
 {
 	int width = (source->width+31)&~31;
 	int height = (source->height+31)&~31;
-	int size = width*height*4;
+	int mainsize = width*height*4;
 
-	void* buffer = malloc(size+127);
+	int extrasize = (width/32)*height*4;
+
+	void* buffer = malloc(mainsize+extrasize+127);
 	u32* pixels = (u32*) ((((unsigned int)buffer)+127)&~127);
-
-	u32* t=pixels;
-	int i;
-	for (i=0;i<size;i+=4)
-		*t++ = i;
 
 	int bx,by,x,y;
 
 	u32* p = pixels;
+
 	for (bx=0; bx<width; bx+=32) {
 		for (by=0; by<height; by+=32) {
 			for (y=0;y<32;y++) {
@@ -44,5 +42,18 @@ u32* prepare_texture(gimp_image* source)
 			}
 		}
 	}
+
+	for (bx=0; bx<width; bx+=32) {
+		for (by=0; by<height; by+=32) {
+			for (y=0;y<32;y++) {
+				u32* s = (u32*) (source->pixel_data + 
+						((by+y)*source->width + (bx))*4);
+				u32 rgba = *s;
+				u32 argb = ((rgba&0xff)<<24) | ((rgba>>8)&0xffffff);
+				*p++ = argb;
+			}
+		}
+	}
+
 	return pixels;
 }

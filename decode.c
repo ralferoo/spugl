@@ -141,3 +141,10 @@ extern void flush_queue();
 	}
 }
 
+
+/*
+ * gluPerspective(f32 fov,f32 aspect,f32 znear,f32 zfar) {
+f64 range = znear*tan(DEG_TO_RAD(fov/2));
+glFrustum(-range*aspect,range*aspect,-range,range,znear,zfar);
+}
+*/
