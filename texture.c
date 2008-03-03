@@ -145,8 +145,15 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 				TEXblitting1 = spu_insert(want, TEXblitting1, nextIndex>>1);
 			}
 
-			unsigned int desired = spu_extract(needs_sub, i);
-			unsigned long long ea = block->triangle->texture_base + (desired<<(5+5+2));
+			unsigned int s_blk = spu_extract(s, i);
+			unsigned int t_blk = spu_extract(t, i);
+
+			// this sucks with the mults, but hey!
+			unsigned int ofs = s_blk*32*32*4 + t_blk*8*32*32*4;
+			unsigned long long ea = block->triangle->texture_base + ofs;
+
+//			unsigned int desired = spu_extract(needs_sub, i);
+//			unsigned long long ea = block->triangle->texture_base + (desired<<(5+5+2));
 			unsigned long len = 33*32*4;
 			
 			unsigned long eah = 0; // TODO: fix this
