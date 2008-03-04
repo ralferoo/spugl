@@ -18,7 +18,7 @@ u32* prepare_texture(gimp_image* source)
 {
 	int width = (source->width+31)&~31;
 	int height = (source->height+31)&~31;
-	int mainsize = width*height*4;
+	int mainsize = width*(height+1)*4;
 
 	int extrasize = (width/32)*height*4;
 
@@ -41,13 +41,21 @@ u32* prepare_texture(gimp_image* source)
 				}
 			}
 		}
+		for (x=0;x<32;x++) {
+			u32* s = (u32*) (source->pixel_data + 
+					((source->height-1)*source->width + (bx+x))*4);	// clamp
+//			u32* s = (u32*) (source->pixel_data + (bx+x)*4);	// repeat top
+			u32 rgba = *s;
+			u32 argb = ((rgba&0xff)<<24) | ((rgba>>8)&0xffffff);
+			*p++ = argb;
+		}
 	}
 
 	for (bx=0; bx<width; bx+=32) {
 		for (by=0; by<height; by+=32) {
 			for (y=0;y<32;y++) {
 				u32* s = (u32*) (source->pixel_data + 
-						((by+y)*source->width + (bx))*4);
+						((by+y)*source->width + (bx+32))*4);
 				u32 rgba = *s;
 				u32 argb = ((rgba&0xff)<<24) | ((rgba>>8)&0xffffff);
 				*p++ = argb;

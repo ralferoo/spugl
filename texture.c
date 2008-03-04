@@ -150,8 +150,8 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 			unsigned int t_next = (t_blk+1)&7;
 
 			// this sucks with the mults, but hey!
-			unsigned int ofs = s_blk*32*32*4 + t_blk*8*32*32*4;
-			unsigned int ofs_next = s_blk*32*32*4 + t_next*8*32*32*4;
+			unsigned int ofs = s_blk*32*32*4 + t_blk*(8*32+1)*32*4;
+			unsigned int ofs_next = s_blk*32*32*4 + (t_next*(8*32+1))*32*4;
 			unsigned long long ea = block->triangle->texture_base + ofs;
 			unsigned long long ea_next = block->triangle->texture_base + ofs_next;
 
@@ -177,7 +177,7 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 			vec_uint4* dma_list = &load_dma_list[nextIndex][0];
 			vec_uint4* list_ptr = dma_list;
 
-			vec_uint4 block0 = { len, eal, 16, eal_next };
+			vec_uint4 block0 = { 33*32*4, eal, 16, eal_next };
 			*list_ptr++ = block0;
 
 			vec_uint4 block = { 16, eal_next+32*4, 16, eal_next+32*4*2 };

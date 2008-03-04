@@ -266,8 +266,13 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	triangle->texture_y_shift = 8-5;
 
 //	triangle->init_block = &linearColourFill;
-//	triangle->init_block = &textureMapFill;
-	triangle->init_block = &linearTextureMapFill;
+
+
+//	static int a=0;
+//	if (a++&2048)
+//		triangle->init_block = &textureMapFill;
+//	else
+		triangle->init_block = &linearTextureMapFill;
 
 // if the triangle is visible (i.e. area>0), then we increment the triangle
 // out ptr to just past the triangle data we've just written to memory.
@@ -430,7 +435,8 @@ void* imp_vertex(void* from, float4 in, struct __TRIANGLE * triangle)
 	// transformations here. they'll probably live here anyway, just
 	// done with matrices.
 
-	float recip = 420.0f / (in.z-222.0f);
+//	float recip = 420.0f / (in.z-222.0f);
+	float recip = 420.0f / (in.z-420.0f);
 	float4 s = {.x=in.x*recip+screen.width/2, .y = in.y*recip+screen.height/2, .z = in.z*recip, .w = recip};
 
 	float4 c= current_colour;

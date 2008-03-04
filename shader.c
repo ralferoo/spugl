@@ -427,7 +427,7 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			// if x==32
 			vec_uint4 sb_sub = spu_and(spu_rlmask(spu_convtu(t_s,32),-20), 0x1f0);
 			vec_uint4 addr10b = spu_add(tex_ofs32,spu_add(sb_sub,local_tex_base));
-			vec_uint4 addr11b = spu_add(addr10b, spu_splats((unsigned int)4));
+			vec_uint4 addr11b = spu_add(addr10b, spu_splats((unsigned int)16));
 
 			// decision
 			vec_uint4 is_x_32 = spu_cmpeq(t_sub,0x7c);
