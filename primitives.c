@@ -436,7 +436,7 @@ void* imp_vertex(void* from, float4 in, struct __TRIANGLE * triangle)
 	// done with matrices.
 
 //	float recip = 420.0f / (in.z-222.0f);
-	float recip = 420.0f / (in.z-420.0f);
+	float recip = 420.0f / (in.z-280.0f);
 	float4 s = {.x=in.x*recip+screen.width/2, .y = in.y*recip+screen.height/2, .z = in.z*recip, .w = recip};
 
 	float4 c= current_colour;
