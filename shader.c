@@ -412,11 +412,10 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			vec_uint4 t_sub = spu_and(spu_rlmask(spu_convtu(t_t,32),-22), 0x7c);	//24-2
 			vec_uint4 sub_block_pixel = spu_or(s_sub,t_sub);
 
-			vec_uint4 local_tex_base = spu_splats((unsigned int)&textureCache);
 			vec_uint4 tex_ofs = spu_mulo( (vec_ushort8)cache,(vec_ushort8)((33*32+4*40)*4));
 //			vec_uint4 tex_ofs = spu_mulo( (vec_ushort8)cache,(vec_ushort8)((33*32+64)*4));
 			vec_uint4 tex_ofs32 = spu_add(tex_ofs, spu_splats((unsigned int)(33*32*4)));
-			vec_uint4 addr00 = spu_add(tex_ofs,spu_add(sub_block_pixel,local_tex_base));
+			vec_uint4 addr00 = spu_add(tex_ofs,sub_block_pixel);
 		
 			// (x,y+1) is always the next line in physical memory
 			vec_uint4 addr01 = spu_add(addr00, (unsigned int)(32*4));
@@ -427,7 +426,7 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 
 			// if x==32
 			vec_uint4 sb_sub = spu_and(spu_rlmask(spu_convtu(t_s,32),-20), 0x1f0);
-			vec_uint4 addr10b = spu_add(tex_ofs32,spu_add(sb_sub,local_tex_base));
+			vec_uint4 addr10b = spu_add(tex_ofs32,sb_sub);
 			vec_uint4 addr11b = spu_add(addr10b, spu_splats((unsigned int)16));
 
 			// decision
@@ -435,29 +434,30 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			vec_uint4 addr10 = spu_sel(addr10a,addr10b,is_x_32);
 			vec_uint4 addr11 = spu_sel(addr11a,addr11b,is_x_32);
 
+			unsigned int local_tex_base = (unsigned int)&textureCache;
 			// load pixel data for all 4 pixels
-			unsigned long pixel0_00 = *((u32*)spu_extract(addr00,0));
-			unsigned long pixel1_00 = *((u32*)spu_extract(addr00,1));
-			unsigned long pixel2_00 = *((u32*)spu_extract(addr00,2));
-			unsigned long pixel3_00 = *((u32*)spu_extract(addr00,3));
+			unsigned long pixel0_00 = *((u32*)(local_tex_base+spu_extract(addr00,0)));
+			unsigned long pixel1_00 = *((u32*)(local_tex_base+spu_extract(addr00,1)));
+			unsigned long pixel2_00 = *((u32*)(local_tex_base+spu_extract(addr00,2)));
+			unsigned long pixel3_00 = *((u32*)(local_tex_base+spu_extract(addr00,3)));
 //			vec_uint4 colour00 = {pixel0_00, pixel1_00, pixel2_00, pixel3_00};
 		
-			unsigned long pixel0_01 = *((u32*)spu_extract(addr01,0));
-			unsigned long pixel1_01 = *((u32*)spu_extract(addr01,1));
-			unsigned long pixel2_01 = *((u32*)spu_extract(addr01,2));
-			unsigned long pixel3_01 = *((u32*)spu_extract(addr01,3));
+			unsigned long pixel0_01 = *((u32*)(local_tex_base+spu_extract(addr01,0)));
+			unsigned long pixel1_01 = *((u32*)(local_tex_base+spu_extract(addr01,1)));
+			unsigned long pixel2_01 = *((u32*)(local_tex_base+spu_extract(addr01,2)));
+			unsigned long pixel3_01 = *((u32*)(local_tex_base+spu_extract(addr01,3)));
 //			vec_uint4 colour01 = {pixel0_01, pixel1_01, pixel2_01, pixel3_01};
 		
-			unsigned long pixel0_10 = *((u32*)spu_extract(addr10,0));
-			unsigned long pixel1_10 = *((u32*)spu_extract(addr10,1));
-			unsigned long pixel2_10 = *((u32*)spu_extract(addr10,2));
-			unsigned long pixel3_10 = *((u32*)spu_extract(addr10,3));
+			unsigned long pixel0_10 = *((u32*)(local_tex_base+spu_extract(addr10,0)));
+			unsigned long pixel1_10 = *((u32*)(local_tex_base+spu_extract(addr10,1)));
+			unsigned long pixel2_10 = *((u32*)(local_tex_base+spu_extract(addr10,2)));
+			unsigned long pixel3_10 = *((u32*)(local_tex_base+spu_extract(addr10,3)));
 //			vec_uint4 colour10 = {pixel0_10, pixel1_10, pixel2_10, pixel3_10};
 		
-			unsigned long pixel0_11 = *((u32*)spu_extract(addr11,0));
-			unsigned long pixel1_11 = *((u32*)spu_extract(addr11,1));
-			unsigned long pixel2_11 = *((u32*)spu_extract(addr11,2));
-			unsigned long pixel3_11 = *((u32*)spu_extract(addr11,3));
+			unsigned long pixel0_11 = *((u32*)(local_tex_base+spu_extract(addr11,0)));
+			unsigned long pixel1_11 = *((u32*)(local_tex_base+spu_extract(addr11,1)));
+			unsigned long pixel2_11 = *((u32*)(local_tex_base+spu_extract(addr11,2)));
+			unsigned long pixel3_11 = *((u32*)(local_tex_base+spu_extract(addr11,3)));
 //			vec_uint4 colour11 = {pixel0_11, pixel1_11, pixel2_11, pixel3_11};
 		
 
@@ -489,6 +489,7 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			vec_short8 pixel01_bm = spu_add(pixel01_y, pixel01_bh);
 
 			vec_short8 pixel01_d = spu_sub(pixel01_bm,pixel01_tm);
+
 			vec_int4 pixel0_d = spu_mulo(pixel01_d, pixel01_multy);
 			vec_int4 pixel1_d = spu_mule(pixel01_d, pixel01_multy);
 			vec_short8 pixel01_mm = (vec_short8)spu_shuffle(pixel0_d, pixel1_d, merge_shr8);
