@@ -82,21 +82,21 @@ static inline vec_float4 div(vec_float4 a, vec_float4 b) {
 	return (vec_float4) res;
 }
 
-static inline unsigned long cmp_ge0(long a) {
+static inline unsigned int cmp_ge0(int a) {
 	vec_int4 aa = (vec_int4) a;
 	vec_uint4 rr = spu_cmpgt(aa, -1);
 	return spu_extract(rr, 0);
 }
 
-static inline unsigned long cmp_eq(unsigned long a, unsigned long b) {
+static inline unsigned int cmp_eq(unsigned int a, unsigned int b) {
 	vec_uint4 aa = (vec_uint4) a;
 	vec_uint4 bb = (vec_uint4) b;
 	vec_uint4 rr = spu_cmpeq(aa, bb);
 	return spu_extract(rr, 0);
 }
 
-static inline unsigned long if_then_else(unsigned long c, 
-		unsigned long a, unsigned long b) {
+static inline unsigned int if_then_else(unsigned int c, 
+		unsigned int a, unsigned int b) {
 	vec_uint4 aa = (vec_uint4) a;
 	vec_uint4 bb = (vec_uint4) b;
 	vec_uint4 cc = (vec_uint4) c;
