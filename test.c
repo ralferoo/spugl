@@ -9,7 +9,8 @@
  *
  ****************************************************************************/
 
-// #define SYNC_WITH_FRAME
+#define SYNC_WITH_FRAME
+// #define DOUBLE_SYNC
 // #define BLACK_MIDDLES
 
 #include <stdlib.h>
@@ -122,15 +123,15 @@ int main(int argc, char* argv[]) {
 			}
 
 			for (v=0; v<4; v++) {
-				glTexCoord2f( (v^(v>>1))&1?(255.0f/256.0f):0.0f,
-						(v&2)?0.0f:(255.0f/256.0f));
+				glTexCoord2f( (v^(v>>1))&1?(256.0f/256.0f):0.0f,
+						(v&2)?0.0f:(256.0f/256.0f));
 				glColor3ub(vertices[faces[f][v]][4],
 					   vertices[faces[f][v]][5],
 					   vertices[faces[f][v]][3]);
 				glVertex3f(sx[v],sy[v],sz[v]);
 
-				glTexCoord2f( ((v+1)^((v+1)>>1))&1?(255.0f/256.0f):0.0f,
-						((v+1)&2)?0.0f:(255.0f/256.0f));
+				glTexCoord2f( ((v+1)^((v+1)>>1))&1?(256.0f/256.0f):0.0f,
+						((v+1)&2)?0.0f:(256.0f/256.0f));
 				glColor3ub(vertices[faces[f][(v+1)%4]][4],
 					   vertices[faces[f][(v+1)%4]][5],
 					   vertices[faces[f][(v+1)%4]][3]);
@@ -156,10 +157,11 @@ cheat:
 		glspuFlip();
 #ifdef SYNC_WITH_FRAME
 		glspuWait();
-
-//		double x1 = getTimeSince(startPoint);
-//		if (x1<(1.0/45.0))
-//			glspuWait();
+#ifdef DOUBLE_SYNC
+		double x1 = getTimeSince(startPoint);
+		if (x1<(1.0/45.0))
+			glspuWait();
+#endif
 #endif
 		unsigned long _end = glspuCounter();
 		unsigned long _endBlocked = glspuBlockedCounter();
