@@ -298,7 +298,7 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 	vec_uint4 left = spu_splats(block->left);
 	vec_uint4* ptr = block->pixels;
 	vec_uint4 tex_id_base = spu_splats((unsigned int)tri->tex_id_base);
-	vec_uint4 tex_keep = spu_splats(0);
+	vec_uint4 tex_keep = spu_splats((unsigned int)0);
 
 	const vec_uchar16 shuf_cmp_0 = (vec_uchar16) spu_splats((unsigned short)0x203);
 	const vec_uchar16 shuf_cmp_1 = (vec_uchar16) spu_splats((unsigned short)0x607);
@@ -344,7 +344,7 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 	const vec_uint4 x20=spu_splats((unsigned int)0x20);
 
 	const vec_float4 f1_0 = spu_splats(1.0f);
-	const vec_ushort8 tex_ofs_mul = spu_splats((unsigned short)(33*32+4*40)*4);
+	const vec_ushort8 tex_ofs_mul = spu_splats((unsigned short)((33*32+4*40)*4));
 	const vec_uint4 tex_ofs32_add = spu_splats((unsigned int)(33*32*4));
 
 	const vec_uchar16 merge = (vec_uchar16) {      // high 16 bits->low 16 bits, merge alternately
@@ -382,25 +382,25 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			vec_uint4 t_blk = spu_and(spu_rlmask(spu_convtu(t_t,32),-26), x38);	//24+2
 			vec_uint4 block_id = spu_add(tex_id_base,spu_or(s_blk,t_blk));
 
-			vec_ushort8 copy_cmp_0 = spu_shuffle(block_id,block_id,shuf_cmp_0);
+			vec_ushort8 copy_cmp_0 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_0);
 			vec_ushort8 matches1_0 = spu_cmpeq(TEXcache1,copy_cmp_0);
 			vec_ushort8 matches2_0 = spu_cmpeq(TEXcache2,copy_cmp_0);
 			vec_uint4 gather1_0 = spu_gather((vec_uchar16)matches1_0);
 			vec_uint4 gather2_0 = spu_gather((vec_uchar16)matches2_0);
 
-			vec_ushort8 copy_cmp_1 = spu_shuffle(block_id,block_id,shuf_cmp_1);
+			vec_ushort8 copy_cmp_1 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_1);
 			vec_ushort8 matches1_1 = spu_cmpeq(TEXcache1,copy_cmp_1);
 			vec_ushort8 matches2_1 = spu_cmpeq(TEXcache2,copy_cmp_1);
 			vec_uint4 gather1_1 = spu_gather((vec_uchar16)matches1_1);
 			vec_uint4 gather2_1 = spu_gather((vec_uchar16)matches2_1);
 
-			vec_ushort8 copy_cmp_2 = spu_shuffle(block_id,block_id,shuf_cmp_2);
+			vec_ushort8 copy_cmp_2 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_2);
 			vec_ushort8 matches1_2 = spu_cmpeq(TEXcache1,copy_cmp_2);
 			vec_ushort8 matches2_2 = spu_cmpeq(TEXcache2,copy_cmp_2);
 			vec_uint4 gather1_2 = spu_gather((vec_uchar16)matches1_2);
 			vec_uint4 gather2_2 = spu_gather((vec_uchar16)matches2_2);
 		
-			vec_ushort8 copy_cmp_3 = spu_shuffle(block_id,block_id,shuf_cmp_3);
+			vec_ushort8 copy_cmp_3 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_3);
 			vec_ushort8 matches1_3 = spu_cmpeq(TEXcache1,copy_cmp_3);
 			vec_ushort8 matches2_3 = spu_cmpeq(TEXcache2,copy_cmp_3);
 			vec_uint4 gather1_3 = spu_gather((vec_uchar16)matches1_3);
