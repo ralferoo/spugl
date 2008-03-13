@@ -300,11 +300,11 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 	vec_uint4 tex_id_base = spu_splats((unsigned int)tri->tex_id_base);
 	vec_uint4 tex_keep = spu_splats(0);
 
-	const vec_uchar16 shuf_cmp_0 = spu_splats((unsigned short)0x203);
-	const vec_uchar16 shuf_cmp_1 = spu_splats((unsigned short)0x607);
-	const vec_uchar16 shuf_cmp_2 = spu_splats((unsigned short)0xa0b);
-	const vec_uchar16 shuf_cmp_3 = spu_splats((unsigned short)0xe0f);
-	const vec_uint4 gather_merge=spu_splats((unsigned short)0x5555);
+	const vec_uchar16 shuf_cmp_0 = (vec_uchar16) spu_splats((unsigned short)0x203);
+	const vec_uchar16 shuf_cmp_1 = (vec_uchar16) spu_splats((unsigned short)0x607);
+	const vec_uchar16 shuf_cmp_2 = (vec_uchar16) spu_splats((unsigned short)0xa0b);
+	const vec_uchar16 shuf_cmp_3 = (vec_uchar16) spu_splats((unsigned short)0xe0f);
+	const vec_uint4 gather_merge=spu_splats((unsigned int)0x55555555);
 
 	const vec_uchar16 merge_shr8 = (vec_uchar16) {
         	17,18, 1,2,  21,22,5,6,  25,26,9,10,  29,30,13,14};
