@@ -435,7 +435,6 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			vec_uint4 sub_block_pixel = spu_or(s_sub,t_sub);
 
 			vec_uint4 tex_ofs = spu_mulo( (vec_ushort8)cache, tex_ofs_mul);
-//			vec_uint4 tex_ofs = spu_mulo( (vec_ushort8)cache,(vec_ushort8)((33*32+64)*4));
 			vec_uint4 tex_ofs32 = spu_add(tex_ofs, tex_ofs32_add);
 			vec_uint4 addr00 = spu_add(tex_ofs,sub_block_pixel);
 		
@@ -443,8 +442,6 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			vec_uint4 addr01 = spu_add(addr00, (unsigned int)(32*4));
 
 			// if x<32
-//			vec_uint4 addr10a = spu_add(addr00, (unsigned int)4);
-//			vec_uint4 addr11a = spu_add(addr00, (unsigned int)(32*4+4));
 			vec_uint4 addr10a = spu_add(addr00, (unsigned int)16);
 			vec_uint4 addr11a = spu_add(addr00, (unsigned int)(32*4+16));
 
