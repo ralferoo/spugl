@@ -498,27 +498,25 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			vec_uint4 s_pxofs = spu_and(spu_rlmask(spu_convtu(t_s,32),-16), (vec_uint4)0xff);
 			vec_uint4 t_pxofs = spu_and(spu_rlmask(spu_convtu(t_t,32),-16), (vec_uint4)0xff);
 
-// _x and _y are the wrong way round - should be renamed!
-
 			vec_short8 pixel01_ = (vec_short8) spu_shuffle((vec_uint4)pix0_0, (vec_uint4)pix1_0, get0);
-			vec_short8 pixel01_x = (vec_short8) spu_shuffle((vec_uint4)pix0_1, (vec_uint4)pix1_1, get0);
-			vec_short8 pixel01_xy = (vec_short8) spu_shuffle((vec_uint4)pix0_1, (vec_uint4)pix1_1, get1);
-			vec_short8 pixel01_y = (vec_short8) spu_shuffle((vec_uint4)pix0_0, (vec_uint4)pix1_0, get1);
-			vec_short8 pixel01_h = spu_sub(pixel01_x,pixel01_);
-			vec_short8 pixel01_yh = spu_sub(pixel01_xy,pixel01_y);
+			vec_short8 pixel01_Y = (vec_short8) spu_shuffle((vec_uint4)pix0_1, (vec_uint4)pix1_1, get0);
+			vec_short8 pixel01_XY = (vec_short8) spu_shuffle((vec_uint4)pix0_1, (vec_uint4)pix1_1, get1);
+			vec_short8 pixel01_X = (vec_short8) spu_shuffle((vec_uint4)pix0_0, (vec_uint4)pix1_0, get1);
+			vec_short8 pixel01_h = spu_sub(pixel01_Y,pixel01_);
+			vec_short8 pixel01_Xh = spu_sub(pixel01_XY,pixel01_X);
 
 			vec_short8 pixel01_multx = (vec_short8)spu_shuffle(s_pxofs,s_pxofs,splats_01);
 			vec_short8 pixel01_multy = (vec_short8)spu_shuffle(t_pxofs,t_pxofs,splats_01);
 
 			vec_int4 pixel0_th = spu_mulo(pixel01_h, pixel01_multx);
-			vec_int4 pixel0_bh = spu_mulo(pixel01_yh, pixel01_multx);
+			vec_int4 pixel0_bh = spu_mulo(pixel01_Xh, pixel01_multx);
 			vec_int4 pixel1_th = spu_mule(pixel01_h, pixel01_multx);
-			vec_int4 pixel1_bh = spu_mule(pixel01_yh, pixel01_multx);
+			vec_int4 pixel1_bh = spu_mule(pixel01_Xh, pixel01_multx);
 			vec_short8 pixel01_th = (vec_short8)spu_shuffle(pixel0_th, pixel1_th, merge_shr8);
 			vec_short8 pixel01_bh = (vec_short8)spu_shuffle(pixel0_bh, pixel1_bh, merge_shr8);
 
 			vec_short8 pixel01_tm = spu_add(pixel01_, pixel01_th);
-			vec_short8 pixel01_bm = spu_add(pixel01_y, pixel01_bh);
+			vec_short8 pixel01_bm = spu_add(pixel01_X, pixel01_bh);
 
 			vec_short8 pixel01_d = spu_sub(pixel01_bm,pixel01_tm);
 
@@ -529,24 +527,24 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 
 ///////////
 			vec_short8 pixel23_ = (vec_short8) spu_shuffle((vec_uint4)pix2_0, (vec_uint4)pix3_0, get0);
-			vec_short8 pixel23_x = (vec_short8) spu_shuffle((vec_uint4)pix2_1, (vec_uint4)pix3_1, get0);
-			vec_short8 pixel23_xy = (vec_short8) spu_shuffle((vec_uint4)pix2_1, (vec_uint4)pix3_1, get1);
-			vec_short8 pixel23_y = (vec_short8) spu_shuffle((vec_uint4)pix2_0, (vec_uint4)pix3_0, get1);
-			vec_short8 pixel23_h = spu_sub(pixel23_x,pixel23_);
-			vec_short8 pixel23_yh = spu_sub(pixel23_xy,pixel23_y);
+			vec_short8 pixel23_Y = (vec_short8) spu_shuffle((vec_uint4)pix2_1, (vec_uint4)pix3_1, get0);
+			vec_short8 pixel23_XY = (vec_short8) spu_shuffle((vec_uint4)pix2_1, (vec_uint4)pix3_1, get1);
+			vec_short8 pixel23_X = (vec_short8) spu_shuffle((vec_uint4)pix2_0, (vec_uint4)pix3_0, get1);
+			vec_short8 pixel23_h = spu_sub(pixel23_Y,pixel23_);
+			vec_short8 pixel23_Xh = spu_sub(pixel23_XY,pixel23_X);
 
 			vec_short8 pixel23_multx = (vec_short8)spu_shuffle(s_pxofs,s_pxofs,splats_23);
 			vec_short8 pixel23_multy = (vec_short8)spu_shuffle(t_pxofs,t_pxofs,splats_23);
 
 			vec_int4 pixel2_th = spu_mulo(pixel23_h, pixel23_multx);
-			vec_int4 pixel2_bh = spu_mulo(pixel23_yh, pixel23_multx);
+			vec_int4 pixel2_bh = spu_mulo(pixel23_Xh, pixel23_multx);
 			vec_int4 pixel3_th = spu_mule(pixel23_h, pixel23_multx);
-			vec_int4 pixel3_bh = spu_mule(pixel23_yh, pixel23_multx);
+			vec_int4 pixel3_bh = spu_mule(pixel23_Xh, pixel23_multx);
 			vec_short8 pixel23_th = (vec_short8)spu_shuffle(pixel2_th, pixel3_th, merge_shr8);
 			vec_short8 pixel23_bh = (vec_short8)spu_shuffle(pixel2_bh, pixel3_bh, merge_shr8);
 
 			vec_short8 pixel23_tm = spu_add(pixel23_, pixel23_th);
-			vec_short8 pixel23_bm = spu_add(pixel23_y, pixel23_bh);
+			vec_short8 pixel23_bm = spu_add(pixel23_X, pixel23_bh);
 
 			vec_short8 pixel23_d = spu_sub(pixel23_bm,pixel23_tm);
 			vec_int4 pixel2_d = spu_mulo(pixel23_d, pixel23_multy);
