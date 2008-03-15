@@ -39,18 +39,18 @@ typedef void* DriverContext;
   *__fifo_ptr++ = (u32)(ea&0xffffffffUL); \
 } 
 #define __READ_EA(from) \
-{ u32 eal; \
-  eal = *from++; \
-  ea = ((u64)eal); \
+{ u32 _____eal; \
+  _____eal = *from++; \
+  ea = ((u64)_____eal); \
 } 
 
 #elif defined(USERLAND_64_BITS)
 #define _MAKE_EA(x) ((u64)((void*)x))
 #define _FROM_EA(x) ((void*)((u64)x))
 #define OUT_RINGea(addr) \
-{ u64 ea = _MAKE_EA(addr); \
-  *__fifo_ptr++ = (u32)(ea>>32); \
-  *__fifo_ptr++ = (u32)(ea&0xffffffffUL); \
+{ u64 _____ea = _MAKE_EA(addr); \
+  *__fifo_ptr++ = (u32)(_____ea>>32); \
+  *__fifo_ptr++ = (u32)(_____ea&0xffffffffUL); \
 } 
 #define __READ_EA(from) \
 { u32 eah, eal; \
