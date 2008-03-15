@@ -9,16 +9,21 @@
  *
  ****************************************************************************/
 
+#include <stdio.h>
 #include <spu_mfcio.h>
 #include "fifo.h"
 #include "struct.h"
 #include "queue.h"
 
 #define NUMBER_TEX_MAPS 16
-#define NUMBER_TEX_PIXELS (32*32)
+
+// the following is 33*32 (normal) 33*4(x=32) 7*4(pad)
+#define TEX_MAP_PIXELS (33*32+4*40)
+
+TextureDefinition textureDefinition[NUMBER_OF_TEXTURE_DEFINITIONS];
 
 typedef struct {
-	u32 textureBuffer[33*32+4*40] __attribute__((aligned(128)));
+	u32 textureBuffer[TEX_MAP_PIXELS] __attribute__((aligned(128)));
 } TextureBlock;
 
 TextureBlock textureCache[NUMBER_TEX_MAPS] __attribute__((aligned(128)));
@@ -50,7 +55,7 @@ static const vec_uchar16 splats[] = {
 	/* 1110 */ {18,19, 22,23,26,27, 0,1, 2,3,4,5, 6,7,8,9},
 	/* 1111 */ {18,19, 22,23,26,27,30,31, 0,1, 2,3,4,5, 6,7},
 };
-	
+
 void* finishTextureLoad(void* self, Block* block, ActiveBlock* active, int tag);
 
 void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag,
@@ -100,7 +105,10 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 
 ////////////////////////////////////////////////////////////////////
 
-	vec_uint4 tex_id_base = spu_splats((unsigned int)block->triangle->tex_id_base);
+	//vec_uint4 tex_id_base = spu_splats((unsigned int)block->triangle->tex_id_base);
+
+	TextureDefinition* textureDefinition = block->triangle->texture;
+	vec_uint4 tex_id_base = spu_splats((unsigned int)textureDefinition->tex_id_base);
 	vec_uint4 needs_sub = spu_sub(block_id,tex_id_base);
 
 	vec_ushort8 TEXmerge1 = spu_splats((unsigned short)-1);
@@ -152,8 +160,11 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 			// this sucks with the mults, but hey!
 			unsigned int ofs = s_blk*32*32*4 + t_blk*(8*32+1)*32*4;
 			unsigned int ofs_next = s_blk*32*32*4 + (t_next*(8*32+1))*32*4;
-			unsigned long long ea = block->triangle->texture_base + ofs;
-			unsigned long long ea_next = block->triangle->texture_base + ofs_next;
+			unsigned long long ea = textureDefinition->tex_pixel_base + ofs;
+			unsigned long long ea_next = textureDefinition->tex_pixel_base + ofs_next;
+
+//			printf("pixel_base %llx, ea %llx, ea_next %llx. %d%d%d\n",
+//				textureDefinition->tex_pixel_base, ea, ea_next, 1,2,3);
 
 //			unsigned int desired = spu_extract(needs_sub, i);
 //			unsigned long long ea = block->triangle->texture_base + (desired<<(5+5+2));
@@ -164,15 +175,15 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 			unsigned long eal_next = ea_next & ~127;
 			u32* texture = &textureCache[nextIndex].textureBuffer[0];
 
-//			printf("desired %d->%d, reading to %x from %x:%08x len %d tag %d\n",
-//				desired, nextIndex, texture, eah, eal, len, tag);
+//			printf("want %d(base %d)->%d, reading to %x from %x:%08x len %x tag %d\n",
+//				want, spu_extract(tex_id_base,0), nextIndex, texture, eah, eal, len, tag);
 
 			if (mfc_stat_cmd_queue() == 0) {
-//				printf("DMA queue full; bailing...\n");
+				printf("DMA queue full; bailing...\n");
 				break;
 			}
 
-	static vec_uint4 load_dma_list[NUMBER_TEX_MAPS][34];
+			static vec_uint4 load_dma_list[NUMBER_TEX_MAPS][34];
 
 			vec_uint4* dma_list = &load_dma_list[nextIndex][0];
 			vec_uint4* list_ptr = dma_list;
@@ -194,6 +205,7 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 
 			unsigned int list_len = ((void*)list_ptr)-((void*)dma_list);
 
+//			printf("starting DMA... list len %d, list at %x\n", list_len, dma_list);
 			spu_mfcdma64(texture, eah, dma_list, list_len, tag, MFC_GETL_CMD);
 
 			freeTextureMaps &= ~nextMask;
@@ -227,5 +239,9 @@ void init_texture_cache()
 	freeTextureMaps = (1<<NUMBER_TEX_MAPS)-1;
 	TEXcache1 = TEXcache2 = spu_splats((unsigned short)-1);
 	TEXblitting1 = TEXblitting2 = spu_splats((unsigned short)-1);
+
+	int i;
+	for (i=0; i<NUMBER_OF_TEXTURE_DEFINITIONS; i++)
+		textureDefinition[i].users = 0;
 }
 

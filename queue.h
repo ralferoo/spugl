@@ -23,11 +23,14 @@
 // NUMBER_OF_TRIS		no limit, but there's no advantage to having this bigger than blocks
 // NUMBER_OF_QUEUED_BLOCKS	maximum and optimally 32; needs to fit in bitmask
 // NUMBER_OF_ACTIVE_BLOCKS	should be at least 2; any more than 4 and the DMA queue could fill
+// NUMBER_OF_TEXTURE_DEFINITIONS	should be at least NUMBER_OF_TRIS or else texture.c needs work
 
 #define NUMBER_OF_TRIS	10	
 #define NUMBER_OF_QUEUED_BLOCKS 32
 #define NUMBER_OF_ACTIVE_BLOCKS 1
+#define NUMBER_OF_TEXTURE_DEFINITIONS 10
 
+typedef struct __TEXTURE TextureDefinition;
 typedef struct __BLOCK Block;
 typedef struct __TRIANGLE Triangle;
 typedef struct __ACTIVE ActiveBlock;
@@ -38,6 +41,15 @@ typedef void* (BlockHandler)(void* self, Block* block, ActiveBlock* active, int 
 typedef void (BlockActivater)(Block* block, ActiveBlock* active, int tag);
 typedef void (ActiveBlockInit)(ActiveBlock* active);
 typedef void (ActiveBlockFlush)(ActiveBlock* active, int tag);
+
+// this holds data needed for texture calculations
+struct __TEXTURE {
+	u64 		tex_pixel_base;	// the base texture address for block(0,0)
+	unsigned int	tex_y_shift;// log2(texture_width_in_blocks)
+	unsigned int	tex_id_base;	// base of texture ids (to guarantee unique)
+	unsigned int	tex_id_mask;	// mask of valid bits of texture id
+	unsigned int	users;		// number of triangle producers still using this texture
+};
 
 // this holds a triangle, i.e. something that creates blocks to be rendered
 struct __TRIANGLE {
@@ -50,15 +62,13 @@ struct __TRIANGLE {
 
 	TriangleHandler*	produce;
 	BlockHandler*	init_block;
+	TextureDefinition*	texture;
 
+	unsigned int	tex_id_base;	// base of texture ids (to guarantee unique)
 		 short	left;		// count of blocks left to produce
 	unsigned short	count;		// count of blocks that still have reference
-	unsigned long	texture_base;	// the base texture address for block(0,0)
-	unsigned char	texture_y_shift;// log2(texture_width_in_blocks)
 	unsigned char	step, step_start;
 	unsigned char	cur_x, cur_y;	// current x and y values
-	unsigned short	tex_id_base;	// base of texture ids (to guarantee unique)
-	unsigned short	tex_id_mask;	// mask of valid bits of texture id
 	int	block_left;
 } __attribute__ ((aligned(16)));
 

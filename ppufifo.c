@@ -42,15 +42,6 @@ typedef struct {
 
 static u32 spe_read(speid_t spe_id);
 
-u32* prepare_texture(gimp_image* source);
-extern gimp_image berlin;
-extern gimp_image oranges;
-extern gimp_image mim;
-extern gimp_image ralf;
-extern gimp_image gate;
-extern gimp_image space;
-extern gimp_image tongariro;
-
 // initialise
 DriverContext _init_3d_driver(int master)
 {
@@ -102,15 +93,6 @@ DriverContext _init_3d_driver(int master)
 	context->control->fragment_buffer = _MAKE_EA(context->fragment_buffer);
 	context->control->fragment_buflen = FRAGMENT_BUFFER_SIZE;
 	context->control->fifo_size = FIFO_BUFFER_SIZE;
-
-	// TODO: ugly hack!
-	context->control->texture_hack[0] = (u64)prepare_texture(&berlin);
-	context->control->texture_hack[1] = (u64)prepare_texture(&oranges);
-	context->control->texture_hack[2] = (u64)prepare_texture(&ralf);
-	context->control->texture_hack[3] = (u64)prepare_texture(&gate);
-	context->control->texture_hack[4] = (u64)prepare_texture(&space);
-	context->control->texture_hack[5] = (u64)prepare_texture(&tongariro);
-	context->control->texture_hack[6] = (u64)prepare_texture(&mim);
 
 	return (DriverContext) context;
 }

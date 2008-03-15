@@ -8,7 +8,7 @@
  * contact me for information if you wish to use it.
  *
  ****************************************************************************/
-
+#include <stdio.h>
 #include <spu_mfcio.h>
 #include "fifo.h"
 #include "struct.h"
@@ -36,6 +36,7 @@ extern u32 current_texture;
 extern _bitmap_image screen;
 
 extern SPU_CONTROL control;
+extern TextureDefinition* currentTexture;
 
 static void imp_point()
 {
@@ -260,10 +261,15 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 
 ///////////////////////////////////////////
 
-	triangle->tex_id_base = current_texture<<6;
-	triangle->tex_id_mask = (1<<6)-1;
-	triangle->texture_base = control.texture_hack[current_texture]; // * (256*256/32/32);
-	triangle->texture_y_shift = 8-5;
+/*
+	printf("triangle using currentTexture %lx, id base %d, shift %x, mask %x, count %d\n",
+		currentTexture, currentTexture->tex_id_base, currentTexture->tex_y_shift,
+		currentTexture->tex_id_mask, currentTexture->users); 
+*/
+
+	triangle->texture = currentTexture;
+	currentTexture->users++;
+	triangle->tex_id_base = currentTexture->tex_id_base;
 
 //	triangle->init_block = &linearColourFill;
 

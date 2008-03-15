@@ -9,6 +9,8 @@
  *
  ****************************************************************************/
 
+// #define DEBUG_QUEUE 
+
 #include "spuregs.h"
 #include "queue.h"
 #include <spu_mfcio.h>
@@ -100,6 +102,9 @@ void flush_queue()
 
 void process_queue(TriangleGenerator* generator, BlockActivater* activate)
 {	
+#ifdef DEBUG_QUEUE 
+	printf("process_queue\n");
+#endif
 	mfc_write_tag_mask((1<<NUMBER_OF_ACTIVE_BLOCKS)-1);
 	unsigned int completed = mfc_read_tag_status_immediate();
 
@@ -113,12 +118,19 @@ void process_queue(TriangleGenerator* generator, BlockActivater* activate)
 			if (spu_extract(idle_blocks, i)==0) {
 				unsigned short id = spu_extract(active_blocks,i);
 				Block* block = &blocks[id];
+#ifdef DEBUG_QUEUE 
+				printf("calling process %x on block %x(%d) id=%d\n", block->process, block, i, id);
+#endif
 				BlockHandler* next = block->process(block->process, block, &active[i], i);
 				if (next) {
 					block->process = next;
-//					printf("stalled %d: %d\n", i, id);
+#ifdef DEBUG_QUEUE 
+					printf("stalled %d: %d\n", i, id);
+#endif
 				} else {
-//					printf("finished %d: %d\n", i, id);
+#ifdef DEBUG_QUEUE 
+					printf("finished %d: %d\n", i, id);
+#endif
 					busy--;
 					block->process = next;
 					free_blocks |= 1<<id;
@@ -149,7 +161,9 @@ queue_chained:
 								    active_blocks, i);
 					activate(&blocks[next_bit], &active[i], i);
 					busy++;
-//					printf("queued %d: %d\n", i, next_bit);
+#ifdef DEBUG_QUEUE 
+					printf("queued %d: %d\n", i, next_bit);
+#endif
 				}
 			}
 		}
@@ -163,7 +177,9 @@ queue_chained:
 		int next_mask = 1<<next_bit;
 
 		Triangle* tri = &triangles[triangle_next_read];
-//		printf("calling triangle produce on tri %d(%x) on block %d\n", triangle_next_read, tri, next_bit);
+#ifdef DEBUG_QUEUE 
+		printf("calling triangle produce on tri %d(%x) on block %d\n", triangle_next_read, tri, next_bit);
+#endif
 		int hash = tri->produce(tri, &blocks[next_bit]);
 //		blocks[next_bit].hash = hash;
 
@@ -173,7 +189,9 @@ queue_chained:
 		free_blocks &= ~next_mask;
 
 		if (tri->produce == 0) {
-//			printf("finished producing on %d\n", triangle_next_read);
+#ifdef DEBUG_QUEUE 
+			printf("finished producing on %d\n", triangle_next_read);
+#endif
 			triangle_next_read = (triangle_next_read+1)%NUMBER_OF_TRIS;
 			busy--;
 		}
@@ -181,11 +199,19 @@ queue_chained:
 
 	while (triangles[triangle_next_write].count==0) {
 		Triangle* tri = &triangles[triangle_next_write];
+#ifdef DEBUG_QUEUE 
+			printf("calling generator on %d\n", triangle_next_write);
+#endif
 		if ( (*generator)(tri) ) {
-//			printf("generated triangle on %d\n", triangle_next_write);
+#ifdef DEBUG_QUEUE 
+			printf("generated triangle on %d\n", triangle_next_write);
+#endif
 			triangle_next_write = (triangle_next_write+1)%NUMBER_OF_TRIS;
 			busy++;
 		} else {
+#ifdef DEBUG_QUEUE 
+			printf("done generating\n");
+#endif
 			break;
 		}
 	}
