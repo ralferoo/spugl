@@ -143,6 +143,18 @@ u32 _3d_spu_address(DriverContext _context, u32* address)
 			((__DRIVER_CONTEXT*)_context)->local_store);
 }
 
+u32 _3d_cache_misses(DriverContext _context)
+{
+	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;
+	return (u32)(context->control->cache_miss_count);
+}
+
+u32 _3d_blocks_produced(DriverContext _context)
+{
+	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;
+	return (u32)(context->control->blocks_produced_count);
+}
+
 u32 _3d_blocked_count(DriverContext _context)
 {
 	__DRIVER_CONTEXT* context = (__DRIVER_CONTEXT*) _context;

@@ -50,6 +50,16 @@ GLAPI unsigned long GLAPIENTRY glspuBlockedCounter(void)
 	return _3d_blocked_count(ctx);
 }
 
+GLAPI unsigned long GLAPIENTRY glspuCacheMisses(void)
+{
+	return _3d_cache_misses(ctx);
+}
+
+GLAPI unsigned long GLAPIENTRY glspuBlocksProduced(void)
+{
+	return _3d_blocks_produced(ctx);
+}
+
 static void updateScreenPointer(void) 
 {
 	FIFO_PROLOGUE(ctx,10);

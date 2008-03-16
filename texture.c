@@ -21,6 +21,7 @@
 #define TEX_MAP_PIXELS (33*32+4*40)
 
 TextureDefinition textureDefinition[NUMBER_OF_TEXTURE_DEFINITIONS];
+extern SPU_CONTROL control;
 
 typedef struct {
 	u32 textureBuffer[TEX_MAP_PIXELS] __attribute__((aligned(128)));
@@ -212,6 +213,8 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 			freeTextureMaps &= ~nextMask;
 			lastLoadedTextureMap = nextIndex;
 			texturesMask |= nextMask;
+
+			control.cache_miss_count++;
 		}
 	}
 
