@@ -356,6 +356,11 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 	const vec_uchar16 merge_pixels_23 = (vec_uchar16) {
 		S_0,S_0,S_0,S_0, S_0,S_0,S_0,S_0, 1,5,9,13, 17,21,25,29};
 
+	const vec_uchar16 select_halfword0_as_uint = (vec_uchar16) {
+		S_0,S_0,0,1, S_0,S_0,0,1, S_0,S_0,0,1, S_0,S_0,0,1}; 
+
+	
+
 	const vec_uint4 tex_sblk_mask=spu_splats((unsigned int)0x7);
 	const vec_uint4 tex_tblk_mask=spu_splats((unsigned int)0x38);
 	const vec_int4 tex_sblk_shift_mrg=spu_splats((int)-29);
@@ -370,6 +375,7 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 	const vec_int4 shift_s_fract = spu_splats((int)-16);
 	const vec_int4 shift_t_fract = spu_splats((int)-16);
 
+	// actually these are always constant, but certainly 0xf80 is too big for andi
 	const vec_uint4 mask_s_sub=spu_splats((unsigned int)0xf80);
 	const vec_uint4 mask_t_sub=spu_splats((unsigned int)0x7c);
 
@@ -447,8 +453,8 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 
 			// pixel is mask of 1's where we want to draw
 		
-			vec_uint4 s_sub = spu_and(spu_rlmask(t_s,shift_s_sub), mask_s_sub);	//19-2
-			vec_uint4 t_sub = spu_and(spu_rlmask(t_t,shift_t_sub), mask_t_sub);	//24-2
+			vec_uint4 s_sub = spu_and(spu_rlmask(t_s,shift_s_sub), mask_s_sub);	
+			vec_uint4 t_sub = spu_and(spu_rlmask(t_t,shift_t_sub), mask_t_sub);
 			vec_uint4 sub_block_pixel = spu_or(s_sub,t_sub);
 
 			vec_uint4 tex_ofs = spu_mulo( (vec_ushort8)cache, tex_ofs_mul);
