@@ -179,7 +179,7 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 //				want, spu_extract(tex_id_base,0), nextIndex, texture, eah, eal, len, tag);
 
 			if (mfc_stat_cmd_queue() == 0) {
-				printf("DMA queue full; bailing...\n");
+//				printf("DMA queue full; bailing...\n");
 				break;
 			}
 
