@@ -24,6 +24,17 @@ extern BitmapImage _flipScreen(void);
 static DriverContext ctx = NULL;
 static BitmapImage screen = NULL;
 
+u32* prepare_texture(gimp_image* source);
+extern gimp_image berlin;
+extern gimp_image oranges;
+extern gimp_image mim;
+extern gimp_image ralf;
+extern gimp_image gate;
+extern gimp_image space;
+extern gimp_image tongariro;
+
+static u32* localTextures[10];
+
 GLAPI GLenum GLAPIENTRY glGetError(void)
 {
 	return _3d_error(ctx);
@@ -37,6 +48,16 @@ GLAPI unsigned long GLAPIENTRY glspuCounter(void)
 GLAPI unsigned long GLAPIENTRY glspuBlockedCounter(void)
 {
 	return _3d_blocked_count(ctx);
+}
+
+GLAPI unsigned long GLAPIENTRY glspuCacheMisses(void)
+{
+	return _3d_cache_misses(ctx);
+}
+
+GLAPI unsigned long GLAPIENTRY glspuBlocksProduced(void)
+{
+	return _3d_blocks_produced(ctx);
 }
 
 static void updateScreenPointer(void) 
@@ -55,6 +76,15 @@ GLAPI void GLAPIENTRY glspuSetup(void)
 	ctx = _init_3d_driver(1);
 	screen = _getScreen();
 	updateScreenPointer();
+
+	// TODO: this should not be here!
+	localTextures[0] = prepare_texture(&berlin);
+	localTextures[1] = prepare_texture(&oranges);
+	localTextures[2] = prepare_texture(&ralf);
+	localTextures[3] = prepare_texture(&gate);
+	localTextures[4] = prepare_texture(&space);
+	localTextures[5] = prepare_texture(&tongariro);
+	localTextures[6] = prepare_texture(&mim);
 }
 
 GLAPI void GLAPIENTRY glspuDestroy(void)
@@ -190,20 +220,21 @@ GLAPI void GLAPIENTRY glTexCoord4f (GLfloat s, GLfloat t, GLfloat u, GLfloat v)
 
 GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
 {
+	u32* ptr = localTextures[texture];
+	unsigned int tex_id_base = texture<<6;
+	unsigned int tex_t_mult = (8*32+1)*32*4;
+	unsigned int tex_y_shift = 8-5;
+
 	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,2);
-	OUT_RING(target);
-	OUT_RING(texture);
+	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,5);
+	OUT_RINGea(ptr);
+	OUT_RING(tex_id_base);
+	OUT_RING(tex_y_shift);
+	OUT_RING(tex_t_mult);
 	FIFO_EPILOGUE();
 }
 
 /*
-GLAPI void GLAPIENTRY glLoadMatrixd( const GLdouble *m );
-GLAPI void GLAPIENTRY glLoadMatrixf( const GLfloat *m );
-
-GLAPI void GLAPIENTRY glMultMatrixd( const GLdouble *m );
-GLAPI void GLAPIENTRY glMultMatrixf( const GLfloat *m );
-
 // http://publib.boulder.ibm.com/infocenter/systems/index.jsp?topic=/com.ibm.aix.opengl/doc/openglrf/gluPerspective.htm
 GLAPI void GLAPIENTRY glFrustum( GLdouble left, GLdouble right,
                                    GLdouble bottom, GLdouble top,
@@ -223,7 +254,6 @@ GLAPI void GLAPIENTRY glFrustum( GLdouble left, GLdouble right,
 	glMultMatrixd(mat);
 }
 
-
 // http://publib.boulder.ibm.com/infocenter/systems/index.jsp?topic=/com.ibm.aix.opengl/doc/openglrf/gluPerspective.htm
 
 void
@@ -240,37 +270,3 @@ gluPerspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar)
    glFrustum(xmin, xmax, ymin, ymax, zNear, zFar);
 }
 */
-
-/*
- * Transformation
- */
-
-/*
-GLAPI void GLAPIENTRY glMatrixMode( GLenum mode );
-
-GLAPI void GLAPIENTRY glOrtho( GLdouble left, GLdouble right,
-                                 GLdouble bottom, GLdouble top,
-                                 GLdouble near_val, GLdouble far_val );
-
-GLAPI void GLAPIENTRY glViewport( GLint x, GLint y,
-                                    GLsizei width, GLsizei height );
-
-GLAPI void GLAPIENTRY glPushMatrix( void );
-
-GLAPI void GLAPIENTRY glPopMatrix( void );
-
-GLAPI void GLAPIENTRY glLoadIdentity( void );
-
-GLAPI void GLAPIENTRY glRotated( GLdouble angle,
-                                   GLdouble x, GLdouble y, GLdouble z );
-GLAPI void GLAPIENTRY glRotatef( GLfloat angle,
-                                   GLfloat x, GLfloat y, GLfloat z );
-
-GLAPI void GLAPIENTRY glScaled( GLdouble x, GLdouble y, GLdouble z );
-GLAPI void GLAPIENTRY glScalef( GLfloat x, GLfloat y, GLfloat z );
-
-GLAPI void GLAPIENTRY glTranslated( GLdouble x, GLdouble y, GLdouble z );
-GLAPI void GLAPIENTRY glTranslatef( GLfloat x, GLfloat y, GLfloat z );
-
-*/
-

@@ -9,10 +9,12 @@
  *
  ****************************************************************************/
 
+#include <stdio.h>
 #include <spu_mfcio.h>
 #include "fifo.h"
 #include "struct.h"
 #include "primitives.h"
+#include "queue.h"
 
 #include <GL/gl.h>
 
@@ -123,7 +125,7 @@ u32 current_texture = 0;
 	return &from[4];
 }
 
-/*25*/void* imp_glBindTexture(u32* from, struct __TRIANGLE * triangle) {
+/*25*/void* imp_old_glBindTexture(u32* from, struct __TRIANGLE * triangle) {
 	u32 target = *from++;
 	u32 texture = *from++;
 	current_texture = texture;
@@ -141,10 +143,29 @@ extern void flush_queue();
 	}
 }
 
+extern TextureDefinition textureDefinition[];
+TextureDefinition* currentTexture = &textureDefinition[0];
+int nextTextureDefinitionPtr = 0;
 
-/*
- * gluPerspective(f32 fov,f32 aspect,f32 znear,f32 zfar) {
-f64 range = znear*tan(DEG_TO_RAD(fov/2));
-glFrustum(-range*aspect,range*aspect,-range,range,znear,zfar);
+/*27*/void* imp_glBindTexture(u32* from, struct __TRIANGLE * triangle) {
+	// this should probably be made into a cache style thing, but for now we just move onto the
+	// next entry unless nobody has used the current bounding. this works as we always have
+	// more texture slots than active triangles and handles multiple bindings between triangles.
+	TextureDefinition* definition = currentTexture;
+	if (definition->users) {
+		definition = &textureDefinition[nextTextureDefinitionPtr];
+		nextTextureDefinitionPtr = (nextTextureDefinitionPtr+1)%NUMBER_OF_TEXTURE_DEFINITIONS;
+		currentTexture = definition;
+	}
+
+	u64 ea;
+	__READ_EA(from)
+	definition->tex_pixel_base = ea;
+	definition->tex_id_base = *from++;
+	definition->shifts = spu_splats((short)(*from++));
+	definition->tex_t_blk_mult = (unsigned short)(*from++);
+	definition->users = 0;
+
+ 	return from;
 }
-*/
+	

@@ -39,18 +39,18 @@ typedef void* DriverContext;
   *__fifo_ptr++ = (u32)(ea&0xffffffffUL); \
 } 
 #define __READ_EA(from) \
-{ u32 eal; \
-  eal = *from++; \
-  ea = ((u64)eal); \
+{ u32 _____eal; \
+  _____eal = *from++; \
+  ea = ((u64)_____eal); \
 } 
 
 #elif defined(USERLAND_64_BITS)
 #define _MAKE_EA(x) ((u64)((void*)x))
 #define _FROM_EA(x) ((void*)((u64)x))
 #define OUT_RINGea(addr) \
-{ u64 ea = _MAKE_EA(addr); \
-  *__fifo_ptr++ = (u32)(ea>>32); \
-  *__fifo_ptr++ = (u32)(ea&0xffffffffUL); \
+{ u64 _____ea = _MAKE_EA(addr); \
+  *__fifo_ptr++ = (u32)(_____ea>>32); \
+  *__fifo_ptr++ = (u32)(_____ea&0xffffffffUL); \
 } 
 #define __READ_EA(from) \
 { u32 eah, eal; \
@@ -106,21 +106,22 @@ typedef struct {
 	volatile u64 fifo_written;	// the address the driver has written
 	volatile u64 my_local_address;	// the address this SPU lives at
 	volatile u64 fragment_buffer;	// the address of the fragment buffer
-	volatile u64 texture_hack[6];	// the texture address
 	volatile u32 fragment_buflen;	// the length of the fragment buffer
-	volatile u32 pad1[32-14];
+	volatile u32 pad1[32-7];
 
 	// the next 128 bytes are writable by the SPU-side driver
 	volatile u64 fifo_read;		// the current position in FIFO read
-	volatile u32 fifo_start;	// the start of the FIFO area
 	volatile u32 fifo_size;		// the length of the FIFO area
-	volatile u64 fifo_host_start;	// the start of the FIFO in host terms
 
 	volatile u32 idle_count;	// this is our count of idle cycles
 	volatile u32 last_count;	// last value of counter we saw
 	volatile u32 error;		// the error code, if any
 	volatile u32 block_count;	// this is our count of blocked cycles
-	volatile u32 pad2[32-8];
+
+	volatile u32 blocks_produced_count;
+	volatile u32 cache_miss_count;
+
+	volatile u32 pad2[32-9];
 } SPU_CONTROL;
 
 extern u64* _get_fifo_address(DriverContext _context);

@@ -274,15 +274,32 @@ spufifo.0: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 spufifo.0: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
 spufifo.0: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
 spufifo.0: gen_spu_command_exts.h gen_spu_command_table.h
+decode.0: /usr/include/stdio.h /usr/include/features.h
+decode.0: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+decode.0: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+decode.0: /usr/lib/gcc/spu/4.0.2/include/stddef.h /usr/include/bits/types.h
+decode.0: /usr/include/bits/typesizes.h /usr/include/libio.h
+decode.0: /usr/include/_G_config.h /usr/include/wchar.h
+decode.0: /usr/include/bits/wchar.h /usr/include/gconv.h
+decode.0: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+decode.0: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
+decode.0: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
 decode.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 decode.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 decode.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
-decode.0: gen_spu_command_defs.h struct.h spuregs.h primitives.h ./GL/gl.h
-decode.0: ./GL/glext.h /usr/lib/gcc/spu/4.0.2/include/stddef.h
-decode.0: /usr/include/inttypes.h /usr/include/features.h
-decode.0: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
-decode.0: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
-decode.0: /usr/include/stdint.h /usr/include/bits/wchar.h
+decode.0: gen_spu_command_defs.h struct.h spuregs.h primitives.h queue.h
+decode.0: ./GL/gl.h ./GL/glext.h /usr/include/inttypes.h
+decode.0: /usr/include/stdint.h
+primitives.0: /usr/include/stdio.h /usr/include/features.h
+primitives.0: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+primitives.0: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+primitives.0: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+primitives.0: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+primitives.0: /usr/include/libio.h /usr/include/_G_config.h
+primitives.0: /usr/include/wchar.h /usr/include/bits/wchar.h
+primitives.0: /usr/include/gconv.h /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+primitives.0: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
+primitives.0: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
 primitives.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 primitives.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 primitives.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
@@ -317,6 +334,16 @@ shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 shader.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
 shader.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
+texture.0: /usr/include/stdio.h /usr/include/features.h
+texture.0: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+texture.0: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+texture.0: /usr/lib/gcc/spu/4.0.2/include/stddef.h /usr/include/bits/types.h
+texture.0: /usr/include/bits/typesizes.h /usr/include/libio.h
+texture.0: /usr/include/_G_config.h /usr/include/wchar.h
+texture.0: /usr/include/bits/wchar.h /usr/include/gconv.h
+texture.0: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+texture.0: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
+texture.0: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
 texture.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 texture.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 texture.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h

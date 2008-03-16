@@ -8,7 +8,7 @@
  * contact me for information if you wish to use it.
  *
  ****************************************************************************/
-
+#include <stdio.h>
 #include <spu_mfcio.h>
 #include "fifo.h"
 #include "struct.h"
@@ -36,6 +36,7 @@ extern u32 current_texture;
 extern _bitmap_image screen;
 
 extern SPU_CONTROL control;
+extern TextureDefinition* currentTexture;
 
 static void imp_point()
 {
@@ -158,6 +159,8 @@ int triangleProducer(Triangle* tri, Block* block)
 		tri->produce = 0;
 	}
 
+	control.blocks_produced_count++;
+
 	return bx | (by<<8);
 }
 
@@ -260,10 +263,15 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 
 ///////////////////////////////////////////
 
-	triangle->tex_id_base = current_texture<<6;
-	triangle->tex_id_mask = (1<<6)-1;
-	triangle->texture_base = control.texture_hack[current_texture]; // * (256*256/32/32);
-	triangle->texture_y_shift = 8-5;
+/*
+	printf("triangle using currentTexture %lx, id base %d, shift %x, mask %x, count %d\n",
+		currentTexture, currentTexture->tex_id_base, currentTexture->tex_y_shift,
+		currentTexture->tex_id_mask, currentTexture->users); 
+*/
+
+	triangle->texture = currentTexture;
+	currentTexture->users++;
+	triangle->tex_id_base = currentTexture->tex_id_base;
 
 //	triangle->init_block = &linearColourFill;
 
@@ -436,7 +444,7 @@ void* imp_vertex(void* from, float4 in, struct __TRIANGLE * triangle)
 	// done with matrices.
 
 //	float recip = 420.0f / (in.z-222.0f);
-	float recip = 420.0f / (in.z-280.0f);
+	float recip = 420.0f / (in.z-180.0f);
 	float4 s = {.x=in.x*recip+screen.width/2, .y = in.y*recip+screen.height/2, .z = in.z*recip, .w = recip};
 
 	float4 c= current_colour;

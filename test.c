@@ -63,6 +63,8 @@ int main(int argc, char* argv[]) {
 		struct timespec startPoint;
 		clock_gettime(CLOCK_MONOTONIC,&startPoint);
 
+		unsigned long blks_start = glspuBlocksProduced();
+		unsigned long caches_start = glspuCacheMisses();
 /*
 */
 		a += 0.011;
@@ -181,11 +183,17 @@ skip:
 
 //		printf("%f %f\n", uptoFlip, uptoLoop);
 
+		unsigned long blks_end = glspuBlocksProduced();
+		unsigned long caches_end = glspuCacheMisses();
+
 		// bah humbug, stdio buffering, bah!
 		char buffer[256];
-		sprintf(buffer,"[%d] %2.1f FPS      \r", // currently idling %2.2f%%, blocked %2.2f%% SPU    \r",
+		sprintf(buffer,"[%d] %4.1f FPS (actual %5.1f) %5d blocks %6d misses %8.1f block/s   \r",
 			cnt,
 			(float) 1.0/uptoLoop,
+			(float) 1.0/uptoFlip,
+			blks_end-blks_start, caches_end-caches_start,
+			((float)blks_end-blks_start)/uptoLoop,
 			(float) (100.0*(_end-_start)/onesec/uptoLoop),
 			(float) (100.0*(_endBlocked-_startBlocked)/onesec/uptoLoop));
 		write(1,buffer,strlen(buffer));

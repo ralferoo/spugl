@@ -15,5 +15,7 @@ GLAPI void GLAPIENTRY glspuDestroy(void);
 GLAPI void GLAPIENTRY glspuFlip(void);
 GLAPI void GLAPIENTRY glspuWait(void);
 GLAPI unsigned long GLAPIENTRY glspuCounter(void);
+GLAPI unsigned long GLAPIENTRY glspuBlocksProduced(void);
+GLAPI unsigned long GLAPIENTRY glspuCacheMisses(void);
 
 #endif // __3d_setup_h

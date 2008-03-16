@@ -107,12 +107,13 @@ extern void activeBlockInit(ActiveBlock* active);
 extern void activeBlockFlush(ActiveBlock* active, int tag);
 
 int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned long long env) {
-	control.fifo_start = program_data_ea;
 	control.fifo_size = 0;
 	control.fifo_written = program_data_ea;
 	control.fifo_read = program_data_ea;
-	control.fifo_host_start = 0;
 	control.error = ERROR_NONE;
+
+	control.blocks_produced_count = 0;
+	control.cache_miss_count = 0;
 
 	control.last_count = 0;
 	control.idle_count = 0;
