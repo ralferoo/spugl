@@ -212,15 +212,15 @@ GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
 {
 	u32* ptr = localTextures[texture];
 	unsigned int tex_id_base = texture<<6;
-	unsigned int tex_id_mask = (1<<6)-1;
+	unsigned int tex_t_mult = (8*32+1)*32*4;
 	unsigned int tex_y_shift = 8-5;
 
 	FIFO_PROLOGUE(ctx,10);
 	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,5);
 	OUT_RINGea(ptr);
 	OUT_RING(tex_id_base);
-	OUT_RING(tex_id_mask);
 	OUT_RING(tex_y_shift);
+	OUT_RING(tex_t_mult);
 	FIFO_EPILOGUE();
 }
 

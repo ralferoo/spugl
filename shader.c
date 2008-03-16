@@ -277,6 +277,7 @@ void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 {
 	Triangle* tri = block->triangle;
+	TextureDefinition* tex_def = tri->texture;
 
 	vec_float4 A_dx = tri->A_dx;
 	vec_float4 Aa_dx = spu_splats(spu_extract(A_dx,0));
@@ -359,21 +360,27 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 	const vec_uchar16 select_halfword0_as_uint = (vec_uchar16) {
 		S_0,S_0,0,1, S_0,S_0,0,1, S_0,S_0,0,1, S_0,S_0,0,1}; 
 
-	
+	const vec_short8 tex_shift_count_add = spu_splats((short)64-32);
 
-//	const vec_uint4 tex_sblk_mask=spu_splats((unsigned int)0x7);
-//	const vec_uint4 tex_tblk_mask=spu_splats((unsigned int)0x38);
+	vec_short8 tex_shift_count = tex_def->shifts;
 
-	const vec_uint4 tex_tblk_shift_mrg=spu_splats((int)3);
+	vec_int4 tex_sblk_shift = (vec_int4) spu_add(tex_shift_count, (short)64-32);
+	vec_int4 tex_tblk_shift = spu_rlmask(tex_sblk_shift,-16);
+	vec_uint4 tex_tblk_shift_mrg = (vec_int4) tex_shift_count;
 
-	const vec_int4 tex_sblk_shift=spu_splats((int)-32+3);
-	const vec_int4 tex_tblk_shift=spu_splats((int)-32+3);
+	vec_int4 shift_s_fract = (vec_int4) spu_add(tex_shift_count, (short)64-32+5+8);
+	vec_int4 shift_t_fract = spu_rlmask(shift_t_fract,-16);
 
-	const vec_int4 shift_s_y = spu_add(tex_sblk_shift, (int)5+4); //spu_splats((int)-16-4);
-	const vec_int4 shift_s_sub = spu_add(tex_sblk_shift, (int)5+5+2); //spu_splats((int)-16-1);
-	const vec_int4 shift_t_sub = spu_add(tex_tblk_shift, (int)  5+2); //spu_splats((int)-16-6);
-	const vec_int4 shift_s_fract = spu_add(tex_sblk_shift, (int)5+8); //spu_splats((int)-16);
-	const vec_int4 shift_t_fract = spu_add(tex_tblk_shift, (int)5+8); //spu_splats((int)-16);
+	const vec_short8 shift_add_sub = (vec_short8) {
+		 64-32+5+2, 64-32+5+5+2,
+		 64-32+5+2, 64-32+5+5+2,
+		 64-32+5+2, 64-32+5+5+2,
+		 64-32+5+2, 64-32+5+5+2};
+
+	vec_int4 shift_s_sub = (vec_int4) spu_add(tex_shift_count, shift_add_sub);
+	vec_int4 shift_t_sub = spu_rlmask(shift_s_sub, -16);
+
+	vec_int4 shift_s_y = (vec_int4) spu_add(tex_shift_count, (short)64-32+5+4);
 
 	// actually these are always constant, but certainly 0xf80 is too big for andi
 	const vec_uint4 mask_s_sub=spu_splats((unsigned int)0xf80);

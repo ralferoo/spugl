@@ -162,8 +162,8 @@ int nextTextureDefinitionPtr = 0;
 	__READ_EA(from)
 	definition->tex_pixel_base = ea;
 	definition->tex_id_base = *from++;
-	definition->tex_id_mask = *from++;
-	definition->tex_y_shift = *from++;
+	definition->shifts = spu_splats((short)(*from++));
+	definition->tex_t_blk_mult = (unsigned short)(*from++);
 	definition->users = 0;
 
  	return from;

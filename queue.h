@@ -44,15 +44,14 @@ typedef void (ActiveBlockFlush)(ActiveBlock* active, int tag);
 
 // this holds data needed for texture calculations
 struct __TEXTURE {
-//	vec_int4	shifts;		// interleaved shift masks, as is: log2(width)
-					// interleaved shift masks,  >>8 : log2(height)
+	vec_short8	shifts;		// interleaved shift masks,  odd: log2(height)  (s_blk_max)
+					// interleaved shift masks, even: log2(width)	(t_blk_max)
 
 	u64 		tex_pixel_base;	// the base texture address for block(0,0)
-	unsigned int	tex_y_shift;// log2(texture_width_in_blocks)
-	unsigned int	tex_id_base;	// base of texture ids (to guarantee unique)
-	unsigned int	tex_id_mask;	// mask of valid bits of texture id
-	unsigned int	users;		// number of triangle producers still using this texture
-}; //} __attribute__ ((aligned(16)));
+	unsigned short	tex_id_base;	// base of texture ids (to guarantee unique)
+	unsigned short	users;		// number of triangle producers still using this texture
+	unsigned short	tex_t_blk_mult; // how to find the offset of a t block (s is easy ;)
+} __attribute__ ((aligned(16)));
 
 // this holds a triangle, i.e. something that creates blocks to be rendered
 struct __TRIANGLE {

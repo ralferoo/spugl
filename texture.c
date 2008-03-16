@@ -158,8 +158,9 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 			unsigned int t_next = (t_blk+1)&7;
 
 			// this sucks with the mults, but hey!
-			unsigned int ofs = s_blk*32*32*4 + t_blk*(8*32+1)*32*4;
-			unsigned int ofs_next = s_blk*32*32*4 + (t_next*(8*32+1))*32*4;
+			unsigned short t_mult = textureDefinition->tex_t_blk_mult;
+			unsigned int ofs = s_blk*32*32*4 + t_blk*t_mult;
+			unsigned int ofs_next = s_blk*32*32*4 + t_next*t_mult;
 			unsigned long long ea = textureDefinition->tex_pixel_base + ofs;
 			unsigned long long ea_next = textureDefinition->tex_pixel_base + ofs_next;
 
