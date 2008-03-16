@@ -369,7 +369,7 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 	vec_uint4 tex_tblk_shift_mrg = (vec_int4) tex_shift_count;
 
 	vec_int4 shift_s_fract = (vec_int4) spu_add(tex_shift_count, (short)64-32+5+8);
-	vec_int4 shift_t_fract = spu_rlmask(shift_t_fract,-16);
+	vec_int4 shift_t_fract = spu_rlmask(shift_s_fract,-16);
 
 	const vec_short8 shift_add_sub = (vec_short8) {
 		 64-32+5+2, 64-32+5+5+2,
