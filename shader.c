@@ -361,19 +361,19 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 
 	
 
-	const vec_uint4 tex_sblk_mask=spu_splats((unsigned int)0x7);
-	const vec_uint4 tex_tblk_mask=spu_splats((unsigned int)0x38);
-	const vec_int4 tex_sblk_shift_mrg=spu_splats((int)-29);
-	const vec_int4 tex_tblk_shift_mrg=spu_splats((int)-26);
+//	const vec_uint4 tex_sblk_mask=spu_splats((unsigned int)0x7);
+//	const vec_uint4 tex_tblk_mask=spu_splats((unsigned int)0x38);
 
-	const vec_int4 tex_sblk_shift=spu_splats((int)-29);
-	const vec_int4 tex_tblk_shift=spu_splats((int)-29);
+	const vec_uint4 tex_tblk_shift_mrg=spu_splats((int)3);
 
-	const vec_int4 shift_s_y = spu_splats((int)-16-4);
-	const vec_int4 shift_s_sub = spu_splats((int)-16-1);
-	const vec_int4 shift_t_sub = spu_splats((int)-16-6);
-	const vec_int4 shift_s_fract = spu_splats((int)-16);
-	const vec_int4 shift_t_fract = spu_splats((int)-16);
+	const vec_int4 tex_sblk_shift=spu_splats((int)-32+3);
+	const vec_int4 tex_tblk_shift=spu_splats((int)-32+3);
+
+	const vec_int4 shift_s_y = spu_add(tex_sblk_shift, (int)5+4); //spu_splats((int)-16-4);
+	const vec_int4 shift_s_sub = spu_add(tex_sblk_shift, (int)5+5+2); //spu_splats((int)-16-1);
+	const vec_int4 shift_t_sub = spu_add(tex_tblk_shift, (int)  5+2); //spu_splats((int)-16-6);
+	const vec_int4 shift_s_fract = spu_add(tex_sblk_shift, (int)5+8); //spu_splats((int)-16);
+	const vec_int4 shift_t_fract = spu_add(tex_tblk_shift, (int)5+8); //spu_splats((int)-16);
 
 	// actually these are always constant, but certainly 0xf80 is too big for andi
 	const vec_uint4 mask_s_sub=spu_splats((unsigned int)0xf80);
@@ -401,9 +401,12 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			vec_uint4 t_s = spu_convtu(tf_s,32);
 			vec_uint4 t_t = spu_convtu(tf_t,32);
 
-			vec_uint4 s_blk = spu_and(spu_rlmask(t_s,tex_sblk_shift), tex_sblk_mask);
-			vec_uint4 t_blk = spu_and(spu_rlmask(t_t,tex_tblk_shift_mrg), tex_tblk_mask);
-			vec_uint4 block_id = spu_add(tex_id_base,spu_or(s_blk,t_blk));
+			vec_uint4 block_s = spu_rlmask(t_s,tex_sblk_shift);
+			vec_uint4 block_t = spu_rlmask(t_t,tex_tblk_shift);
+
+			vec_uint4 s_blk = block_s;
+			vec_uint4 t_blk = spu_sl(block_t,tex_tblk_shift_mrg);
+			vec_uint4 block_id = spu_add(t_blk,spu_add(s_blk,tex_id_base));
 
 			vec_ushort8 copy_cmp_0 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_0);
 			vec_ushort8 matches1_0 = spu_cmpeq(TEXcache1,copy_cmp_0);
@@ -444,11 +447,9 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			vec_uint4 cache_not_found = spu_cmpeq(cache,spu_splats((unsigned int)32));
 			unsigned int cache_orx = spu_extract(spu_orx(cache_not_found),0);
 			if (__builtin_expect(cache_orx,0)) {  // amazingly gcc does move this out of the loop :)
-				vec_uint4 s = spu_rlmask(t_s,tex_sblk_shift);
-				vec_uint4 t = spu_rlmask(t_t,tex_tblk_shift);
 				return loadMissingTextures(self, block, active, tag,
 					A, left, ptr, tex_keep,
-					block_id, s, t, cache_not_found, pixel);
+					block_id, block_s, block_t, cache_not_found, pixel);
 			}
 
 			// pixel is mask of 1's where we want to draw
