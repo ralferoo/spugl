@@ -150,7 +150,7 @@ void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 	vec_uint4 left = spu_splats(block->left);
 	vec_uint4* ptr = block->pixels;
 	vec_uint4 tex_id_base = spu_splats((unsigned int)tri->tex_id_base);
-	vec_uint4 tex_keep = spu_splats(0);
+	vec_uint4 tex_keep = spu_splats((unsigned int)0);
 
 	do {
 		vec_uint4 uAa = (vec_uint4) Aa;

@@ -23,6 +23,7 @@ USERLAND = 32
 PPUCC = gcc
 PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I. -Wno-trigraphs -std=gnu99
 
+#SPUCC = cellgcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -fpic -I/usr/include
 SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -fpic
 SPUCCFLAGS = -O6 -I. -DSPU_REGS
 
@@ -33,7 +34,7 @@ SPU_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(SPU_HNDL))
 
 SHARED_HEADERS = struct.h fifo.h types.h GL/*.h
 PPU_OBJS = ppufifo.o glfifo.o framebuffer.o textureprep.o
-SPU_OBJS = spufifo.0 decode.0 primitives.0 fragment.0 queue.0 activeblock.0 shader.0 texture.0
+SPU_OBJS = spufifo.0 decode.0 primitives.0 fragment.0 queue.0 activeblock.0 shader.0 texture.0 myshader.0
 GENSOURCES = decode.c fragment.c
 
 PPU_TEST_OBJS = $(PPU_OBJS) test.o $(TEXTURES)
@@ -70,7 +71,7 @@ $(BASE_NAME).tar.gz:	$(SOURCE_DIST_FILES) Makefile
 	tar cfz $@ -C .dist .
 
 edit:
-	gvim -p Makefile shader.c activeblock.c queue.h primitives.c test.c struct.h
+	gvim -p myshader.s Makefile shader.c activeblock.c queue.h primitives.c test.c struct.h
 
 source:
 	make shader.s && less shader.s
