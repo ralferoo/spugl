@@ -23,7 +23,7 @@ USERLAND = 32
 PPUCC = gcc
 PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I. -Wno-trigraphs -std=gnu99
 
-#SPUCC = cellgcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -fpic -I/usr/include
+NEWSPUCC = cellgcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -I/usr/include
 SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -fpic
 SPUCCFLAGS = -O6 -I. -DSPU_REGS
 
@@ -103,7 +103,7 @@ depend: .gen
 # SPU rules
 
 %.s: %.c
-	$(SPUCC) $(SPUCCFLAGS) -c -S $< -o $*.s
+	$(NEWSPUCC) $(SPUCCFLAGS) -c -S $< -o $*.s
 
 %.0: %.c
 	$(SPUCC) $(SPUCCFLAGS) -c $< -o $*.0
