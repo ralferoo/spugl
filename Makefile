@@ -14,14 +14,18 @@ BASE_NAME = spugl-client-0.1
 TARGETS = test
 
 LIBDIRS = -L/usr/lib
-LIBS = -lm -lspe -lpthread
-#LIBS = -lm -lc -lspe -lpthread
+
+#LIBS = -lm -lspe
+#LIBSPE2 = 
+
+LIBS = -lm -lspe2 -lpthread 
+LIBSPE2 = -DUSE_LIBSPE2
 
 USERLAND = 32
 #USERLAND = 64
 
 PPUCC = gcc
-PPUCCFLAGS = -c -ggdb -m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS -I. -Wno-trigraphs -std=gnu99
+PPUCCFLAGS = -c -ggdb -m$(USERLAND) $(LIBSPE2) -DUSERLAND_$(USERLAND)_BITS -I. -Wno-trigraphs -std=gnu99
 
 NEWSPUCC = cellgcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -I/usr/include
 SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -fpic
@@ -77,6 +81,8 @@ source:
 	make shader.s && less shader.s
 
 GENPRODUCTS = gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h
+
+ppufifo.o: Makefile
 
 shader.s: queue.h
 #ppufifo.o: Makefile .gen
