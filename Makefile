@@ -71,7 +71,7 @@ $(BASE_NAME).tar.gz:	$(SOURCE_DIST_FILES) Makefile
 	tar cfz $@ -C .dist .
 
 edit:
-	gvim -p myshader.s Makefile shader.c activeblock.c queue.h primitives.c test.c struct.h
+	gvim -p Makefile shader.c activeblock.c queue.h primitives.c test.c struct.h
 
 source:
 	make shader.s && less shader.s
