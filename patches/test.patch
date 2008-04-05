@@ -1,0 +1,83 @@
+diff --git a/shader.c b/shader.c
+index 99a356f..69d4100 100644
+--- a/shader.c
++++ b/shader.c
+@@ -337,6 +337,12 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
+         	S_0, 16, S_0, 0, S_0, 17, S_0, 1,
+ 	        S_0, 18, S_0, 2, S_0, 19, S_0, 3};
+ 
++	const vec_uchar16 shuffle_as_is = (vec_uchar16) {
++		0,1,2,4, 4,5,6,7, 8,9,10,11, 12,13,14,15};
++
++	const vec_uchar16 fixed_hi_byte_to_splats_int = (vec_uchar16) {
++		0,0,0,0, 4,4,4,4, 8,8,8,8, 12,12,12,12};
++
+ 	do {
+ 		vec_uint4 uAa = (vec_uint4) Aa;
+ 		vec_uint4 uAb = (vec_uint4) Ab;
+@@ -408,7 +414,7 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
+ 
+ 			// pixel is mask of 1's where we want to draw
+ 		
+-			vec_uint4 s_sub = spu_and(spu_rlmask(spu_convtu(t_s,32),-17), 0xf80);	//19-2
++			vec_uint4 s_sub = spu_and(spu_rlmask(spu_convtu(t_s,32),-17), 0xf80);	//19-2yy
+ 			vec_uint4 t_sub = spu_and(spu_rlmask(spu_convtu(t_t,32),-22), 0x7c);	//24-2
+ 			vec_uint4 sub_block_pixel = spu_or(s_sub,t_sub);
+ 
+@@ -421,8 +427,8 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
+ 			vec_uint4 addr01 = spu_add(addr00, (unsigned int)(32*4));
+ 
+ 			// if x<32
+-			vec_uint4 addr10a = spu_add(addr00, (unsigned int)4);
+-			vec_uint4 addr11a = spu_add(addr00, (unsigned int)(32*4+4));
++			vec_uint4 addr10a = spu_add(addr00, (unsigned int)16);
++			vec_uint4 addr11a = spu_add(addr00, (unsigned int)(32*4+16));
+ 
+ 			// if x==32
+ 			vec_uint4 sb_sub = spu_and(spu_rlmask(spu_convtu(t_s,32),-20), 0x1f0);
+@@ -435,6 +441,36 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
+ 			vec_uint4 addr11 = spu_sel(addr11a,addr11b,is_x_32);
+ 
+ 			unsigned int local_tex_base = (unsigned int)&textureCache;
++
++			vec_uint4 quad0_00 = *((vec_uint4*)(local_tex_base+spu_extract(addr00,0)));
++			vec_uint4 quad0_01 = *((vec_uint4*)(local_tex_base+spu_extract(addr01,0)));
++			vec_uint4 quad0_10 = *((vec_uint4*)(local_tex_base+spu_extract(addr10,0)));
++			vec_uint4 quad0_11 = *((vec_uint4*)(local_tex_base+spu_extract(addr11,0)));
++
++			vec_uint4 quad1_00 = *((vec_uint4*)(local_tex_base+spu_extract(addr00,1)));
++			vec_uint4 quad1_01 = *((vec_uint4*)(local_tex_base+spu_extract(addr01,1)));
++			vec_uint4 quad1_10 = *((vec_uint4*)(local_tex_base+spu_extract(addr10,1)));
++			vec_uint4 quad1_11 = *((vec_uint4*)(local_tex_base+spu_extract(addr11,1)));
++
++			vec_uint4 quad2_00 = *((vec_uint4*)(local_tex_base+spu_extract(addr00,2)));
++			vec_uint4 quad2_01 = *((vec_uint4*)(local_tex_base+spu_extract(addr01,2)));
++			vec_uint4 quad2_10 = *((vec_uint4*)(local_tex_base+spu_extract(addr10,2)));
++			vec_uint4 quad2_11 = *((vec_uint4*)(local_tex_base+spu_extract(addr11,2)));
++
++			vec_uint4 quad3_00 = *((vec_uint4*)(local_tex_base+spu_extract(addr00,3)));
++			vec_uint4 quad3_01 = *((vec_uint4*)(local_tex_base+spu_extract(addr01,3)));
++			vec_uint4 quad3_10 = *((vec_uint4*)(local_tex_base+spu_extract(addr10,3)));
++			vec_uint4 quad3_11 = *((vec_uint4*)(local_tex_base+spu_extract(addr11,3)));
++
++			vec_uint4 x_fixed_shrbytes = spu_and(spu_convtu(t_t,32),0x3000000);
++
++			vec_uchar16 x_shuffle = spu_and(
++				spu_shuffle(x_fixed,x_fixed,fixed_hi_byte_to_splats_int), 3);
++
++			vec_uchar16 x_shuffle = spu_add(shuffle_as_is,spu_and(
++			
++
++/*
+ 			// load pixel data for all 4 pixels
+ 			unsigned long pixel0_00 = *((u32*)(local_tex_base+spu_extract(addr00,0)));
+ 			unsigned long pixel1_00 = *((u32*)(local_tex_base+spu_extract(addr00,1)));
+@@ -459,7 +495,7 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
+ 			unsigned long pixel2_11 = *((u32*)(local_tex_base+spu_extract(addr11,2)));
+ 			unsigned long pixel3_11 = *((u32*)(local_tex_base+spu_extract(addr11,3)));
+ //			vec_uint4 colour11 = {pixel0_11, pixel1_11, pixel2_11, pixel3_11};
+-		
++	*/	
+ 
+ 			vec_uint4 s_pxofs = spu_and(spu_rlmask(spu_convtu(t_s,32),-16), (vec_uint4)0xff);
+ 			vec_uint4 t_pxofs = spu_and(spu_rlmask(spu_convtu(t_t,32),-16), (vec_uint4)0xff);

@@ -1,0 +1,40 @@
+diff --git a/Makefile b/Makefile
+index 8c190f8..a013c90 100644
+--- a/Makefile
++++ b/Makefile
+@@ -27,8 +27,8 @@ USERLAND = 32
+ PPUCC = gcc
+ PPUCCFLAGS = -c -ggdb -m$(USERLAND) $(LIBSPE2) -DUSERLAND_$(USERLAND)_BITS -I. -Wno-trigraphs -std=gnu99
+ 
+-NEWSPUCC = cellgcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -I/usr/include
+-SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -fpic
++NEWSPUCC = cellgcc $(LIBSPE2) -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -I/usr/include
++SPUCC = spu-gcc $(LIBSPE2) -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -fpic
+ SPUCCFLAGS = -O6 -I. -DSPU_REGS
+ 
+ TEXTURES_C := $(wildcard textures/*.c)
+diff --git a/ppufifo.c b/ppufifo.c
+index a481db0..c39973f 100644
+--- a/ppufifo.c
++++ b/ppufifo.c
+@@ -61,6 +61,7 @@ void *spu_3d_program_thread(void* vctx)
+ 	do {
+ //		printf("restarting at %x\n", entry_point);
+ 		retval = spe_context_run(ctx->spe_ctx, &entry_point, 0, ctx->fifo_buffer, NULL, NULL);
++//		sched_yield();
+ 	} while (retval > 0);
+ 	pthread_exit(NULL);
+ }
+diff --git a/spufifo.c b/spufifo.c
+index 72c164a..4615791 100644
+--- a/spufifo.c
++++ b/spufifo.c
+@@ -123,5 +123,8 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
+ 	int running = 1;
+ 	while (running) {
+ 		process_queue(&fifoTriangleGenerator, &blockActivater);
++#ifdef USE_LIBSPE2
++//		spu_stop(1);
++#endif
+ 	}
+ }

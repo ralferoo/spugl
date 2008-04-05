@@ -1,0 +1,555 @@
+diff --git a/Makefile b/Makefile
+index 2a64457..d7ddef7 100644
+--- a/Makefile
++++ b/Makefile
+@@ -34,7 +34,7 @@ SPU_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(SPU_HNDL))
+ SHARED_HEADERS = struct.h fifo.h types.h GL/*.h
+ PPU_OBJS = ppufifo.o glfifo.o framebuffer.o textureprep.o
+ SPU_OBJS = spufifo.0 decode.0 primitives.0 fragment.0 queue.0 activeblock.0 shader.0 texture.0
+-GENSOURCES = decode.c fragment.c
++GENSOURCES = decode.c fragment.c texture.c
+ 
+ PPU_TEST_OBJS = $(PPU_OBJS) test.o $(TEXTURES)
+ PPU_SRCS := $(patsubst %.o,%.c,$(PPU_TEST_OBJS))
+diff --git a/decode.c b/decode.c
+index 522b975..ac54baf 100644
+--- a/decode.c
++++ b/decode.c
+@@ -123,7 +123,7 @@ u32 current_texture = 0;
+ 	return &from[4];
+ }
+ 
+-/*25*/void* imp_glBindTexture(u32* from, struct __TRIANGLE * triangle) {
++/*25*/void* imp_old_glBindTexture(u32* from, struct __TRIANGLE * triangle) {
+ 	u32 target = *from++;
+ 	u32 texture = *from++;
+ 	current_texture = texture;
+@@ -140,11 +140,3 @@ extern void flush_queue();
+ 		return 0;
+ 	}
+ }
+-
+-
+-/*
+- * gluPerspective(f32 fov,f32 aspect,f32 znear,f32 zfar) {
+-f64 range = znear*tan(DEG_TO_RAD(fov/2));
+-glFrustum(-range*aspect,range*aspect,-range,range,znear,zfar);
+-}
+-*/
+diff --git a/gen_spu_command_defs.h b/gen_spu_command_defs.h
+index 94bcdd3..68b7763 100644
+--- a/gen_spu_command_defs.h
++++ b/gen_spu_command_defs.h
+@@ -12,7 +12,8 @@
+ #define SPU_COMMAND_GL_TEX_COORD2 22
+ #define SPU_COMMAND_GL_TEX_COORD3 23
+ #define SPU_COMMAND_GL_TEX_COORD4 24
+-#define SPU_COMMAND_GL_BIND_TEXTURE 25
++#define SPU_COMMAND_OLD_GL_BIND_TEXTURE 25
+ #define SPU_COMMAND_SYNC 26
+ #define SPU_COMMAND_SCREEN_INFO 4
+ #define SPU_COMMAND_CLEAR_SCREEN 5
++#define SPU_COMMAND_GL_BIND_TEXTURE 27
+diff --git a/gen_spu_command_exts.h b/gen_spu_command_exts.h
+index c5db6e4..bfab3d5 100644
+--- a/gen_spu_command_exts.h
++++ b/gen_spu_command_exts.h
+@@ -12,7 +12,8 @@ extern SPU_COMMAND imp_glColor4;
+ extern SPU_COMMAND imp_glTexCoord2;
+ extern SPU_COMMAND imp_glTexCoord3;
+ extern SPU_COMMAND imp_glTexCoord4;
+-extern SPU_COMMAND imp_glBindTexture;
++extern SPU_COMMAND imp_old_glBindTexture;
+ extern SPU_COMMAND imp_sync;
+ extern SPU_COMMAND impScreenInfo;
+ extern SPU_COMMAND impClearScreen;
++extern SPU_COMMAND imp_glBindTexture;
+diff --git a/gen_spu_command_table.h b/gen_spu_command_table.h
+index 5e92521..1b8e356 100644
+--- a/gen_spu_command_table.h
++++ b/gen_spu_command_table.h
+@@ -12,7 +12,8 @@
+ [SPU_COMMAND_GL_TEX_COORD2] = (SPU_COMMAND*) &imp_glTexCoord2,
+ [SPU_COMMAND_GL_TEX_COORD3] = (SPU_COMMAND*) &imp_glTexCoord3,
+ [SPU_COMMAND_GL_TEX_COORD4] = (SPU_COMMAND*) &imp_glTexCoord4,
+-[SPU_COMMAND_GL_BIND_TEXTURE] = (SPU_COMMAND*) &imp_glBindTexture,
++[SPU_COMMAND_OLD_GL_BIND_TEXTURE] = (SPU_COMMAND*) &imp_old_glBindTexture,
+ [SPU_COMMAND_SYNC] = (SPU_COMMAND*) &imp_sync,
+ [SPU_COMMAND_SCREEN_INFO] = (SPU_COMMAND*) &impScreenInfo,
+ [SPU_COMMAND_CLEAR_SCREEN] = (SPU_COMMAND*) &impClearScreen,
++[SPU_COMMAND_GL_BIND_TEXTURE] = (SPU_COMMAND*) &imp_glBindTexture,
+diff --git a/glfifo.c b/glfifo.c
+index 6dfb2e6..392dc42 100644
+--- a/glfifo.c
++++ b/glfifo.c
+@@ -24,6 +24,17 @@ extern BitmapImage _flipScreen(void);
+ static DriverContext ctx = NULL;
+ static BitmapImage screen = NULL;
+ 
++u32* prepare_texture(gimp_image* source);
++extern gimp_image berlin;
++extern gimp_image oranges;
++extern gimp_image mim;
++extern gimp_image ralf;
++extern gimp_image gate;
++extern gimp_image space;
++extern gimp_image tongariro;
++
++static u64 localTextures[10];
++
+ GLAPI GLenum GLAPIENTRY glGetError(void)
+ {
+ 	return _3d_error(ctx);
+@@ -55,6 +66,14 @@ GLAPI void GLAPIENTRY glspuSetup(void)
+ 	ctx = _init_3d_driver(1);
+ 	screen = _getScreen();
+ 	updateScreenPointer();
++
++	localTextures[0] = (u64)prepare_texture(&berlin);
++	localTextures[1] = (u64)prepare_texture(&oranges);
++	localTextures[2] = (u64)prepare_texture(&ralf);
++	localTextures[3] = (u64)prepare_texture(&gate);
++	localTextures[4] = (u64)prepare_texture(&space);
++	localTextures[5] = (u64)prepare_texture(&tongariro);
++	localTextures[6] = (u64)prepare_texture(&mim);
+ }
+ 
+ GLAPI void GLAPIENTRY glspuDestroy(void)
+@@ -190,10 +209,18 @@ GLAPI void GLAPIENTRY glTexCoord4f (GLfloat s, GLfloat t, GLfloat u, GLfloat v)
+ 
+ GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
+ {
++	u64 ea;
++	ea = localTextures[texture];
++	unsigned int tex_id_base = texture<<6;
++	unsigned int tex_id_mask = (1<<6)-1;
++	unsigned int tex_y_shift = 8-5;
++
+ 	FIFO_PROLOGUE(ctx,10);
+-	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,2);
+-	OUT_RING(target);
+-	OUT_RING(texture);
++	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,5);
++	OUT_RINGea(_FROM_EA(ea));
++	OUT_RING(tex_id_base);
++	OUT_RING(tex_id_mask);
++	OUT_RING(tex_y_shift);
+ 	FIFO_EPILOGUE();
+ }
+ 
+diff --git a/ppufifo.c b/ppufifo.c
+index dcc45bf..673506b 100644
+--- a/ppufifo.c
++++ b/ppufifo.c
+@@ -42,15 +42,6 @@ typedef struct {
+ 
+ static u32 spe_read(speid_t spe_id);
+ 
+-u32* prepare_texture(gimp_image* source);
+-extern gimp_image berlin;
+-extern gimp_image oranges;
+-extern gimp_image mim;
+-extern gimp_image ralf;
+-extern gimp_image gate;
+-extern gimp_image space;
+-extern gimp_image tongariro;
+-
+ // initialise
+ DriverContext _init_3d_driver(int master)
+ {
+@@ -103,15 +94,6 @@ DriverContext _init_3d_driver(int master)
+ 	context->control->fragment_buflen = FRAGMENT_BUFFER_SIZE;
+ 	context->control->fifo_size = FIFO_BUFFER_SIZE;
+ 
+-	// TODO: ugly hack!
+-	context->control->texture_hack[0] = (u64)prepare_texture(&berlin);
+-	context->control->texture_hack[1] = (u64)prepare_texture(&oranges);
+-	context->control->texture_hack[2] = (u64)prepare_texture(&ralf);
+-	context->control->texture_hack[3] = (u64)prepare_texture(&gate);
+-	context->control->texture_hack[4] = (u64)prepare_texture(&space);
+-	context->control->texture_hack[5] = (u64)prepare_texture(&tongariro);
+-	context->control->texture_hack[6] = (u64)prepare_texture(&mim);
+-
+ 	return (DriverContext) context;
+ }
+ 
+diff --git a/primitives.c b/primitives.c
+index 7d05f0f..23d12d8 100644
+--- a/primitives.c
++++ b/primitives.c
+@@ -8,7 +8,7 @@
+  * contact me for information if you wish to use it.
+  *
+  ****************************************************************************/
+-
++#include <stdio.h>
+ #include <spu_mfcio.h>
+ #include "fifo.h"
+ #include "struct.h"
+@@ -36,6 +36,7 @@ extern u32 current_texture;
+ extern _bitmap_image screen;
+ 
+ extern SPU_CONTROL control;
++extern TextureDefinition* currentTexture;
+ 
+ static void imp_point()
+ {
+@@ -260,10 +261,13 @@ static void imp_triangle(struct __TRIANGLE * triangle)
+ 
+ ///////////////////////////////////////////
+ 
+-	triangle->tex_id_base = current_texture<<6;
+-	triangle->tex_id_mask = (1<<6)-1;
+-	triangle->texture_base = control.texture_hack[current_texture]; // * (256*256/32/32);
+-	triangle->texture_y_shift = 8-5;
++	printf("triangle using currentTexture %lx, id base %x, shift %x, mask %x, count %d\n",
++		currentTexture, currentTexture->tex_id_base, currentTexture->tex_y_shift,
++		currentTexture->tex_id_mask, currentTexture->users); 
++
++	triangle->texture = currentTexture;
++	currentTexture->users++;
++	triangle->tex_id_base = currentTexture->tex_id_base;
+ 
+ //	triangle->init_block = &linearColourFill;
+ 
+diff --git a/queue.c b/queue.c
+index 83b7a42..3a587c5 100644
+--- a/queue.c
++++ b/queue.c
+@@ -9,6 +9,8 @@
+  *
+  ****************************************************************************/
+ 
++#define DEBUG_QUEUE 
++
+ #include "spuregs.h"
+ #include "queue.h"
+ #include <spu_mfcio.h>
+@@ -100,6 +102,9 @@ void flush_queue()
+ 
+ void process_queue(TriangleGenerator* generator, BlockActivater* activate)
+ {	
++#ifdef DEBUG_QUEUE 
++	printf("process_queue\n");
++#endif
+ 	mfc_write_tag_mask((1<<NUMBER_OF_ACTIVE_BLOCKS)-1);
+ 	unsigned int completed = mfc_read_tag_status_immediate();
+ 
+@@ -113,12 +118,19 @@ void process_queue(TriangleGenerator* generator, BlockActivater* activate)
+ 			if (spu_extract(idle_blocks, i)==0) {
+ 				unsigned short id = spu_extract(active_blocks,i);
+ 				Block* block = &blocks[id];
++#ifdef DEBUG_QUEUE 
++				printf("calling process %x on block %x(%d) id=%d\n", block->process, block, i, id);
++#endif
+ 				BlockHandler* next = block->process(block->process, block, &active[i], i);
+ 				if (next) {
+ 					block->process = next;
+-//					printf("stalled %d: %d\n", i, id);
++#ifdef DEBUG_QUEUE 
++					printf("stalled %d: %d\n", i, id);
++#endif
+ 				} else {
+-//					printf("finished %d: %d\n", i, id);
++#ifdef DEBUG_QUEUE 
++					printf("finished %d: %d\n", i, id);
++#endif
+ 					busy--;
+ 					block->process = next;
+ 					free_blocks |= 1<<id;
+@@ -149,7 +161,9 @@ queue_chained:
+ 								    active_blocks, i);
+ 					activate(&blocks[next_bit], &active[i], i);
+ 					busy++;
+-//					printf("queued %d: %d\n", i, next_bit);
++#ifdef DEBUG_QUEUE 
++					printf("queued %d: %d\n", i, next_bit);
++#endif
+ 				}
+ 			}
+ 		}
+@@ -163,7 +177,9 @@ queue_chained:
+ 		int next_mask = 1<<next_bit;
+ 
+ 		Triangle* tri = &triangles[triangle_next_read];
+-//		printf("calling triangle produce on tri %d(%x) on block %d\n", triangle_next_read, tri, next_bit);
++#ifdef DEBUG_QUEUE 
++		printf("calling triangle produce on tri %d(%x) on block %d\n", triangle_next_read, tri, next_bit);
++#endif
+ 		int hash = tri->produce(tri, &blocks[next_bit]);
+ //		blocks[next_bit].hash = hash;
+ 
+@@ -173,7 +189,9 @@ queue_chained:
+ 		free_blocks &= ~next_mask;
+ 
+ 		if (tri->produce == 0) {
+-//			printf("finished producing on %d\n", triangle_next_read);
++#ifdef DEBUG_QUEUE 
++			printf("finished producing on %d\n", triangle_next_read);
++#endif
+ 			triangle_next_read = (triangle_next_read+1)%NUMBER_OF_TRIS;
+ 			busy--;
+ 		}
+@@ -181,11 +199,19 @@ queue_chained:
+ 
+ 	while (triangles[triangle_next_write].count==0) {
+ 		Triangle* tri = &triangles[triangle_next_write];
++#ifdef DEBUG_QUEUE 
++			printf("calling generator on %d\n", triangle_next_write);
++#endif
+ 		if ( (*generator)(tri) ) {
+-//			printf("generated triangle on %d\n", triangle_next_write);
++#ifdef DEBUG_QUEUE 
++			printf("generated triangle on %d\n", triangle_next_write);
++#endif
+ 			triangle_next_write = (triangle_next_write+1)%NUMBER_OF_TRIS;
+ 			busy++;
+ 		} else {
++#ifdef DEBUG_QUEUE 
++			printf("done generating\n");
++#endif
+ 			break;
+ 		}
+ 	}
+diff --git a/queue.h b/queue.h
+index f9cf681..bf3f635 100644
+--- a/queue.h
++++ b/queue.h
+@@ -23,11 +23,14 @@
+ // NUMBER_OF_TRIS		no limit, but there's no advantage to having this bigger than blocks
+ // NUMBER_OF_QUEUED_BLOCKS	maximum and optimally 32; needs to fit in bitmask
+ // NUMBER_OF_ACTIVE_BLOCKS	should be at least 2; any more than 4 and the DMA queue could fill
++// NUMBER_OF_TEXTURE_DEFINITIONS	should be at least NUMBER_OF_TRIS or else texture.c needs work
+ 
+ #define NUMBER_OF_TRIS	10	
+ #define NUMBER_OF_QUEUED_BLOCKS 32
+ #define NUMBER_OF_ACTIVE_BLOCKS 1
++#define NUMBER_OF_TEXTURE_DEFINITIONS 10
+ 
++typedef struct __TEXTURE TextureDefinition;
+ typedef struct __BLOCK Block;
+ typedef struct __TRIANGLE Triangle;
+ typedef struct __ACTIVE ActiveBlock;
+@@ -39,6 +42,15 @@ typedef void (BlockActivater)(Block* block, ActiveBlock* active, int tag);
+ typedef void (ActiveBlockInit)(ActiveBlock* active);
+ typedef void (ActiveBlockFlush)(ActiveBlock* active, int tag);
+ 
++// this holds data needed for texture calculations
++struct __TEXTURE {
++	u64 		tex_pixel_base;	// the base texture address for block(0,0)
++	unsigned int	tex_y_shift;// log2(texture_width_in_blocks)
++	unsigned int	tex_id_base;	// base of texture ids (to guarantee unique)
++	unsigned int	tex_id_mask;	// mask of valid bits of texture id
++	unsigned int	users;		// number of triangle producers still using this texture
++};
++
+ // this holds a triangle, i.e. something that creates blocks to be rendered
+ struct __TRIANGLE {
+ 	vec_float4	x,y,z,w;	// coords
+@@ -50,15 +62,13 @@ struct __TRIANGLE {
+ 
+ 	TriangleHandler*	produce;
+ 	BlockHandler*	init_block;
++	TextureDefinition*	texture;
+ 
++	unsigned int	tex_id_base;	// base of texture ids (to guarantee unique)
+ 		 short	left;		// count of blocks left to produce
+ 	unsigned short	count;		// count of blocks that still have reference
+-	unsigned long	texture_base;	// the base texture address for block(0,0)
+-	unsigned char	texture_y_shift;// log2(texture_width_in_blocks)
+ 	unsigned char	step, step_start;
+ 	unsigned char	cur_x, cur_y;	// current x and y values
+-	unsigned short	tex_id_base;	// base of texture ids (to guarantee unique)
+-	unsigned short	tex_id_mask;	// mask of valid bits of texture id
+ 	int	block_left;
+ } __attribute__ ((aligned(16)));
+ 
+diff --git a/shader.c b/shader.c
+index 3bcf37a..16595d8 100644
+--- a/shader.c
++++ b/shader.c
+@@ -273,6 +273,7 @@ void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
+ 
+ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
+ {
++	printf("->linearTextureMapFill\n");
+ 	Triangle* tri = block->triangle;
+ 
+ 	vec_float4 A_dx = tri->A_dx;
+@@ -423,9 +424,11 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
+ 			if (__builtin_expect(cache_orx,0)) {  // amazingly gcc does move this out of the loop :)
+ 				vec_uint4 s = spu_rlmask(spu_convtu(t_s,32),-29);
+ 				vec_uint4 t = spu_rlmask(spu_convtu(t_t,32),-29);
+-				return loadMissingTextures(self, block, active, tag,
++				void* r=loadMissingTextures(self, block, active, tag,
+ 					A, left, ptr, tex_keep,
+ 					block_id, s, t, cache_not_found, pixel);
++				printf("<-linearTextureMapFill %x\n", r);
++				return r;
+ 			}
+ 
+ 			// pixel is mask of 1's where we want to draw
+@@ -571,6 +574,7 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
+ 	} while (spu_extract(left,0)>0);
+ 
+ 	block->triangle->count--;
++	printf("<-linearTextureMapFill\n");
+ 	return 0;
+ 
+ }
+diff --git a/spufifo.c b/spufifo.c
+index bb4ebdc..78241a1 100644
+--- a/spufifo.c
++++ b/spufifo.c
+@@ -59,7 +59,7 @@ int fifoTriangleGenerator(Triangle* tri)
+ 			u32 cmd = *from++;
+ 			int size = cmd>>24;
+ 			u32 command = cmd & (1<<24)-1;
+-//			printf("fifo cmd: %08lx -> size %d command %d\n", cmd, size, command);
++			printf("fifo cmd: %08lx -> size %d command %d\n", cmd, size, command);
+ 
+ 			if (cache_read_upto>=(read+4+4*size)) {
+ 				// entire command has already been read
+diff --git a/texture.c b/texture.c
+index 82d5bab..d948dde 100644
+--- a/texture.c
++++ b/texture.c
+@@ -9,6 +9,7 @@
+  *
+  ****************************************************************************/
+ 
++#include <stdio.h>
+ #include <spu_mfcio.h>
+ #include "fifo.h"
+ #include "struct.h"
+@@ -23,6 +24,10 @@ typedef struct {
+ 
+ TextureBlock textureCache[NUMBER_TEX_MAPS] __attribute__((aligned(128)));
+ 
++TextureDefinition textureDefinition[NUMBER_OF_TEXTURE_DEFINITIONS];
++TextureDefinition* currentTexture;
++int nextTextureDefinitionPtr = 0;
++
+ unsigned int freeTextureMaps = 0;
+ unsigned int lastLoadedTextureMap = 0;
+ vec_ushort8 TEXblitting1,TEXblitting2;
+@@ -50,6 +55,29 @@ static const vec_uchar16 splats[] = {
+ 	/* 1110 */ {18,19, 22,23,26,27, 0,1, 2,3,4,5, 6,7,8,9},
+ 	/* 1111 */ {18,19, 22,23,26,27,30,31, 0,1, 2,3,4,5, 6,7},
+ };
++
++/*27*/void* imp_glBindTexture(u32* from, struct __TRIANGLE * triangle) {
++	// this should probably be made into a cache style thing, but for now we just move onto the
++	// next entry unless nobody has used the current bounding. this works as we always have
++	// more texture slots than active triangles and handles multiple bindings between triangles.
++	TextureDefinition* definition = currentTexture;
++	if (definition->users) {
++		definition = &textureDefinition[nextTextureDefinitionPtr];
++		nextTextureDefinitionPtr = (nextTextureDefinitionPtr+1)%NUMBER_OF_TEXTURE_DEFINITIONS;
++		currentTexture = definition;
++	}
++
++	u64 ea;
++	__READ_EA(from)
++
++	definition->tex_pixel_base = ea;
++	definition->tex_y_shift = *from++;
++	definition->tex_id_base = *from++;
++	definition->tex_id_mask = *from++;
++	definition->users = 0;
++
++ 	return from;
++}
+ 	
+ void* finishTextureLoad(void* self, Block* block, ActiveBlock* active, int tag);
+ 
+@@ -58,6 +86,8 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
+ 			vec_uint4 block_id, vec_uint4 s, vec_uint4 t,
+ 			vec_uint4 cache_not_found, vec_uint4 pixel)
+ {
++	printf("->loadMissingTextures\n");
++
+ 	block->A = A;
+ 	block->left = spu_extract(left,0);
+ 	block->pixels = ptr;
+@@ -100,7 +130,9 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
+ 
+ ////////////////////////////////////////////////////////////////////
+ 
+-	vec_uint4 tex_id_base = spu_splats((unsigned int)block->triangle->tex_id_base);
++	TextureDefinition* textureDefinition = block->triangle->texture;
++
++	vec_uint4 tex_id_base = spu_splats((unsigned int)textureDefinition->tex_id_base);
+ 	vec_uint4 needs_sub = spu_sub(block_id,tex_id_base);
+ 
+ 	vec_ushort8 TEXmerge1 = spu_splats((unsigned short)-1);
+@@ -152,8 +184,8 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
+ 			// this sucks with the mults, but hey!
+ 			unsigned int ofs = s_blk*32*32*4 + t_blk*(8*32+1)*32*4;
+ 			unsigned int ofs_next = s_blk*32*32*4 + (t_next*(8*32+1))*32*4;
+-			unsigned long long ea = block->triangle->texture_base + ofs;
+-			unsigned long long ea_next = block->triangle->texture_base + ofs_next;
++			unsigned long long ea = textureDefinition->tex_pixel_base + ofs;
++			unsigned long long ea_next = textureDefinition->tex_pixel_base + ofs_next;
+ 
+ //			unsigned int desired = spu_extract(needs_sub, i);
+ //			unsigned long long ea = block->triangle->texture_base + (desired<<(5+5+2));
+@@ -164,15 +196,15 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
+ 			unsigned long eal_next = ea_next & ~127;
+ 			u32* texture = &textureCache[nextIndex].textureBuffer[0];
+ 
+-//			printf("desired %d->%d, reading to %x from %x:%08x len %d tag %d\n",
+-//				desired, nextIndex, texture, eah, eal, len, tag);
++			printf("want %d->%d, reading to %x from %x:%08x len %x tag %d\n",
++				want, nextIndex, texture, eah, eal, len, tag);
+ 
+ 			if (mfc_stat_cmd_queue() == 0) {
+-//				printf("DMA queue full; bailing...\n");
++				printf("DMA queue full; bailing...\n");
+ 				break;
+ 			}
+ 
+-	static vec_uint4 load_dma_list[NUMBER_TEX_MAPS][34];
++			static vec_uint4 load_dma_list[NUMBER_TEX_MAPS][34];
+ 
+ 			vec_uint4* dma_list = &load_dma_list[nextIndex][0];
+ 			vec_uint4* list_ptr = dma_list;
+@@ -194,12 +226,18 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
+ 
+ 			unsigned int list_len = ((void*)list_ptr)-((void*)dma_list);
+ 
++			printf("starting DMA... list len %d, list at %x\n", list_len, dma_list);
++		printf("yloop...\n");
+ 			spu_mfcdma64(texture, eah, dma_list, list_len, tag, MFC_GETL_CMD);
++			printf("started DMA...\n");
+ 
++		printf("zloop...\n");
+ 			freeTextureMaps &= ~nextMask;
+ 			lastLoadedTextureMap = nextIndex;
+ 			texturesMask |= nextMask;
++		printf("aloop...\n");
+ 		}
++		printf("bloop...\n");
+ 	}
+ 
+ 	active->TEXmerge1 = TEXmerge1;
+@@ -207,6 +245,7 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
+ 	active->texturesMask = texturesMask;
+ 				
+ //////////////////////////////////////////////////////////////////////
++	printf("<-loadMissingTextures\n");
+ 
+ 	active->tex_continue = self;
+ 	return &finishTextureLoad;
+@@ -227,5 +266,11 @@ void init_texture_cache()
+ 	freeTextureMaps = (1<<NUMBER_TEX_MAPS)-1;
+ 	TEXcache1 = TEXcache2 = spu_splats((unsigned short)-1);
+ 	TEXblitting1 = TEXblitting2 = spu_splats((unsigned short)-1);
++
++	int i;
++	for (i=0; i<NUMBER_OF_TEXTURE_DEFINITIONS; i++)
++		textureDefinition[i].users = 0;
++	nextTextureDefinitionPtr = 0;
++	currentTexture = &textureDefinition[0];
+ }
+ 
