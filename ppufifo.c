@@ -140,9 +140,6 @@ DriverContext _init_3d_driver(int master)
 	context->control->fragment_buflen = FRAGMENT_BUFFER_SIZE;
 	context->control->fifo_size = FIFO_BUFFER_SIZE;
 
-//	printf("init buffers @%lx: %llx, %llx\n", context->control,
-//			context->control->fifo_written, context->control->fifo_read);
-
 	return (DriverContext) context;
 }
 
@@ -159,7 +156,6 @@ int _flush_3d_driver(DriverContext _context)
 	control->fifo_written = _MAKE_EA(context->fifo_buffer);
 
 	if (control->fifo_written != control->fifo_read) {
-//		printf("%llx != %llx\n", control->fifo_written, control->fifo_read);
 		while (control->fifo_written != control->fifo_read) {
 			sched_yield();
 			asm("sync");

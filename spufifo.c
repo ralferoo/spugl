@@ -109,8 +109,6 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 	control.fifo_read = program_data_ea;
 	control.error = ERROR_NONE;
 
-//	printf("set values in control %lx to %llx\n", &control, program_data_ea);
-
 	control.blocks_produced_count = 0;
 	control.cache_miss_count = 0;
 
