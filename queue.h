@@ -30,6 +30,9 @@
 #define NUMBER_OF_ACTIVE_BLOCKS 4
 #define NUMBER_OF_TEXTURE_DEFINITIONS 10
 
+#define FIFO_SIZE 1024
+#define FIFO_DMA_TAG 12
+
 typedef struct __TEXTURE TextureDefinition;
 typedef struct __BLOCK Block;
 typedef struct __TRIANGLE Triangle;

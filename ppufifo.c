@@ -13,8 +13,14 @@
 #include <stdio.h>
 
 #include <sys/mman.h>
-#include <libspe.h>
 #include "fifo.h"
+
+#ifdef USE_LIBSPE2
+	#include <libspe2.h>
+	#include <pthread.h>
+#else
+	#include <libspe.h>
+#endif
 
 // #define DOTS_WHEN_WAITING_FOR_FIFO
 
@@ -32,15 +38,33 @@ extern spe_program_handle_t spu_3d_handle;
 spe_program_handle_t* spu_3d_program = &spu_3d_handle;
 
 typedef struct {
+#ifdef USE_LIBSPE2
+	pthread_t thread;
+	spe_context_ptr_t spe_ctx;
+#else
         speid_t spe_id;
+	int master;
+#endif
 	void* local_store;
 	SPU_CONTROL* control;
-	int master;
 	void* fragment_buffer;
 	void* fifo_buffer;
 } __DRIVER_CONTEXT;
 
-static u32 spe_read(speid_t spe_id);
+#ifdef USE_LIBSPE2
+void *spu_3d_program_thread(void* vctx)
+{
+	__DRIVER_CONTEXT* ctx = (__DRIVER_CONTEXT*) vctx;
+
+	int retval;
+	unsigned int entry_point = SPE_DEFAULT_ENTRY;
+	do {
+//		printf("restarting at %x\n", entry_point);
+		retval = spe_context_run(ctx->spe_ctx, &entry_point, 0, ctx->fifo_buffer, NULL, NULL);
+	} while (retval > 0);
+	pthread_exit(NULL);
+}
+#endif
 
 // initialise
 DriverContext _init_3d_driver(int master)
@@ -70,10 +94,18 @@ DriverContext _init_3d_driver(int master)
 		}
 	}
 
+
+#ifdef USE_LIBSPE2
+	context->spe_ctx = spe_context_create(SPE_EVENTS_ENABLE|SPE_MAP_PS, NULL);
+	spe_program_load(context->spe_ctx, spu_3d_program);
+
+	int retval = pthread_create(&context->thread, NULL, &spu_3d_program_thread, context);
+	if (retval) {
+#else
 	context->spe_id = spe_create_thread(0, spu_3d_program, context->fifo_buffer, NULL, -1, 0);
 	context->master = master;
-
 	if (context->spe_id==0) {
+#endif
 		if (context->fifo_buffer)
 			munmap(context->fragment_buffer, FIFO_BUFFER_SIZE);
 		if (context->fragment_buffer)
@@ -82,12 +114,22 @@ DriverContext _init_3d_driver(int master)
 		return NULL;
 	}
 
-	void* ls = spe_get_ls(context->spe_id);
-	context->local_store = ls;
-//	printf("Allocated spe %lx, local store at %lx\n",
-//		context->spe_id, context->local_store);
+	u32 addr;
+#ifdef USE_LIBSPE2
+	void* ls = spe_ls_area_get(context->spe_ctx);
 
-	u32 addr = spe_read(context->spe_id);
+	while(!spe_out_mbox_status(context->spe_ctx))
+		sched_yield();
+	spe_out_mbox_read(context->spe_ctx, &addr, 1);
+#else
+	void* ls = spe_get_ls(context->spe_id);
+
+	while(!spe_stat_out_mbox(context->spe_id))
+		sched_yield();
+	addr = spe_read_out_mbox(context->spe_id);
+#endif
+
+	context->local_store = ls;
 	context->control = addr + ls;
 	context->control->my_local_address = _MAKE_EA(ls);
 	context->control->fragment_buffer = _MAKE_EA(context->fragment_buffer);
@@ -123,11 +165,20 @@ int _exit_3d_driver(DriverContext _context)
 		return 0;
 
 	// send the SPU a quit command
+#ifdef USE_LIBSPE2
+	unsigned int term_cmd = SPU_MBOX_3D_TERMINATE;
+	spe_in_mbox_write(context->spe_ctx, &term_cmd, 1, SPE_MBOX_ANY_NONBLOCKING);
+#else
 	spe_write_in_mbox(context->spe_id, SPU_MBOX_3D_TERMINATE);
+#endif
 
 	// wait for completion and return exit code
 	int status = 0;
+#ifdef USE_LIBSPE2
+	status = pthread_join(context->thread, NULL);
+#else
 	spe_wait(context->spe_id, &status, 0);
+#endif
 
 	if (context->fragment_buffer)
 		munmap(context->fragment_buffer, FRAGMENT_BUFFER_SIZE);
@@ -215,8 +266,3 @@ void _bind_child(DriverContext _parent, DriverContext _child, int assign)
 }
 */
 
-static u32 spe_read(speid_t spe_id) {
-	while(!spe_stat_out_mbox(spe_id))
-		sched_yield();
-	return spe_read_out_mbox(spe_id);
-}

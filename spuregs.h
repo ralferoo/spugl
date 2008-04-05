@@ -83,31 +83,39 @@ static inline vec_float4 div(vec_float4 a, vec_float4 b) {
 }
 
 static inline unsigned int cmp_ge0(int a) {
-	vec_int4 aa = (vec_int4) a;
-	vec_uint4 rr = spu_cmpgt(aa, -1);
+	vec_int4 rr;
+	asm("cgti %0,%1,-1" : "=r" (rr) : "r" (a));
+//	vec_int4 aa = (vec_int4) (a);
+//	vec_uint4 rr = spu_cmpgt(aa, -1);
 	return spu_extract(rr, 0);
 }
 
 static inline unsigned int cmp_eq(unsigned int a, unsigned int b) {
-	vec_uint4 aa = (vec_uint4) a;
-	vec_uint4 bb = (vec_uint4) b;
-	vec_uint4 rr = spu_cmpeq(aa, bb);
+	vec_int4 rr;
+	asm("ceq %0,%1,%2" : "=r" (rr) : "r" (a), "r" (b));
+	//vec_uint4 aa = (vec_uint4) a;
+	//vec_uint4 bb = (vec_uint4) b;
+	//vec_uint4 rr = spu_cmpeq(aa, bb);
 	return spu_extract(rr, 0);
 }
 
 static inline unsigned int if_then_else(unsigned int c, 
 		unsigned int a, unsigned int b) {
-	vec_uint4 aa = (vec_uint4) a;
-	vec_uint4 bb = (vec_uint4) b;
-	vec_uint4 cc = (vec_uint4) c;
-	vec_uint4 rr = spu_sel(bb, aa, cc);
+	vec_int4 rr;
+	asm("selb %0,%1,%2,%3" : "=r" (rr) : "r" (b), "r" (a), "r" (c));
+	//vec_uint4 aa = (vec_uint4) a;
+	//vec_uint4 bb = (vec_uint4) b;
+	//vec_uint4 cc = (vec_uint4) c;
+	//vec_uint4 rr = spu_sel(bb, aa, cc);
 	return spu_extract(rr, 0);
 }
 	
 
 static inline int first_bit(unsigned int x) {
-	vec_uint4 xx = (vec_uint4) x;
-	vec_uint4 clz = spu_cntlz(xx);
+	vec_int4 clz;
+	asm("clz %0,%1" : "=r" (clz) : "r" (x));
+	//vec_uint4 xx = (vec_uint4) x;
+	//vec_uint4 clz = spu_cntlz(xx);
 	return (int) 31-spu_extract(clz,0);
 }
 

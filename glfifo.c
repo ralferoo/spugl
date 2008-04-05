@@ -108,6 +108,15 @@ GLAPI void GLAPIENTRY glspuClear(void)
 	FIFO_EPILOGUE();
 }
 
+GLAPI void GLAPIENTRY glspuSetFlag(u32* ptr, u32 value)
+{
+	FIFO_PROLOGUE(ctx,3);
+	BEGIN_RING(SPU_COMMAND_SET_FLAG,2);
+	OUT_RINGea(_FROM_EA(ptr));
+	OUT_RING(value);
+	FIFO_EPILOGUE();
+}
+
 GLAPI void GLAPIENTRY glspuWait(void)
 {
 	_waitScreen();

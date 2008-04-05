@@ -50,6 +50,8 @@ static inline double getTimeSince(struct timespec startPoint) {
 	return secs;
 }
 
+unsigned long flag=0;
+
 int main(int argc, char* argv[]) {
 	glspuSetup();
 
@@ -186,10 +188,13 @@ skip:
 		unsigned long blks_end = glspuBlocksProduced();
 		unsigned long caches_end = glspuCacheMisses();
 
+		// test the set flag functionality - this variable is updated by the SPU
+		glspuSetFlag(&flag, flag+1);
+
 		// bah humbug, stdio buffering, bah!
 		char buffer[256];
 		sprintf(buffer,"[%d] %4.1f FPS (actual %5.1f) %5d blocks %6d misses %8.1f block/s   \r",
-			cnt,
+			flag, //cnt,
 			(float) 1.0/uptoLoop,
 			(float) 1.0/uptoFlip,
 			blks_end-blks_start, caches_end-caches_start,

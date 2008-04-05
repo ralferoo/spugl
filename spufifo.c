@@ -15,9 +15,6 @@
 #include "queue.h"
 #include <stdio.h>
 
-#define FIFO_SIZE 1024
-#define FIFO_DMA_TAG 12
-
 SPU_CONTROL control __CACHE_ALIGNED__;
 
 void raise_error(int error) {

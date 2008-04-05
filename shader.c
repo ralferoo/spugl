@@ -150,7 +150,7 @@ void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 	vec_uint4 left = spu_splats(block->left);
 	vec_uint4* ptr = block->pixels;
 	vec_uint4 tex_id_base = spu_splats((unsigned int)tri->tex_id_base);
-	vec_uint4 tex_keep = spu_splats(0);
+	vec_uint4 tex_keep = spu_splats((unsigned int)0);
 
 	do {
 		vec_uint4 uAa = (vec_uint4) Aa;
@@ -182,35 +182,35 @@ void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 			vec_uint4 t_blk = spu_and(spu_rlmask(t_t,-26), 0x38);	//24+2
 			vec_uint4 block_id = spu_add(tex_id_base,spu_or(s_blk,t_blk));
 
-			vec_uchar16 shuf_cmp_0 = spu_splats((unsigned short)0x203);
-			vec_ushort8 copy_cmp_0 = spu_shuffle(block_id,block_id,shuf_cmp_0);
+			vec_uchar16 shuf_cmp_0 = (vec_uchar16) spu_splats((unsigned short)0x203);
+			vec_ushort8 copy_cmp_0 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_0);
 			vec_ushort8 matches1_0 = spu_cmpeq(TEXcache1,copy_cmp_0);
 			vec_ushort8 matches2_0 = spu_cmpeq(TEXcache2,copy_cmp_0);
 			vec_uint4 gather1_0 = spu_gather((vec_uchar16)matches1_0);
 			vec_uint4 gather2_0 = spu_gather((vec_uchar16)matches2_0);
 
-			vec_uchar16 shuf_cmp_1 = spu_splats((unsigned short)0x607);
-			vec_ushort8 copy_cmp_1 = spu_shuffle(block_id,block_id,shuf_cmp_1);
+			vec_uchar16 shuf_cmp_1 = (vec_uchar16) spu_splats((unsigned short)0x607);
+			vec_ushort8 copy_cmp_1 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_1);
 			vec_ushort8 matches1_1 = spu_cmpeq(TEXcache1,copy_cmp_1);
 			vec_ushort8 matches2_1 = spu_cmpeq(TEXcache2,copy_cmp_1);
 			vec_uint4 gather1_1 = spu_gather((vec_uchar16)matches1_1);
 			vec_uint4 gather2_1 = spu_gather((vec_uchar16)matches2_1);
 
-			vec_uchar16 shuf_cmp_2 = spu_splats((unsigned short)0xa0b);
-			vec_ushort8 copy_cmp_2 = spu_shuffle(block_id,block_id,shuf_cmp_2);
+			vec_uchar16 shuf_cmp_2 = (vec_uchar16) spu_splats((unsigned short)0xa0b);
+			vec_ushort8 copy_cmp_2 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_2);
 			vec_ushort8 matches1_2 = spu_cmpeq(TEXcache1,copy_cmp_2);
 			vec_ushort8 matches2_2 = spu_cmpeq(TEXcache2,copy_cmp_2);
 			vec_uint4 gather1_2 = spu_gather((vec_uchar16)matches1_2);
 			vec_uint4 gather2_2 = spu_gather((vec_uchar16)matches2_2);
 		
-			vec_uchar16 shuf_cmp_3 = spu_splats((unsigned short)0xe0f);
-			vec_ushort8 copy_cmp_3 = spu_shuffle(block_id,block_id,shuf_cmp_3);
+			vec_uchar16 shuf_cmp_3 = (vec_uchar16) spu_splats((unsigned short)0xe0f);
+			vec_ushort8 copy_cmp_3 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_3);
 			vec_ushort8 matches1_3 = spu_cmpeq(TEXcache1,copy_cmp_3);
 			vec_ushort8 matches2_3 = spu_cmpeq(TEXcache2,copy_cmp_3);
 			vec_uint4 gather1_3 = spu_gather((vec_uchar16)matches1_3);
 			vec_uint4 gather2_3 = spu_gather((vec_uchar16)matches2_3);
 		
-			vec_uint4 gather_merge=spu_splats((unsigned short)0x5555);
+			vec_uint4 gather_merge= (vec_uint4) spu_splats((unsigned short)0x5555);
 		
 			vec_uint4 gather_0 = spu_sel(gather1_0, gather2_0, gather_merge);
 			vec_uint4 gather_2 = spu_sel(gather1_2, gather2_2, gather_merge);
@@ -236,7 +236,8 @@ void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 			// pixel is mask of 1's where we want to draw
 		
 			vec_uint4 local_tex_base = spu_splats((unsigned int)&textureCache);
-			vec_uint4 tex_ofs = spu_mulo( (vec_ushort8)cache,(vec_ushort8)((33*32+4*40)*4));
+			vec_ushort8 mulconst = spu_splats((unsigned short)((33*32+4*40)*4));
+			vec_uint4 tex_ofs = spu_mulo( (vec_ushort8)cache,mulconst);
 			//vec_uint4 tex_ofs = spu_sl(cache, 5+5+2);	// offset into texture
 			vec_uint4 addr = spu_add(tex_ofs,spu_add(sub_block_pixel,local_tex_base));
 		
@@ -360,13 +361,13 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 	const vec_uchar16 select_halfword0_as_uint = (vec_uchar16) {
 		S_0,S_0,0,1, S_0,S_0,0,1, S_0,S_0,0,1, S_0,S_0,0,1}; 
 
-	const vec_short8 tex_shift_count_add = spu_splats((short)64-32);
+	const vec_short8 tex_shift_count_add = spu_splats((signed short)(64-32));
 
 	vec_short8 tex_shift_count = tex_def->shifts;
 
 	vec_int4 tex_sblk_shift = (vec_int4) spu_add(tex_shift_count, (short)64-32);
 	vec_int4 tex_tblk_shift = spu_rlmask(tex_sblk_shift,-16);
-	vec_uint4 tex_tblk_shift_mrg = (vec_int4) tex_shift_count;
+	vec_uint4 tex_tblk_shift_mrg = (vec_uint4)tex_shift_count;
 
 	vec_int4 shift_s_fract = (vec_int4) spu_add(tex_shift_count, (short)64-32+5+8);
 	vec_int4 shift_t_fract = spu_rlmask(shift_s_fract,-16);
@@ -526,8 +527,9 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			vec_uint4 pix3_0 = spu_shuffle(pix3_00,pix3_10,x_shuf3);
 			vec_uint4 pix3_1 = spu_shuffle(pix3_01,pix3_11,x_shuf3);
 
-			vec_uint4 s_pxofs = spu_and(spu_rlmask(t_s,shift_s_fract), (vec_uint4)0xff);
-			vec_uint4 t_pxofs = spu_and(spu_rlmask(t_t,shift_t_fract), (vec_uint4)0xff);
+			const vec_uint4 ff_mask = spu_splats((unsigned int)0xff);
+			vec_uint4 s_pxofs = spu_and(spu_rlmask(t_s,shift_s_fract), ff_mask);
+			vec_uint4 t_pxofs = spu_and(spu_rlmask(t_t,shift_t_fract), ff_mask);
 
 			vec_short8 pixel01_ = (vec_short8) spu_shuffle((vec_uint4)pix0_0, (vec_uint4)pix1_0, get0);
 			vec_short8 pixel01_Y = (vec_short8) spu_shuffle((vec_uint4)pix0_1, (vec_uint4)pix1_1, get0);

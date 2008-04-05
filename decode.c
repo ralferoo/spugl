@@ -169,3 +169,13 @@ int nextTextureDefinitionPtr = 0;
  	return from;
 }
 	
+static u32 set_flag_value = 0;
+/*28*/void* impSetFlag(u32* from, struct __TRIANGLE * triangle) {
+	u64 ea;
+	__READ_EA(from)
+	set_flag_value = *from++;
+
+	spu_mfcdma64(&set_flag_value, mfc_ea2h(ea), mfc_ea2l(ea), 4, FIFO_DMA_TAG, MFC_PUT_CMD);
+
+	return from;
+}
