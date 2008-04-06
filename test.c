@@ -201,7 +201,7 @@ skip:
 			((float)blks_end-blks_start)/uptoLoop,
 			(float) (100.0*(_end-_start)/onesec/uptoLoop),
 			(float) (100.0*(_endBlocked-_startBlocked)/onesec/uptoLoop));
-		write(1,buffer,strlen(buffer));
+		write(2,buffer,strlen(buffer));
 //		printf("%s\n", buffer);
 	}
 	usleep(250000);

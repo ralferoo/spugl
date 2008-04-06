@@ -223,6 +223,17 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	triangle->A_dy = area_dy;
 
 
+	vec_float4 v_t_cw = spu_shuffle(TRIt, TRIt, shuffle_tri_cw);
+	vec_float4 v_t_ccw = spu_shuffle(TRIt, TRIt, shuffle_tri_ccw);
+
+	vec_float4 v_bt_to_ct = spu_sub(v_t_cw, v_t_ccw); // deliberately change sign...
+
+	vec_float4 tex_cover_mul = spu_mul(TRIs, v_bt_to_ct);
+	float tex_cover = spu_extract(tex_cover_mul, 0) +
+			 spu_extract(tex_cover_mul, 1) +
+			 spu_extract(tex_cover_mul, 2);
+	triangle->tex_cover = spu_splats(tex_cover/face_sum);
+
 	////////////////////////////////
 	//
 	// clip minmax to screen boundary
@@ -294,6 +305,8 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	unsigned long triangle_is_visible_mask = spu_extract(fcgt_area, 0);
 	triangle->count = 1 & triangle_is_visible_mask;
 	triangle->produce = (void*)( ((u32)&triangleProducer) & triangle_is_visible_mask );
+
+//	printf("[%d] %f, %f -> %f\n", triangle->count, face_sum, tex_cover, tex_cover/face_sum);
 }
 
 //////////////////////////////////////////////////////////////////////////////

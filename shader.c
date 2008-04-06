@@ -387,6 +387,8 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 	const vec_uint4 mask_s_sub=spu_splats((unsigned int)0xf80);
 	const vec_uint4 mask_t_sub=spu_splats((unsigned int)0x7c);
 
+	vec_float4 tex_cover = tri->tex_cover;
+
 	do {
 		vec_uint4 uAa = (vec_uint4) Aa;
 		vec_uint4 uAb = (vec_uint4) Ab;
@@ -400,6 +402,15 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			vec_float4 tAa = spu_mul(Aa,w);
 			vec_float4 tAb = spu_mul(Ab,w);
 			vec_float4 tAc = spu_mul(Ac,w);
+
+			vec_float4 tex_scale = spu_mul(tex_cover, t_w);
+//			tex_scale = t_w;
+
+/*
+			printf("%f %f %f %f\n",
+				spu_extract(tex_scale,0), spu_extract(tex_scale,1),
+				spu_extract(tex_scale,2), spu_extract(tex_scale,3));
+*/
 
 //PROCESS_BLOCK_HEAD(process_tex_block)
 

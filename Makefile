@@ -168,8 +168,8 @@ ppufifo.o: /usr/include/bits/wchar.h /usr/include/gconv.h
 ppufifo.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 ppufifo.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
 ppufifo.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
-ppufifo.o: /usr/include/sys/mman.h /usr/include/bits/mman.h
-ppufifo.o: /usr/include/libspe.h fifo.h types.h gen_spu_command_defs.h
+ppufifo.o: /usr/include/sys/mman.h /usr/include/bits/mman.h fifo.h types.h
+ppufifo.o: gen_spu_command_defs.h /usr/include/libspe.h
 glfifo.o: /usr/include/stdlib.h /usr/include/features.h
 glfifo.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 glfifo.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
