@@ -71,6 +71,15 @@ register vec_ushort8	TEXcache2	asm ("114");
 
 
 
+static inline vec_int4 log2(vec_float4 a) {
+	qword ra = (qword) a;
+	qword t0 = si_rotmi(ra,-23);
+	qword t1 = si_andi(t0,255);
+	qword t2 = si_sfi(t1,127);
+	return (vec_int4) t2;
+}
+
+
 static inline vec_float4 div(vec_float4 a, vec_float4 b) {
 	qword ra = (qword) a;
 	qword rb = (qword) b;

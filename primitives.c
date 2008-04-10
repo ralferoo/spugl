@@ -91,6 +91,7 @@ extern void* linearColourFill(void* self, Block* block, ActiveBlock* active, int
 extern void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag);
 extern void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int tag);
 extern void* fastTextureMapFill(void* self, Block* block, ActiveBlock* active, int tag);
+extern void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active, int tag);
 
 int dummyProducer(Triangle* tri, Block* block)
 {
@@ -293,7 +294,8 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 //		triangle->init_block = &textureMapFill;
 //	else
 //
-	triangle->init_block = &linearTextureMapFill;
+//	triangle->init_block = &linearTextureMapFill;
+	triangle->init_block = &lessMulsLinearTextureMapFill;
 
 //	triangle->init_block = &fastTextureMapFill;
 
