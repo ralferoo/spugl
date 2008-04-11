@@ -632,6 +632,16 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 	vec_float4 Ab_dx4 = spu_splats(spu_extract(A_dx4,1));
 	vec_float4 Ac_dx4 = spu_splats(spu_extract(A_dx4,2));
 
+	vec_float4 A_rdy = tri->A_dy;
+	vec_float4 Aa_rdy = spu_splats(spu_extract(A_rdy,0));
+	vec_float4 Ab_rdy = spu_splats(spu_extract(A_rdy,1));
+	vec_float4 Ac_rdy = spu_splats(spu_extract(A_rdy,2));
+
+	vec_float4 A_rdx = tri->A_dx;
+	vec_float4 Aa_rdx = spu_splats(spu_extract(A_rdx,0));
+	vec_float4 Ab_rdx = spu_splats(spu_extract(A_rdx,1));
+	vec_float4 Ac_rdx = spu_splats(spu_extract(A_rdx,2));
+
 	vec_float4 A = block->A;
 	vec_float4 Aa = spu_madd(muls,Aa_dx,spu_splats(spu_extract(A,0)));
 	vec_float4 Ab = spu_madd(muls,Ab_dx,spu_splats(spu_extract(A,1)));
@@ -729,14 +739,20 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 	vec_float4 wA = extract(tri->w, Aa, Ab, Ac);
 	vec_float4 wA_dx4 = extract(tri->w, Aa_dx4, Ab_dx4, Ac_dx4);
 	vec_float4 wA_dy = extract(tri->w, Aa_dy, Ab_dy, Ac_dy);
+	vec_float4 wA_rdx = extract(tri->w, Aa_rdx, Ab_rdx, Ac_rdx);
+	vec_float4 wA_rdy = extract(tri->w, Aa_rdy, Ab_rdy, Ac_rdy);
 
 	vec_float4 sA = extract(tri->s, Aa, Ab, Ac);
 	vec_float4 sA_dx4 = extract(tri->s, Aa_dx4, Ab_dx4, Ac_dx4);
 	vec_float4 sA_dy = extract(tri->s, Aa_dy, Ab_dy, Ac_dy);
+	vec_float4 sA_rdx = extract(tri->s, Aa_rdx, Ab_rdx, Ac_rdx);
+	vec_float4 sA_rdy = extract(tri->s, Aa_rdy, Ab_rdy, Ac_rdy);
 
 	vec_float4 tA = extract(tri->t, Aa, Ab, Ac);
 	vec_float4 tA_dx4 = extract(tri->t, Aa_dx4, Ab_dx4, Ac_dx4);
 	vec_float4 tA_dy = extract(tri->t, Aa_dy, Ab_dy, Ac_dy);
+	vec_float4 tA_rdx = extract(tri->t, Aa_rdx, Ab_rdx, Ac_rdx);
+	vec_float4 tA_rdy = extract(tri->t, Aa_rdy, Ab_rdy, Ac_rdy);
 
 	static vec_int4 ll = {-1,-1,-1,-1}; //spu_splats((unsigned int)0x123456);
 	do {
@@ -751,28 +767,28 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 
 //PROCESS_BLOCK_HEAD(process_tex_block)
 
-			vec_float4 k =  sA_dx4*tA_dy*wA + sA*tA_dx4*wA_dy + sA_dy*tA*wA_dx4
-				      - sA_dy*tA_dx4*wA - sA*tA_dy*wA_dx4 - sA_dx4*tA*wA_dy;
-
+			vec_float4 k =  sA_rdx*tA_rdy*wA + sA*tA_rdx*wA_rdy + sA_rdy*tA*wA_rdx
+				      - sA_rdy*tA_rdx*wA - sA*tA_rdy*wA_rdx - sA_rdx*tA*wA_rdy;
+#ifdef WWWW
 			vec_float4 j = k*w*w*w;
-			vec_int4 l = log2(j);
+			vec_int4 l = log2_sqrt_clamp(j);
 
 			vec_uint4 t = spu_cmpeq(l,ll);
 			//if (spu_extract(spu_orx(spu_nor(t,t)),0) != 0) {
-			if (spu_extract(t,0) == 0) {
+//			if (spu_extract(t,0) == 0) {
 //				printf("%f->%d %f->%d %f->%d %f->%d\n",
 //					spu_extract(j,0), spu_extract(l,0), 
 //					spu_extract(j,1), spu_extract(l,1),
 //					spu_extract(j,2), spu_extract(l,2),
 //					spu_extract(j,3), spu_extract(l,3));
-				printf("%d %d %d %d\n",
+				printf("%d\n%d\n%d\n%d\n",
 					spu_extract(l,0), 
 					spu_extract(l,1),
 					spu_extract(l,2),
 					spu_extract(l,3));
-				ll = l;
-			}
-
+//				ll = l;
+//			}
+#endif
 			vec_float4 tf_s = spu_mul(sA, w);
 			vec_float4 tf_t = spu_mul(tA, w);
 
