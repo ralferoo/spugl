@@ -92,6 +92,11 @@ static inline vec_int4 log2_sqrt_clamp(vec_float4 a) {
 }
 
 
+static inline vec_float4 max(vec_float4 a, vec_float4 b) {
+	vec_uint4 cmp = spu_cmpgt(a,b);
+	return (vec_float4) spu_sel(b,a,cmp);
+}
+
 static inline vec_float4 div(vec_float4 a, vec_float4 b) {
 	qword ra = (qword) a;
 	qword rb = (qword) b;
