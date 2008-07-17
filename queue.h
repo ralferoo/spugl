@@ -49,7 +49,7 @@ typedef void (ActiveBlockFlush)(ActiveBlock* active, int tag);
 struct __TEXTURE {
 	vec_short8	shifts;		// interleaved shift masks,  odd: log2(height)  (s_blk_max)
 					// interleaved shift masks, even: log2(width)	(t_blk_max)
-
+	vec_int4	mipmapshifts;
 	u64 		tex_pixel_base;	// the base texture address for block(0,0)
 	unsigned short	tex_id_base;	// base of texture ids (to guarantee unique)
 	unsigned short	users;		// number of triangle producers still using this texture

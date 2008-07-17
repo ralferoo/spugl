@@ -165,6 +165,7 @@ int nextTextureDefinitionPtr = 0;
 	definition->shifts = spu_splats((short)(*from++));
 	definition->tex_t_blk_mult = (unsigned short)(*from++);
 	definition->users = 0;
+	definition->mipmapshifts = spu_splats((int)(*from++));
 
  	return from;
 }

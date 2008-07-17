@@ -754,6 +754,11 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 	vec_float4 tA_rdx = extract(tri->t, Aa_rdx, Ab_rdx, Ac_rdx);
 	vec_float4 tA_rdy = extract(tri->t, Aa_rdy, Ab_rdy, Ac_rdy);
 
+	// vec_int4 adj_a = si_xshw(tex_shift_count);
+	// vec_int4 adj_b = spu_rlmask( (vec_uint4)tex_shift_count, -16);
+	// vec_int4 adjust = spu_add(adj_a, adj_b);
+	vec_int4 adjust = tex_def->mipmapshifts;
+
 	static vec_int4 ll = {-1,-1,-1,-1}; //spu_splats((unsigned int)0x123456);
 	do {
 		vec_uint4 uAa = (vec_uint4) Aa;
@@ -771,13 +776,10 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 
 			vec_float4 k =  sA_rdx*tA_rdy*wA + sA*tA_rdx*wA_rdy + sA_rdy*tA*wA_rdx
 				      - sA_rdy*tA_rdx*wA - sA*tA_rdy*wA_rdx - sA_rdx*tA*wA_rdy;
-			vec_float4 j1 = k*w*w*w;
-			vec_float4 j2 = k*w*w*w;
+			vec_float4 j = k*w*w*w;
 
-			vec_float4 j = max(j1,j2);
-
-			vec_int4 l = log2(j); //_sqrt_clamp(j);
-//			vec_int4 l = log2_sqrt_clamp(j);
+//			vec_int4 l = log2(j); //_sqrt_clamp(j);
+			vec_int4 l = log2_sqrt_clamp(j, adjust);
 
 			vec_uint4 t = spu_cmpeq(l,ll);
 #ifdef WWWW
@@ -989,6 +991,17 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 			vec_uint4 colour = (vec_uint4) spu_shuffle(pixel01_done,pixel23_done,rejoin);
 
 	colour = spu_xor(colour, pattern);
+
+	colour = spu_or(spu_or(spu_sl(spu_and(l,3),6),
+			       spu_sl(spu_and(l,12),12)),
+			       spu_sl(spu_and(l,48),18));
+
+	// l = spu_add(l,8);
+
+	colour = spu_or(spu_or(spu_sl(spu_and(l,1),7),
+			       spu_sl(spu_and(l,2),14)),
+			       spu_sl(spu_and(l,4),21));
+
 
 			vec_uint4 current = *ptr;
 			*ptr = spu_sel(current, colour, pixel);

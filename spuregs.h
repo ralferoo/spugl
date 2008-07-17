@@ -80,15 +80,19 @@ static inline vec_int4 log2(vec_float4 a) {
 }
 
 
-static inline vec_int4 log2_sqrt_clamp(vec_float4 a) {
+static inline vec_int4 log2_sqrt_clamp(vec_float4 a, vec_int4 adjust) {
 	qword ra = (qword) a;
+	qword rb = (qword) adjust;
 	qword t0 = si_shli(ra,1);
 	qword t1 = si_rotmi(t0,-24);
-	qword t2 = si_ai(t1,-127);
+	// qword t2 = si_ai(t1,-127);
+	qword t2p = si_sfi(t1,127);
+	qword t2 = si_sf(t2p,rb);
 	qword t2a = si_rotmai(t2,-1);
 	qword t3 = si_rotmai(t2,-31);
 	qword t4 = si_andc(t2a,t3);
 	return (vec_int4) t4;
+//	return (vec_int4) t2a;
 }
 
 

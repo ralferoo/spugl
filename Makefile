@@ -109,7 +109,7 @@ depend: .gen
 # SPU rules
 
 %.s: %.c
-	$(NEWSPUCC) $(SPUCCFLAGS) -c -S $< -o $*.s
+	$(SPUCC) $(SPUCCFLAGS) -c -S $< -o $*.s
 
 %.0: %.c
 	$(SPUCC) $(SPUCCFLAGS) -c $< -o $*.0

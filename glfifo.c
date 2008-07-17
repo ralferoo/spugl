@@ -233,6 +233,7 @@ GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
 	unsigned int tex_id_base = texture<<6;
 	unsigned int tex_t_mult = (8*32+1)*32*4;
 	unsigned int tex_y_shift = 8-5;
+	unsigned int tex_mipmap_shift = 8+8; // log2(w)+log2(h)
 
 	FIFO_PROLOGUE(ctx,10);
 	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,5);
@@ -240,6 +241,7 @@ GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
 	OUT_RING(tex_id_base);
 	OUT_RING(tex_y_shift);
 	OUT_RING(tex_t_mult);
+	OUT_RING(tex_mipmap_shift);
 	FIFO_EPILOGUE();
 }
 
