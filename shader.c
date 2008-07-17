@@ -9,6 +9,8 @@
  *
  ****************************************************************************/
 
+#define MIP_COLOURS
+
 //////////////////////////////////////////////////////////////////////////////
 //
 // This file holds the standard shaders, the idea is that a shader processes
@@ -802,14 +804,6 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 					spu_or(spu_and(spu_cmpeq(spu_and(l,2),2),0xff00),
 					       spu_and(spu_cmpeq(spu_and(l,4),4),0xff)));
 
-#ifdef MIP_COLOURS
-	colour = spu_xor(colour,
-			spu_or(spu_or(spu_sl(spu_and(l,1),7),
-			       spu_sl(spu_and(l,2),14)),
-			       spu_sl(spu_and(l,4),21)));
-#endif
-
-
 			vec_float4 tf_s = spu_mul(sA, w);
 			vec_float4 tf_t = spu_mul(tA, w);
 
@@ -995,7 +989,10 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 ///////////
 			vec_uint4 colour = (vec_uint4) spu_shuffle(pixel01_done,pixel23_done,rejoin);
 
-	colour = spu_xor(colour, pattern);
+#ifdef MIP_COLOURS
+			colour = spu_xor(colour, pattern);	// tint image with mipmap indicators
+//			colour = pattern;			// make it *really* obvious
+#endif
 
 			vec_uint4 current = *ptr;
 			*ptr = spu_sel(current, colour, pixel);
