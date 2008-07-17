@@ -27,7 +27,7 @@
 
 #define NUMBER_OF_TRIS	10	
 #define NUMBER_OF_QUEUED_BLOCKS 32
-#define NUMBER_OF_ACTIVE_BLOCKS 4
+#define NUMBER_OF_ACTIVE_BLOCKS 1
 #define NUMBER_OF_TEXTURE_DEFINITIONS 10
 
 #define FIFO_SIZE 1024
@@ -53,6 +53,7 @@ struct __TEXTURE {
 	u64 		tex_pixel_base;	// the base texture address for block(0,0)
 	unsigned short	tex_id_base;	// base of texture ids (to guarantee unique)
 	unsigned short	users;		// number of triangle producers still using this texture
+	unsigned short	tex_max_mipmap;	// how many levels of mipmap are present
 	unsigned short	tex_t_blk_mult; // how to find the offset of a t block (s is easy ;)
 } __attribute__ ((aligned(16)));
 

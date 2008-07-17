@@ -756,10 +756,9 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 	vec_float4 tA_rdx = extract(tri->t, Aa_rdx, Ab_rdx, Ac_rdx);
 	vec_float4 tA_rdy = extract(tri->t, Aa_rdy, Ab_rdy, Ac_rdy);
 
-	// vec_int4 adj_a = si_xshw(tex_shift_count);
-	// vec_int4 adj_b = spu_rlmask( (vec_uint4)tex_shift_count, -16);
-	// vec_int4 adjust = spu_add(adj_a, adj_b);
 	vec_int4 adjust = tex_def->mipmapshifts;
+	vec_uint4 mip_block_shift_tmp = (vec_uint4) tex_shift_count;
+	vec_uint4 mip_block_shift = spu_add(mip_block_shift_tmp, spu_rlmask(mip_block_shift_tmp, -16));
 
 	static vec_int4 ll = {-1,-1,-1,-1}; //spu_splats((unsigned int)0x123456);
 	do {
@@ -805,7 +804,9 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 
 			vec_uint4 s_blk = block_s;
 			vec_uint4 t_blk = spu_sl(block_t,spu_sub(tex_tblk_shift_mrg,(vec_uint4)mipmap));
-			vec_uint4 block_id = spu_add(t_blk,spu_add(s_blk,tex_id_base));
+			vec_uint4 block_id = spu_add(
+						spu_add(t_blk,spu_add(s_blk,tex_id_base)),
+						spu_sl((vec_uint4)mipmap, mip_block_shift));
 
 			vec_ushort8 copy_cmp_0 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_0);
 			vec_ushort8 matches1_0 = spu_cmpeq(TEXcache1,copy_cmp_0);
