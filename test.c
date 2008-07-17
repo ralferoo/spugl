@@ -9,6 +9,10 @@
  *
  ****************************************************************************/
 
+//#define SCALE 1.0
+#define SCALE 1.7
+//#define SCALE 2.0
+
 #define SYNC_WITH_FRAME
 // #define DOUBLE_SYNC
 // #define BLACK_MIDDLES
@@ -97,9 +101,9 @@ int main(int argc, char* argv[]) {
 			float tx=0, ty=0, tz=0;
 			float tr=0, tg=0, tb=0;
 			for (v=0; v<4; v++) {
-				x = vertices[faces[f][v]][0] / 2.4;
-				y = vertices[faces[f][v]][1] / 2.4;
-				z = vertices[faces[f][v]][2] / 2.4;
+				x = vertices[faces[f][v]][0] / SCALE;
+				y = vertices[faces[f][v]][1] / SCALE;
+				z = vertices[faces[f][v]][2] / SCALE;
 
 				t = ca*x+sa*y;
 				y = ca*y-sa*x;
