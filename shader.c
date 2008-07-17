@@ -9,7 +9,7 @@
  *
  ****************************************************************************/
 
-#define MIP_COLOURS
+// #define MIP_COLOURS
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -779,30 +779,20 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 			vec_float4 k =  sA_rdx*tA_rdy*wA + sA*tA_rdx*wA_rdy + sA_rdy*tA*wA_rdx
 				      - sA_rdy*tA_rdx*wA - sA*tA_rdy*wA_rdx - sA_rdx*tA*wA_rdy;
 			vec_float4 j = k*w*w*w;
-			vec_int4 l = log2_sqrt_clamp(j, adjust);
+			vec_int4 mipmap = log2_sqrt_clamp(j, adjust);
 
 #ifdef WWWW
-			vec_uint4 t = spu_cmpeq(l,ll);
-			//if (spu_extract(spu_orx(spu_nor(t,t)),0) != 0) {
-//			if (spu_extract(t,0) == 0) {
-//				printf("%f->%d %f->%d %f->%d %f->%d\n",
-//					spu_extract(j,0), spu_extract(l,0), 
-//					spu_extract(j,1), spu_extract(l,1),
-//					spu_extract(j,2), spu_extract(l,2),
-//					spu_extract(j,3), spu_extract(l,3));
 				printf("%d\n%d\n%d\n%d\n",
-					spu_extract(l,0), 
-					spu_extract(l,1),
-					spu_extract(l,2),
-					spu_extract(l,3));
-//				ll = l;
-//			}
+					spu_extract(mipmap,0), 
+					spu_extract(mipmap,1),
+					spu_extract(mipmap,2),
+					spu_extract(mipmap,3));
 #endif
 
 			vec_uint4 pattern = 
-				spu_or(spu_and(spu_cmpeq(spu_and(l,1),1),0xff0000),
-					spu_or(spu_and(spu_cmpeq(spu_and(l,2),2),0xff00),
-					       spu_and(spu_cmpeq(spu_and(l,4),4),0xff)));
+				spu_or(spu_and(spu_cmpeq(spu_and(mipmap,1),1),0xff0000),
+					spu_or(spu_and(spu_cmpeq(spu_and(mipmap,2),2),0xff00),
+					       spu_and(spu_cmpeq(spu_and(mipmap,4),4),0xff)));
 
 			vec_float4 tf_s = spu_mul(sA, w);
 			vec_float4 tf_t = spu_mul(tA, w);
@@ -810,11 +800,11 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 			vec_uint4 t_s = spu_convtu(tf_s,32);
 			vec_uint4 t_t = spu_convtu(tf_t,32);
 
-			vec_uint4 block_s = spu_rlmask(t_s,tex_sblk_shift);
-			vec_uint4 block_t = spu_rlmask(t_t,tex_tblk_shift);
+			vec_uint4 block_s = spu_rlmask(t_s,spu_sub(tex_sblk_shift,mipmap));
+			vec_uint4 block_t = spu_rlmask(t_t,spu_sub(tex_tblk_shift,mipmap));
 
 			vec_uint4 s_blk = block_s;
-			vec_uint4 t_blk = spu_sl(block_t,tex_tblk_shift_mrg);
+			vec_uint4 t_blk = spu_sl(block_t,spu_sub(tex_tblk_shift_mrg,(vec_uint4)mipmap));
 			vec_uint4 block_id = spu_add(t_blk,spu_add(s_blk,tex_id_base));
 
 			vec_ushort8 copy_cmp_0 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_0);
@@ -863,8 +853,8 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 
 			// pixel is mask of 1's where we want to draw
 		
-			vec_uint4 s_sub = spu_and(spu_rlmask(t_s,shift_s_sub), mask_s_sub);	
-			vec_uint4 t_sub = spu_and(spu_rlmask(t_t,shift_t_sub), mask_t_sub);
+			vec_uint4 s_sub = spu_and(spu_rlmask(t_s,spu_sub(shift_s_sub,mipmap)), mask_s_sub);	
+			vec_uint4 t_sub = spu_and(spu_rlmask(t_t,spu_sub(shift_t_sub,mipmap)), mask_t_sub);
 			vec_uint4 sub_block_pixel = spu_or(s_sub,t_sub);
 
 			vec_uint4 tex_ofs = spu_mulo( (vec_ushort8)cache, tex_ofs_mul);
