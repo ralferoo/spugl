@@ -421,6 +421,8 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			vec_uint4 t_blk = spu_sl(block_t,tex_tblk_shift_mrg);
 			vec_uint4 block_id = spu_add(t_blk,spu_add(s_blk,tex_id_base));
 
+			// if this was done as seperate high and low bytes, could probably remove a load of the selects
+
 			vec_ushort8 copy_cmp_0 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_0);
 			vec_ushort8 matches1_0 = spu_cmpeq(TEXcache1,copy_cmp_0);
 			vec_ushort8 matches2_0 = spu_cmpeq(TEXcache2,copy_cmp_0);
@@ -767,6 +769,10 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 	vec_uint4 mip_block_shift = spu_add(mip_block_shift_tmp, spu_rlmask(mip_block_shift_tmp, -16));
 	vec_int4 max_mipmap = spu_splats((int)tex_def->tex_max_mipmap);
 
+	vec_float4 mip_wA_mult = sA_rdx*tA_rdy - sA_rdy*tA_rdx;
+	vec_float4 mip_sA_mult = tA_rdx*wA_rdy - tA_rdy*wA_rdx;
+	vec_float4 mip_tA_mult = wA_rdx*sA_rdy - wA_rdy*sA_rdx;
+
 	static vec_int4 ll = {-1,-1,-1,-1}; //spu_splats((unsigned int)0x123456);
 	do {
 		vec_uint4 uAa = (vec_uint4) Aa;
@@ -782,8 +788,9 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 
 //PROCESS_BLOCK_HEAD(process_tex_block)
 
-			vec_float4 k =  sA_rdx*tA_rdy*wA + sA*tA_rdx*wA_rdy + sA_rdy*tA*wA_rdx
-				      - sA_rdy*tA_rdx*wA - sA*tA_rdy*wA_rdx - sA_rdx*tA*wA_rdy;
+			// TODO - this can be moved into deltas
+			vec_float4 k = mip_wA_mult*wA + mip_sA_mult*sA + mip_tA_mult*tA;
+
 			vec_float4 j = k*w*w*w;
 			vec_int4 mipmap_real = log2_sqrt_clamp(j, adjust);
 
