@@ -1,0 +1,97 @@
+				Hilbert optimisations
+				---------------------
+
+data_modified
+-------------
+
+"counter" that indicates that a group of blocks has been changed.
+
+last_read_ptr
+-------------
+
+one per block, sorted in hilbert order for ease of accessing when drawing a block.
+holds a pointer to the last read address (same as next_write_ptr).
+initially set to &block_deference_ptrs[hilbert(n)] for each n in array.
+
+next_write_ptr
+--------------
+
+one per block, sorted in screen order.
+holds a pointer to the next write address (same as the last_read_ptr).
+initially set to &block_deference_ptrs[n] for each n in array.
+
+triangle_structure
+------------------
+
+<triangle_data>
+
+n * <triangle_block>
+
+triangle_block
+--------------
+
+<per_block_data> (inc pointer to triangle_structure)
+next_triangle:	pointer to next triangle_block (this is the target of the next_write_ptr/last_read_ptr)
+	
+block_deference_ptrs
+--------------------
+
+blocks_wide * blocks_height, initially set to NULL
+
+
+Reading Algorithm
+-----------------
+
+For a given group, see if the data_modified has changed.
+Lock group of blocks
+If so, DMA the appropriate subset of last_read_ptr
+Build up DMA list of reads for each entry, i.e. contents of next_triangle for each block
+For each block:
+	If the next_triangle is not-null:
+		Fetch the per-triangle / triangle data
+		Fetch the current block pixel and z data
+		Add to processing list
+		Mark subset as changed
+		Increment processing count
+
+At end of processing list for a block:
+	Update subset of last_read_ptr
+	Decrement processing count, if zero:
+		Start read of next data_modified / last_read_ptr
+		Write last_read_ptr subset
+	Write block pixel and z data
+	if count was zero:
+		Unlock group of blocks
+
+Writing Algorithm
+-----------------
+
+(last_write_ptr array is all in LS)
+
+Add triangle data to end of list buffer
+Start DMA 
+For each block in triangle:
+	Add per block data to end of list buffer (inc ptr to triangle)
+	Add this to DMA list
+	Store this block pointer in LS
+	Add this to DMA list to update the last block's next pointer
+	Update last_write_ptr with this &block.next
+	Start DMA
+
+At some point, need to reset the triangle output buffer....
+
+
+When the buffer is looking somewhat "fullish":
+	DMA the last_read_ptr table
+	If there is a non-null ptr that is >= ENDPOINT:
+		Abort
+	Else:
+		We can start waiting until it's fullish
+
+When the buffer is looking "fullish":
+	DMA the last_read_ptr table
+	Find the lowest, non-null ptr -> ENDPOINT
+	Can restart back at 0, but cannot recycle beyond ENDPOINT
+	Initially, create fake triangles for all buffers to push the buffers back to the start again
+
+

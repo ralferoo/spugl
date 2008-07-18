@@ -22,7 +22,7 @@
 //
 // NUMBER_OF_TRIS		no limit, but there's no advantage to having this bigger than blocks
 // NUMBER_OF_QUEUED_BLOCKS	maximum and optimally 32; needs to fit in bitmask
-// NUMBER_OF_ACTIVE_BLOCKS	should be at least 2; any more than 4 and the DMA queue could fill
+// NUMBER_OF_ACTIVE_BLOCKS	should be between 2 and 4
 // NUMBER_OF_TEXTURE_DEFINITIONS	should be at least NUMBER_OF_TRIS or else texture.c needs work
 
 #define NUMBER_OF_TRIS	10	
