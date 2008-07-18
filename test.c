@@ -10,9 +10,9 @@
  ****************************************************************************/
 
 //#define SCALE 0.9
-#define SCALE 1.0
+//#define SCALE 1.0
 //#define SCALE 1.7
-//#define SCALE 2.0
+#define SCALE 2.0
 //#define SCALE 2.5
 //#define SCALE 3.0
 

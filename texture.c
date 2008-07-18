@@ -61,7 +61,7 @@ void* finishTextureLoad(void* self, Block* block, ActiveBlock* active, int tag);
 
 void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag,
 			vec_float4 A, vec_uint4 left, vec_uint4* ptr, vec_uint4 tex_keep,
-			vec_uint4 block_id, vec_uint4 s, vec_uint4 t,
+			vec_int4 mipmap_vec, vec_uint4 block_id, vec_uint4 s, vec_uint4 t,
 			vec_uint4 cache_not_found, vec_uint4 pixel)
 {
 	block->A = A;
@@ -125,6 +125,7 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 	for (i=0,m=0x8; m && freeTextureMaps; m>>=1,i++) {
 		if (n&m) {			// as soon as we find a 1 bit we are done
 			unsigned int want = spu_extract(block_id,i);
+			unsigned int mipmap = spu_extract(mipmap_vec,i);
 			int nextBit1 = first_bit(freeTextureMaps);
 			int nextBit2 = first_bit(freeTextureMaps & ((1<<lastLoadedTextureMap)-1) );
 			int nextIndex = nextBit2<0 ? nextBit1 : nextBit2;
@@ -160,16 +161,19 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 			unsigned int s_blk = spu_extract(s, i);
 			unsigned int t_blk = spu_extract(t, i);
 			unsigned int t_next = (t_blk+1)&7;		// TODO: blksize ref
-
-			// this sucks with the mults, but hey!
-			unsigned short t_mult = textureDefinition->tex_t_blk_mult[0];
+mipmap=0;
+			unsigned short t_mult = textureDefinition->tex_t_blk_mult[mipmap];
 			unsigned int ofs = s_blk*32*32*4 + t_blk*t_mult;
 			unsigned int ofs_next = s_blk*32*32*4 + t_next*t_mult;
-			unsigned long long ea = textureDefinition->tex_pixel_base[0] + ofs;
-			unsigned long long ea_next = textureDefinition->tex_pixel_base[0] + ofs_next;
+			unsigned long long ea = textureDefinition->tex_pixel_base[mipmap] + ofs;
+			unsigned long long ea_next = textureDefinition->tex_pixel_base[mipmap] + ofs_next;
 
-//			printf("pixel_base %llx, ea %llx, ea_next %llx. %d%d%d\n",
-//				textureDefinition->tex_pixel_base, ea, ea_next, 1,2,3);
+/*
+			// this sucks with the mults, but hey!
+			printf("Want %x mipmap %d - pixel_base %llx, ea %llx, ea_next %llx. %d%d%d\n",
+				want, mipmap,
+				textureDefinition->tex_pixel_base[0], ea, ea_next, 1,2,3);
+*/
 
 //			unsigned int desired = spu_extract(needs_sub, i);
 //			unsigned long long ea = block->triangle->texture_base + (desired<<(5+5+2));

@@ -234,18 +234,21 @@ GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
 	unsigned int tex_max_mipmap = 7;
 	unsigned int tex_mipmap_shift = 8+8; // log2(w)+log2(h)
 
-	u32* ptr = localTextures[texture];
-	unsigned int tex_t_mult = (8*32+1)*32*4;
-
-	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,5);
+	FIFO_PROLOGUE(ctx,10+3*(1+tex_max_mipmap));
+	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,4+3*(1+tex_max_mipmap));
 	OUT_RING(tex_id_base);
 	OUT_RING(tex_x_y_shift);
 	OUT_RING(tex_mipmap_shift);
 	OUT_RING(tex_max_mipmap);
 
-	OUT_RINGea(ptr);
-	OUT_RING(tex_t_mult);
+	for (int i=0; i<=tex_max_mipmap; i++) {
+		// re-use the same mip-map for all levels
+		u32* ptr = localTextures[texture];
+		unsigned int tex_t_mult = (8*32+1)*32*4;
+
+		OUT_RINGea(ptr);
+		OUT_RING(tex_t_mult);
+	}
 	FIFO_EPILOGUE();
 }
 

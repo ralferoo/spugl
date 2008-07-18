@@ -120,7 +120,7 @@ static const vec_uchar16 shuf_gath_23 = {
 extern void* textureCache;
 extern void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag,
 			vec_float4 A, vec_uint4 left, vec_uint4* ptr, vec_uint4 tex_keep,
-			vec_uint4 block_id, vec_uint4 s, vec_uint4 t, 
+			vec_int4 mipmap, vec_uint4 block_id, vec_uint4 s, vec_uint4 t, 
 			vec_uint4 cache_not_found, vec_uint4 pixel);
 
 //////////////////////////////////////////////////////////////////////////////
@@ -231,7 +231,7 @@ void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 				vec_uint4 s = spu_rlmask(t_s,-29);
 				vec_uint4 t = spu_rlmask(t_t,-29);
 				return loadMissingTextures(self, block, active, tag,
-					A, left, ptr, tex_keep,
+					A, left, ptr, tex_keep, spu_splats(0) /*mipmap*/,
 					block_id, s, t, cache_not_found, pixel);
 			}
 
@@ -461,7 +461,7 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 			unsigned int cache_orx = spu_extract(spu_orx(cache_not_found),0);
 			if (__builtin_expect(cache_orx,0)) {  // amazingly gcc does move this out of the loop :)
 				return loadMissingTextures(self, block, active, tag,
-					A, left, ptr, tex_keep,
+					A, left, ptr, tex_keep, spu_splats(0) /*mipmap*/,
 					block_id, block_s, block_t, cache_not_found, pixel);
 			}
 
@@ -867,7 +867,7 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 			unsigned int cache_orx = spu_extract(spu_orx(cache_not_found),0);
 			if (__builtin_expect(cache_orx,0)) {  // amazingly gcc does move this out of the loop :)
 				return loadMissingTextures(self, block, active, tag,
-					A, left, ptr, tex_keep,
+					A, left, ptr, tex_keep, mipmap,
 					block_id, block_s, block_t, cache_not_found, pixel);
 			}
 

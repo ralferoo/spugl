@@ -164,17 +164,21 @@ int nextTextureDefinitionPtr = 0;
 	definition->tex_base_lo = lo;
 	definition->tex_base_hi = hi;
 
-	// printf("Texture base %x\n", tex_id_base);
+//	printf("Texture base %x\n", tex_id_base);
 
 	definition->shifts = spu_splats((short)(*from++));	// assume x and y shift the same!
 	definition->users = 0;
 	definition->mipmapshifts = spu_splats((int)(*from++));
-	definition->tex_max_mipmap = *from++;
+	u32 max_mipmap = *from++;
+	definition->tex_max_mipmap = max_mipmap;
 
-	u64 ea;
-	__READ_EA(from)
-	definition->tex_pixel_base[0] = ea;
-	definition->tex_t_blk_mult[0] = (unsigned short)(*from++);
+	for (int i=0; i<=max_mipmap; i++) {
+		u64 ea;
+		__READ_EA(from)
+		definition->tex_pixel_base[i] = ea;
+		definition->tex_t_blk_mult[i] = (unsigned short)(*from++);
+//		printf("%d: ea %x mult %x\n", i, (u32)ea, definition->tex_t_blk_mult[i]);
+	}
 
  	return from;
 }
