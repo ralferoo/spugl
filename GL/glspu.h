@@ -10,7 +10,7 @@
 
 #include <GL/gl.h>
 
-GLAPI void GLAPIENTRY glspuSetup(void);
+GLAPI void GLAPIENTRY glspuSetup(char* dumpName);
 GLAPI void GLAPIENTRY glspuDestroy(void);
 GLAPI void GLAPIENTRY glspuFlip(void);
 GLAPI void GLAPIENTRY glspuWait(void);

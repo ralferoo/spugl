@@ -17,7 +17,7 @@
 #include "struct.h"
 #include <GL/gl.h>
 
-extern BitmapImage _getScreen(void);
+extern BitmapImage _getScreen(char* dumpName);
 extern void _closeScreen(void);
 extern BitmapImage _flipScreen(void);
 
@@ -71,10 +71,10 @@ static void updateScreenPointer(void)
 	FIFO_EPILOGUE();
 }
 
-GLAPI void GLAPIENTRY glspuSetup(void)
+GLAPI void GLAPIENTRY glspuSetup(char* dumpName)
 {
 	ctx = _init_3d_driver(1);
-	screen = _getScreen();
+	screen = _getScreen(dumpName);
 	updateScreenPointer();
 
 	// TODO: this should not be here!

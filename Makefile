@@ -57,6 +57,9 @@ test.static:	$(PPU_TEST_OBJS) $(SPU_HNDL)
 run:	test
 	./test
 
+dump:	test
+	./test dump.avi
+
 ### BUILD-ONLY-START ###
 #
 # This stuff is excluded from the distribution Makefile...

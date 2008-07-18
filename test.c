@@ -60,7 +60,8 @@ static inline double getTimeSince(struct timespec startPoint) {
 unsigned long flag=0;
 
 int main(int argc, char* argv[]) {
-	glspuSetup();
+//	glspuSetup(NULL);
+	glspuSetup(argc>1 ? argv[1] : NULL);
 
 	float onesec = 42670000.0;
 
