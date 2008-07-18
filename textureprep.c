@@ -25,6 +25,33 @@ static int log2(int in) {
 	return i;
 }
 
+static unsigned int data[4] = {0};	// some weird alignment stuff here
+
+void generateMipMaps(Texture tex) {
+	// fake later mipmaps
+	
+	int width = tex->tex_width;
+	int height = tex->tex_height;
+
+	for (int i=1; i<7; i++) {
+		width = ((width>>1)+31)&~31;
+		height = ((height>>1)+31)&~31;
+		int mainsize = width*(height+1)*4;
+		int extrasize = (width/32)*height*4;
+		void* buffer = malloc(mainsize+extrasize+127);
+		u32* pixels = (u32*) ((((unsigned int)buffer)+127)&~127);
+	
+		tex->tex_id_base[i] = data[0];
+		data[0]+=(width>>5)*(height>>5);
+		tex->tex_t_mult[i] = (height+1)*32*4;
+
+		tex->tex_data[i] = pixels;
+		tex->tex_max_mipmap = i;
+
+		printf("generating mipmap %d for %dx%d: %x base %x mult %x\n", i, width, height, tex->tex_data[i], tex->tex_id_base[i], tex->tex_t_mult[i]);
+	}
+}
+
 Texture convertGimpTexture(gimp_image* source) {
 	Texture tex = malloc(sizeof(_texture));
 	if (tex) {
@@ -82,20 +109,25 @@ Texture convertGimpTexture(gimp_image* source) {
 		tex->tex_max_mipmap = 0;
 
 		// generate next texture block base id
-		static unsigned int data[4] = {0};	// some weird alignment stuff here
 		tex->tex_id_base[0] = data[0];
 		data[0]+=(width>>5)*(height>>5);
 
 		tex->tex_t_mult[0] = (height+1)*32*4;
 		tex->tex_data[0] = pixels;
 
-		// fake later mipmaps
 		for (int i=1; i<7; i++) {
+//			tex->tex_id_base[i] = 0;
+//			tex->tex_data[i] = NULL;
+//			tex->tex_t_mult[i] = 0;
+
 			tex->tex_id_base[i] = tex->tex_id_base[0];
 			tex->tex_data[i] = tex->tex_data[0];
 			tex->tex_t_mult[i] = tex->tex_t_mult[0];
 			tex->tex_max_mipmap = i;
+
 		}
+
+//		generateMipMaps(tex);
 	} // tex!=NULL
 
 	return tex;
