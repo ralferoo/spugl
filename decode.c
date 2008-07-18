@@ -158,13 +158,8 @@ int nextTextureDefinitionPtr = 0;
 		currentTexture = definition;
 	}
 
-	u32 tex_id_base = *from++;
-	vec_uchar16 lo = spu_splats((unsigned char)tex_id_base);
-	vec_uchar16 hi = spu_splats((unsigned char)(tex_id_base>>8));
-	definition->tex_base_lo = lo;
-	definition->tex_base_hi = hi;
-
-//	printf("Texture base %x\n", tex_id_base);
+	vec_uchar16 lo = spu_splats((unsigned char)0);
+	vec_uchar16 hi = spu_splats((unsigned char)0);
 
 	definition->shifts = spu_splats((short)(*from++));	// assume x and y shift the same!
 	definition->users = 0;
@@ -178,7 +173,13 @@ int nextTextureDefinitionPtr = 0;
 		definition->tex_pixel_base[i] = ea;
 		definition->tex_t_blk_mult[i] = (unsigned short)(*from++);
 //		printf("%d: ea %x mult %x\n", i, (u32)ea, definition->tex_t_blk_mult[i]);
+
+		u32 tex_id_base = *from++;
+		lo = spu_insert((unsigned char)tex_id_base, lo, i);
+		hi = spu_insert((unsigned char)(tex_id_base>>8), hi, i);
 	}
+	definition->tex_base_lo = lo;
+	definition->tex_base_hi = hi;
 
  	return from;
 }

@@ -12,7 +12,26 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "types.h"
+#include "struct.h"
+
+u32* prepare_texture(gimp_image* source);
+
+
+Texture convertGimpTexture(gimp_image* source) {
+	Texture tex = malloc(sizeof(_texture));
+	if (tex) {
+		static unsigned int data[4] = {0};	// some weird alignment stuff here
+		tex->tex_x_y_shift = 8-5;
+		tex->tex_max_mipmap = 0;
+		tex->tex_mipmap_shift = 8+8; // log2(w)+log2(h)
+
+		tex->tex_id_base[0] = data[0]; data[0]+=64; //_next_id; // next_base; next_base += 64;	//texture<<(6+3); // +3 = 8 levels of mipmap
+		tex->tex_data[0] = prepare_texture(source);
+		tex->tex_t_mult[0] = (8*32+1)*32*4;
+	}
+
+	return tex;
+}
 
 u32* prepare_texture(gimp_image* source)
 {

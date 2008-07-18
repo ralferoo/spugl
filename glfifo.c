@@ -229,14 +229,12 @@ GLAPI void GLAPIENTRY glTexCoord4f (GLfloat s, GLfloat t, GLfloat u, GLfloat v)
 
 GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
 {
-	unsigned int tex_id_base = texture<<(6+3); // +3 = 8 levels of mipmap
 	unsigned int tex_x_y_shift = 8-5;
 	unsigned int tex_max_mipmap = 7;
 	unsigned int tex_mipmap_shift = 8+8; // log2(w)+log2(h)
 
-	FIFO_PROLOGUE(ctx,10+3*(1+tex_max_mipmap));
-	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,4+3*(1+tex_max_mipmap));
-	OUT_RING(tex_id_base);
+	FIFO_PROLOGUE(ctx,10+4*(1+tex_max_mipmap));
+	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,3+4*(1+tex_max_mipmap));
 	OUT_RING(tex_x_y_shift);
 	OUT_RING(tex_mipmap_shift);
 	OUT_RING(tex_max_mipmap);
@@ -245,9 +243,11 @@ GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
 		// re-use the same mip-map for all levels
 		u32* ptr = localTextures[texture];
 		unsigned int tex_t_mult = (8*32+1)*32*4;
+		unsigned int tex_id_base = texture<<(6+3); // +3 = 8 levels of mipmap
 
 		OUT_RINGea(ptr);
 		OUT_RING(tex_t_mult);
+		OUT_RING(tex_id_base);
 	}
 	FIFO_EPILOGUE();
 }

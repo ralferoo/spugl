@@ -20,6 +20,18 @@
 #define FRAGMENT_HEIGHT 32
 #define FRAGMENT_SIZE (4*FRAGMENT_WIDTH*FRAGMENT_HEIGHT)
 
+#define MAX_MIPMAP_LEVELS 10
+
+typedef struct {
+	unsigned int tex_x_y_shift;
+	unsigned int tex_mipmap_shift;
+	unsigned int tex_max_mipmap;
+	u32* tex_data[MAX_MIPMAP_LEVELS];
+	unsigned int tex_t_mult[MAX_MIPMAP_LEVELS];
+	unsigned int tex_id_base[MAX_MIPMAP_LEVELS];
+} _texture;
+typedef _texture* Texture;
+
 typedef struct {
 	u64 address;
 	u32 width;
