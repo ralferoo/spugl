@@ -107,7 +107,7 @@ depend: .gen
 	@makedepend -I/usr/include/python2.4/ -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(PPU_SRCS) -DUSERLAND_$(USERLAND)_BITS
 	@makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.0 $(SPU_SRCS) -DSPU_REGS -DUSERLAND_$(USERLAND)_BITS
 	@rm -f Makefile.bak
-	@for i in $(SPU_OBJS) ; do grep $$i:.*spuregs.h Makefile >/dev/null || (echo ERROR: $$i does not refer to spuregs.h && false) ; done
+	@for i in $(SPU_OBJS) ; do grep $$i:.*spuregs.h Makefile >/dev/null || [ ! -f `basename $$i .0`.c ] || ( echo ERROR: $$i does not refer to spuregs.h && false) ; done
 
 # SPU rules
 
@@ -205,6 +205,8 @@ framebuffer.o: /usr/include/sys/select.h /usr/include/bits/select.h
 framebuffer.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
 framebuffer.o: /usr/include/sys/sysmacros.h /usr/include/bits/pthreadtypes.h
 framebuffer.o: /usr/include/stdint.h /usr/include/bits/wchar.h
+framebuffer.o: /usr/include/unistd.h /usr/include/bits/posix_opt.h
+framebuffer.o: /usr/include/bits/confname.h /usr/include/getopt.h
 framebuffer.o: /usr/include/sys/ioctl.h /usr/include/bits/ioctls.h
 framebuffer.o: /usr/include/asm/ioctls.h /usr/include/asm/ioctl.h
 framebuffer.o: /usr/include/bits/ioctl-types.h /usr/include/termios.h
@@ -212,15 +214,15 @@ framebuffer.o: /usr/include/bits/termios.h /usr/include/sys/ttydefaults.h
 framebuffer.o: /usr/include/sys/mman.h /usr/include/bits/mman.h
 framebuffer.o: /usr/include/linux/kd.h /usr/include/linux/types.h
 framebuffer.o: /usr/include/linux/posix_types.h /usr/include/linux/stddef.h
-framebuffer.o: /usr/include/linux/compiler.h /usr/include/asm/posix_types.h
-framebuffer.o: /usr/include/asm/types.h /usr/include/linux/tiocl.h
-framebuffer.o: /usr/include/sys/time.h /usr/include/linux/fb.h
-framebuffer.o: /usr/include/linux/i2c.h /usr/include/asm/ps3fb.h
-framebuffer.o: /usr/include/linux/ioctl.h /usr/include/stdlib.h
-framebuffer.o: /usr/include/alloca.h /usr/include/bits/stdlib-ldbl.h
-framebuffer.o: /usr/include/stdio.h /usr/include/libio.h
-framebuffer.o: /usr/include/_G_config.h /usr/include/wchar.h
-framebuffer.o: /usr/include/gconv.h /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+framebuffer.o: /usr/include/asm/posix_types.h /usr/include/asm/types.h
+framebuffer.o: /usr/include/linux/tiocl.h /usr/include/sys/time.h
+framebuffer.o: /usr/include/linux/fb.h /usr/include/linux/i2c.h
+framebuffer.o: /usr/include/asm/ps3fb.h /usr/include/linux/ioctl.h
+framebuffer.o: /usr/include/stdlib.h /usr/include/alloca.h
+framebuffer.o: /usr/include/bits/stdlib-ldbl.h /usr/include/stdio.h
+framebuffer.o: /usr/include/libio.h /usr/include/_G_config.h
+framebuffer.o: /usr/include/wchar.h /usr/include/gconv.h
+framebuffer.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 framebuffer.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
 framebuffer.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
 framebuffer.o: /usr/include/string.h /usr/include/net/if.h
