@@ -161,7 +161,7 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 			unsigned int s_blk = spu_extract(s, i);
 			unsigned int t_blk = spu_extract(t, i);
 			unsigned int t_next = (t_blk+1)&7;		// TODO: blksize ref
-mipmap=0;
+
 			unsigned short t_mult = textureDefinition->tex_t_blk_mult[mipmap];
 			unsigned int ofs = s_blk*32*32*4 + t_blk*t_mult;
 			unsigned int ofs_next = s_blk*32*32*4 + t_next*t_mult;
