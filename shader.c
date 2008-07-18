@@ -765,6 +765,7 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 	vec_int4 adjust = tex_def->mipmapshifts;
 	vec_uint4 mip_block_shift_tmp = (vec_uint4) tex_shift_count;
 	vec_uint4 mip_block_shift = spu_add(mip_block_shift_tmp, spu_rlmask(mip_block_shift_tmp, -16));
+	vec_int4 max_mipmap = spu_splats((int)tex_def->tex_max_mipmap);
 
 	static vec_int4 ll = {-1,-1,-1,-1}; //spu_splats((unsigned int)0x123456);
 	do {
@@ -784,14 +785,24 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 			vec_float4 k =  sA_rdx*tA_rdy*wA + sA*tA_rdx*wA_rdy + sA_rdy*tA*wA_rdx
 				      - sA_rdy*tA_rdx*wA - sA*tA_rdy*wA_rdx - sA_rdx*tA*wA_rdy;
 			vec_float4 j = k*w*w*w;
-			vec_int4 mipmap = log2_sqrt_clamp(j, adjust);
+			vec_int4 mipmap_real = log2_sqrt_clamp(j, adjust);
+
+			vec_uint4 mipmap_clamp_sel = spu_cmpgt(max_mipmap,mipmap_real);
+			vec_int4 mipmap = spu_sel(max_mipmap,mipmap_real,mipmap_clamp_sel);
 
 #ifdef WWWW
+				printf("%d %d %d -> %d\n",
+					spu_extract(mipmap_real,0), 
+					spu_extract(mipmap_clamp_sel,0),
+					spu_extract(max_mipmap,0), 
+					spu_extract(mipmap,0));
+/*
 				printf("%d\n%d\n%d\n%d\n",
-					spu_extract(mipmap,0), 
-					spu_extract(mipmap,1),
-					spu_extract(mipmap,2),
-					spu_extract(mipmap,3));
+					spu_extract(mipmap_clamp_sel,0), 
+					spu_extract(mipmap_clamp_sel,1),
+					spu_extract(mipmap_clamp_sel,2),
+					spu_extract(mipmap_clamp_sel,3));
+*/
 #endif
 
 			vec_uint4 pattern = 
