@@ -161,9 +161,12 @@ int nextTextureDefinitionPtr = 0;
 	vec_uchar16 lo = spu_splats((unsigned char)0);
 	vec_uchar16 hi = spu_splats((unsigned char)0);
 
-	definition->shifts = spu_splats((short)(*from++));	// assume x and y shift the same!
+	int log2_x = (int)(*from++);
+	int log2_y = (int)(*from++);
+
+	definition->shifts = spu_splats((int)((log2_x + (log2_y<<16))-0x50005));
 	definition->users = 0;
-	definition->mipmapshifts = spu_splats((int)(*from++));
+	definition->mipmapshifts = spu_splats((int)(log2_x+log2_y));
 	u32 max_mipmap = *from++;
 	definition->tex_max_mipmap = max_mipmap;
 

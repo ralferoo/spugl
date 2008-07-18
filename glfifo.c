@@ -24,7 +24,8 @@ extern BitmapImage _flipScreen(void);
 static DriverContext ctx = NULL;
 static BitmapImage screen = NULL;
 
-u32* prepare_texture(gimp_image* source);
+Texture convertGimpTexture(gimp_image* source);
+
 extern gimp_image berlin;
 extern gimp_image oranges;
 extern gimp_image mim;
@@ -33,7 +34,7 @@ extern gimp_image gate;
 extern gimp_image space;
 extern gimp_image tongariro;
 
-static u32* localTextures[10];
+static Texture localTextures[10];
 
 GLAPI GLenum GLAPIENTRY glGetError(void)
 {
@@ -78,13 +79,13 @@ GLAPI void GLAPIENTRY glspuSetup(char* dumpName)
 	updateScreenPointer();
 
 	// TODO: this should not be here!
-	localTextures[0] = prepare_texture(&berlin);
-	localTextures[1] = prepare_texture(&oranges);
-	localTextures[2] = prepare_texture(&ralf);
-	localTextures[3] = prepare_texture(&gate);
-	localTextures[4] = prepare_texture(&space);
-	localTextures[5] = prepare_texture(&tongariro);
-	localTextures[6] = prepare_texture(&mim);
+	localTextures[0] = convertGimpTexture(&berlin);
+	localTextures[1] = convertGimpTexture(&oranges);
+	localTextures[2] = convertGimpTexture(&ralf);
+	localTextures[3] = convertGimpTexture(&gate);
+	localTextures[4] = convertGimpTexture(&space);
+	localTextures[5] = convertGimpTexture(&tongariro);
+	localTextures[6] = convertGimpTexture(&mim);
 }
 
 GLAPI void GLAPIENTRY glspuDestroy(void)
@@ -229,25 +230,18 @@ GLAPI void GLAPIENTRY glTexCoord4f (GLfloat s, GLfloat t, GLfloat u, GLfloat v)
 
 GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
 {
-	unsigned int tex_x_y_shift = 8-5;
-	unsigned int tex_max_mipmap = 7;
-	unsigned int tex_mipmap_shift = 8+8; // log2(w)+log2(h)
+	Texture tex = localTextures[texture];
 
-	FIFO_PROLOGUE(ctx,10+4*(1+tex_max_mipmap));
-	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,3+4*(1+tex_max_mipmap));
-	OUT_RING(tex_x_y_shift);
-	OUT_RING(tex_mipmap_shift);
-	OUT_RING(tex_max_mipmap);
+	FIFO_PROLOGUE(ctx,10+4*(1+tex->tex_max_mipmap));
+	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,3+4*(1+tex->tex_max_mipmap));
+	OUT_RING(tex->tex_log2_x);
+	OUT_RING(tex->tex_log2_y);
+	OUT_RING(tex->tex_max_mipmap);
 
-	for (int i=0; i<=tex_max_mipmap; i++) {
-		// re-use the same mip-map for all levels
-		u32* ptr = localTextures[texture];
-		unsigned int tex_t_mult = (8*32+1)*32*4;
-		unsigned int tex_id_base = texture<<(6+3); // +3 = 8 levels of mipmap
-
-		OUT_RINGea(ptr);
-		OUT_RING(tex_t_mult);
-		OUT_RING(tex_id_base);
+	for (int i=0; i<=tex->tex_max_mipmap; i++) {
+		OUT_RINGea(tex->tex_data[i]);
+		OUT_RING(tex->tex_t_mult[i]);
+		OUT_RING(tex->tex_id_base[i]);
 	}
 	FIFO_EPILOGUE();
 }
