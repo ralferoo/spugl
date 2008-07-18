@@ -156,14 +156,14 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 
 			unsigned int s_blk = spu_extract(s, i);
 			unsigned int t_blk = spu_extract(t, i);
-			unsigned int t_next = (t_blk+1)&7;
+			unsigned int t_next = (t_blk+1)&7;		// TODO: blksize ref
 
 			// this sucks with the mults, but hey!
-			unsigned short t_mult = textureDefinition->tex_t_blk_mult;
+			unsigned short t_mult = textureDefinition->tex_t_blk_mult[0];
 			unsigned int ofs = s_blk*32*32*4 + t_blk*t_mult;
 			unsigned int ofs_next = s_blk*32*32*4 + t_next*t_mult;
-			unsigned long long ea = textureDefinition->tex_pixel_base + ofs;
-			unsigned long long ea_next = textureDefinition->tex_pixel_base + ofs_next;
+			unsigned long long ea = textureDefinition->tex_pixel_base[0] + ofs;
+			unsigned long long ea_next = textureDefinition->tex_pixel_base[0] + ofs_next;
 
 //			printf("pixel_base %llx, ea %llx, ea_next %llx. %d%d%d\n",
 //				textureDefinition->tex_pixel_base, ea, ea_next, 1,2,3);

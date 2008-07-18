@@ -158,15 +158,16 @@ int nextTextureDefinitionPtr = 0;
 		currentTexture = definition;
 	}
 
-	u64 ea;
-	__READ_EA(from)
-	definition->tex_pixel_base = ea;
 	definition->tex_id_base = *from++;
 	definition->shifts = spu_splats((short)(*from++));	// assume x and y shift the same!
-	definition->tex_t_blk_mult = (unsigned short)(*from++);
 	definition->users = 0;
-	definition->tex_max_mipmap = *from++;
 	definition->mipmapshifts = spu_splats((int)(*from++));
+	definition->tex_max_mipmap = *from++;
+
+	u64 ea;
+	__READ_EA(from)
+	definition->tex_pixel_base[0] = ea;
+	definition->tex_t_blk_mult[0] = (unsigned short)(*from++);
 
  	return from;
 }

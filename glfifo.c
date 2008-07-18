@@ -238,12 +238,12 @@ GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
 
 	FIFO_PROLOGUE(ctx,10);
 	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,5);
-	OUT_RINGea(ptr);
 	OUT_RING(tex_id_base);
 	OUT_RING(tex_x_y_shift);
-	OUT_RING(tex_t_mult);
 	OUT_RING(tex_max_mipmap);
 	OUT_RING(tex_mipmap_shift);
+	OUT_RINGea(ptr);
+	OUT_RING(tex_t_mult);
 	FIFO_EPILOGUE();
 }
 

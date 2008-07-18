@@ -27,11 +27,13 @@
 
 #define NUMBER_OF_TRIS	10	
 #define NUMBER_OF_QUEUED_BLOCKS 32
-#define NUMBER_OF_ACTIVE_BLOCKS 1
+#define NUMBER_OF_ACTIVE_BLOCKS 4
 #define NUMBER_OF_TEXTURE_DEFINITIONS 10
 
 #define FIFO_SIZE 1024
 #define FIFO_DMA_TAG 12
+
+#define MAX_MIPMAP_LEVELS 10
 
 typedef struct __TEXTURE TextureDefinition;
 typedef struct __BLOCK Block;
@@ -50,11 +52,13 @@ struct __TEXTURE {
 	vec_short8	shifts;		// interleaved shift masks,  odd: log2(height)  (s_blk_max)
 					// interleaved shift masks, even: log2(width)	(t_blk_max)
 	vec_int4	mipmapshifts;
-	u64 		tex_pixel_base;	// the base texture address for block(0,0)
 	unsigned short	tex_id_base;	// base of texture ids (to guarantee unique)
 	unsigned short	users;		// number of triangle producers still using this texture
 	unsigned short	tex_max_mipmap;	// how many levels of mipmap are present
-	unsigned short	tex_t_blk_mult; // how to find the offset of a t block (s is easy ;)
+	unsigned short	padding;
+
+	u64 		tex_pixel_base[MAX_MIPMAP_LEVELS]; // the base texture address for block(0,0)
+	unsigned short	tex_t_blk_mult[MAX_MIPMAP_LEVELS]; // how to find the offset of a t block (s is easy ;)
 } __attribute__ ((aligned(16)));
 
 // this holds a triangle, i.e. something that creates blocks to be rendered

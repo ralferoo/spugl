@@ -295,6 +295,7 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 //	else
 //
 //	triangle->init_block = &linearTextureMapFill;
+
 	triangle->init_block = &lessMulsLinearTextureMapFill;
 
 //	triangle->init_block = &fastTextureMapFill;
