@@ -164,6 +164,8 @@ int nextTextureDefinitionPtr = 0;
 	definition->tex_base_lo = lo;
 	definition->tex_base_hi = hi;
 
+	// printf("Texture base %x\n", tex_id_base);
+
 	definition->shifts = spu_splats((short)(*from++));	// assume x and y shift the same!
 	definition->users = 0;
 	definition->mipmapshifts = spu_splats((int)(*from++));

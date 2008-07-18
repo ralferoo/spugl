@@ -813,7 +813,7 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 
 			// new improved way of determining block id
 			vec_uchar16 base_shuffle = spu_shuffle(mipmap,spu_or(mipmap,0x10),merge_tex_base);
-			vec_uint4 base_id = (vec_uint4) spu_shuffle(tex_base_lo, tex_base_hi, base_shuffle);
+			vec_uint4 base_id = (vec_uint4) spu_shuffle(tex_base_hi, tex_base_lo, base_shuffle);
 			vec_uint4 block_id = spu_add(t_blk,spu_add(s_blk,base_id));
 
 			vec_ushort8 copy_cmp_0 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_0);
