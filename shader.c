@@ -769,9 +769,14 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 	vec_uint4 mip_block_shift = spu_add(mip_block_shift_tmp, spu_rlmask(mip_block_shift_tmp, -16));
 	vec_int4 max_mipmap = spu_splats((int)tex_def->tex_max_mipmap);
 
+	// generate the mipmap start and deltas
 	vec_float4 mip_wA_mult = sA_rdx*tA_rdy - sA_rdy*tA_rdx;
 	vec_float4 mip_sA_mult = tA_rdx*wA_rdy - tA_rdy*wA_rdx;
 	vec_float4 mip_tA_mult = wA_rdx*sA_rdy - wA_rdy*sA_rdx;
+
+	vec_float4 k     = mip_wA_mult*wA     + mip_sA_mult*sA     + mip_tA_mult*tA;
+	vec_float4 k_dx4 = mip_wA_mult*wA_dx4 + mip_sA_mult*sA_dx4 + mip_tA_mult*tA_dx4;
+	vec_float4 k_dy  = mip_wA_mult*wA_dy  + mip_sA_mult*sA_dy  + mip_tA_mult*tA_dy;
 
 	static vec_int4 ll = {-1,-1,-1,-1}; //spu_splats((unsigned int)0x123456);
 	do {
@@ -784,33 +789,10 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 		if (__builtin_expect(spu_extract(bail,0),0)) {
 			vec_float4 w = f1_0/wA;
 
-// #define WWWW
-
 //PROCESS_BLOCK_HEAD(process_tex_block)
-
-			// TODO - this can be moved into deltas
-			vec_float4 k = mip_wA_mult*wA + mip_sA_mult*sA + mip_tA_mult*tA;
-
-			vec_float4 j = k*w*w*w;
-			vec_int4 mipmap_real = log2_sqrt_clamp(j, adjust);
-
+			vec_int4 mipmap_real = log2_sqrt_clamp(k*w*w*w, adjust);			// determine mipmap level
 			vec_uint4 mipmap_clamp_sel = spu_cmpgt(max_mipmap,mipmap_real);
-			vec_int4 mipmap = spu_sel(max_mipmap,mipmap_real,mipmap_clamp_sel);
-
-#ifdef WWWW
-				printf("%d %d %d -> %d\n",
-					spu_extract(mipmap_real,0), 
-					spu_extract(mipmap_clamp_sel,0),
-					spu_extract(max_mipmap,0), 
-					spu_extract(mipmap,0));
-/*
-				printf("%d\n%d\n%d\n%d\n",
-					spu_extract(mipmap_clamp_sel,0), 
-					spu_extract(mipmap_clamp_sel,1),
-					spu_extract(mipmap_clamp_sel,2),
-					spu_extract(mipmap_clamp_sel,3));
-*/
-#endif
+			vec_int4 mipmap = spu_sel(max_mipmap,mipmap_real,mipmap_clamp_sel);		// clamp mipmap between 0..max_mipmap
 
 			vec_uint4 pattern = 
 				spu_or(spu_and(spu_cmpeq(spu_and(mipmap,1),1),0xff0000),
@@ -1028,6 +1010,7 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 		wA += spu_sel(wA_dx4,wA_dy,sel);
 		sA += spu_sel(sA_dx4,sA_dy,sel);
 		tA += spu_sel(tA_dx4,tA_dy,sel);
+		 k += spu_sel( k_dx4, k_dy,sel);
 	} while (spu_extract(left,0)>0);
 
 	block->triangle->count--;
