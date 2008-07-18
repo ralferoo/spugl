@@ -106,11 +106,15 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 
 ////////////////////////////////////////////////////////////////////
 
-	//vec_uint4 tex_id_base = spu_splats((unsigned int)block->triangle->tex_id_base);
-
 	TextureDefinition* textureDefinition = block->triangle->texture;
-	vec_uint4 tex_id_base = spu_splats((unsigned int)textureDefinition->tex_id_base);
-	vec_uint4 needs_sub = spu_sub(block_id,tex_id_base);
+
+/*
+	printf("cache miss for block %x %x %x %x\n", 
+		spu_extract(block_id,0),
+		spu_extract(block_id,1),
+		spu_extract(block_id,2),
+		spu_extract(block_id,3));
+*/
 
 	vec_ushort8 TEXmerge1 = spu_splats((unsigned short)-1);
 	vec_ushort8 TEXmerge2 = spu_splats((unsigned short)-1);
@@ -121,7 +125,6 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 	for (i=0,m=0x8; m && freeTextureMaps; m>>=1,i++) {
 		if (n&m) {			// as soon as we find a 1 bit we are done
 			unsigned int want = spu_extract(block_id,i);
-			unsigned short want_sub = spu_extract(needs_sub,i);
 			int nextBit1 = first_bit(freeTextureMaps);
 			int nextBit2 = first_bit(freeTextureMaps & ((1<<lastLoadedTextureMap)-1) );
 			int nextIndex = nextBit2<0 ? nextBit1 : nextBit2;

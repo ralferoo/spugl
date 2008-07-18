@@ -284,7 +284,7 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 
 	triangle->texture = currentTexture;
 	currentTexture->users++;
-	triangle->tex_id_base = currentTexture->tex_id_base;
+//	triangle->tex_id_base = currentTexture->tex_id_base;
 
 //	triangle->init_block = &linearColourFill;
 

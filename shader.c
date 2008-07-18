@@ -274,6 +274,7 @@ void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 //////////////////////////////////////////////////////////////////////////////
 
 #define S_0 128
+#define S_80 0xe0
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -651,8 +652,13 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 
 	vec_uint4 left = spu_splats(block->left);
 	vec_uint4* ptr = block->pixels;
-	vec_uint4 tex_id_base = spu_splats((unsigned int)tri->tex_id_base);
 	vec_uint4 tex_keep = spu_splats((unsigned int)0);
+
+	vec_uchar16 tex_base_lo = tex_def->tex_base_lo;
+	vec_uchar16 tex_base_hi = tex_def->tex_base_hi;
+	const vec_uchar16 merge_tex_base = (vec_uchar16) {
+        	S_80, S_80, 0x3, 0x13, S_80, S_80, 0x7, 0x17,
+        	S_80, S_80, 0xb, 0x1b, S_80, S_80, 0xf, 0x1f};	// 0x80 -> 0 on subsequent shuffle
 
 	const vec_uchar16 shuf_cmp_0 = (vec_uchar16) spu_splats((unsigned short)0x203);
 	const vec_uchar16 shuf_cmp_1 = (vec_uchar16) spu_splats((unsigned short)0x607);
@@ -804,9 +810,11 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 
 			vec_uint4 s_blk = block_s;
 			vec_uint4 t_blk = spu_sl(block_t,spu_sub(tex_tblk_shift_mrg,(vec_uint4)mipmap));
-			vec_uint4 block_id = spu_add(
-						spu_add(t_blk,spu_add(s_blk,tex_id_base)),
-						spu_sl((vec_uint4)mipmap, mip_block_shift));
+
+			// new improved way of determining block id
+			vec_uchar16 base_shuffle = spu_shuffle(mipmap,spu_or(mipmap,0x10),merge_tex_base);
+			vec_uint4 base_id = (vec_uint4) spu_shuffle(tex_base_lo, tex_base_hi, base_shuffle);
+			vec_uint4 block_id = spu_add(t_blk,spu_add(s_blk,base_id));
 
 			vec_ushort8 copy_cmp_0 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_0);
 			vec_ushort8 matches1_0 = spu_cmpeq(TEXcache1,copy_cmp_0);

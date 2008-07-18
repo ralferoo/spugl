@@ -158,7 +158,12 @@ int nextTextureDefinitionPtr = 0;
 		currentTexture = definition;
 	}
 
-	definition->tex_id_base = *from++;
+	u32 tex_id_base = *from++;
+	vec_uchar16 lo = spu_splats((unsigned char)tex_id_base);
+	vec_uchar16 hi = spu_splats((unsigned char)(tex_id_base>>8));
+	definition->tex_base_lo = lo;
+	definition->tex_base_hi = hi;
+
 	definition->shifts = spu_splats((short)(*from++));	// assume x and y shift the same!
 	definition->users = 0;
 	definition->mipmapshifts = spu_splats((int)(*from++));

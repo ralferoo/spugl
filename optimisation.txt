@@ -1,3 +1,20 @@
+			Texture mapping block allocation
+			--------------------------------
+
+Texture size is 8192x8192 -> 256mb; this is 256x256 blocks
+Therefore, assume max is 4096x4096 -> 64mb; this is 128x128 blocks.
+For mipmapping 256x256 blocks -> 1x1 blocks, will need maximum of 9 levels
+9*14 bits=126 bits
+
+n + 1 + 4 + 16 + 64 + 256 + 1024 + 4096 + 16384 = n + 21845
+bits:	5    6	  7    9     11	    13	    15
+
+A: 16 * lo(blk)
+B: 16 * hi(blk)
+
+blk_base = shuffle(shuffle(3 13 3 13 7 17 7 17 b 1b b 1b f 1f f 1f,mipmap,mipmap+10),A,B)
+
+
 				Hilbert optimisations
 				---------------------
 

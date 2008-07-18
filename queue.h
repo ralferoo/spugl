@@ -52,10 +52,12 @@ struct __TEXTURE {
 	vec_short8	shifts;		// interleaved shift masks,  odd: log2(height)  (s_blk_max)
 					// interleaved shift masks, even: log2(width)	(t_blk_max)
 	vec_int4	mipmapshifts;
-	unsigned short	tex_id_base;	// base of texture ids (to guarantee unique)
 	unsigned short	users;		// number of triangle producers still using this texture
 	unsigned short	tex_max_mipmap;	// how many levels of mipmap are present
-	unsigned short	padding;
+	unsigned short	padding[2];
+
+	vec_uchar16	tex_base_lo;	// together these hold the mipmap base id
+	vec_uchar16	tex_base_hi; 	// texture block ids (to guarantee unique)
 
 	u64 		tex_pixel_base[MAX_MIPMAP_LEVELS]; // the base texture address for block(0,0)
 	unsigned short	tex_t_blk_mult[MAX_MIPMAP_LEVELS]; // how to find the offset of a t block (s is easy ;)
