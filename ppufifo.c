@@ -151,7 +151,7 @@ int _flush_3d_driver(DriverContext _context)
 
 	// use a flush as an opportunity to reset the fifo buffer
 	u32* __fifo_ptr = (u32*)_FROM_EA(control->fifo_written);
-	BEGIN_RING(SPU_COMMAND_JUMP,1);
+	BEGIN_RING(SPU_COMMAND_JUMP,0,1);
 	OUT_RINGea(context->fifo_buffer);
 	control->fifo_written = _MAKE_EA(context->fifo_buffer);
 

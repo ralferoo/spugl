@@ -184,8 +184,8 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 			unsigned long eal_next = ea_next & ~127;
 			u32* texture = &textureCache[nextIndex].textureBuffer[0];
 
-//			printf("want %x->%d, reading to %x from %x:%08x len %x tag %d\n",
-//				want, nextIndex, texture, eah, eal, len, tag);
+//			printf("want %d(base %d)->%d, reading to %x from %x:%08x len %x tag %d\n",
+//				want, spu_extract(tex_id_base,0), nextIndex, texture, eah, eal, len, tag);
 
 			if (mfc_stat_cmd_queue() == 0) {
 //				printf("DMA queue full; bailing...\n");

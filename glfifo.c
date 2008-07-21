@@ -24,8 +24,6 @@ extern BitmapImage _flipScreen(void);
 static DriverContext ctx = NULL;
 static BitmapImage screen = NULL;
 
-Texture convertGimpTexture(gimp_image* source);
-
 extern gimp_image berlin;
 extern gimp_image oranges;
 extern gimp_image mim;
@@ -34,6 +32,7 @@ extern gimp_image gate;
 extern gimp_image space;
 extern gimp_image tongariro;
 
+Texture convertGimpTexture(gimp_image* source);
 static Texture localTextures[10];
 
 GLAPI GLenum GLAPIENTRY glGetError(void)
@@ -64,7 +63,7 @@ GLAPI unsigned long GLAPIENTRY glspuBlocksProduced(void)
 static void updateScreenPointer(void) 
 {
 	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_SCREEN_INFO,1);
+	BEGIN_RING(SPU_COMMAND_SCREEN_INFO,3,1);
 	OUT_RINGea(_FROM_EA(screen->address));
 	OUT_RING(screen->width);
 	OUT_RING(screen->height);
@@ -105,14 +104,14 @@ GLAPI void GLAPIENTRY glspuFlip(void)
 GLAPI void GLAPIENTRY glspuClear(void)
 {
 	FIFO_PROLOGUE(ctx,2);
-	BEGIN_RING(SPU_COMMAND_CLEAR_SCREEN,1);
+	BEGIN_RING(SPU_COMMAND_CLEAR_SCREEN,1,0);
 	FIFO_EPILOGUE();
 }
 
 GLAPI void GLAPIENTRY glspuSetFlag(u32* ptr, u32 value)
 {
 	FIFO_PROLOGUE(ctx,3);
-	BEGIN_RING(SPU_COMMAND_SET_FLAG,2);
+	BEGIN_RING(SPU_COMMAND_SET_FLAG,1,1);
 	OUT_RINGea(_FROM_EA(ptr));
 	OUT_RING(value);
 	FIFO_EPILOGUE();
@@ -126,7 +125,7 @@ GLAPI void GLAPIENTRY glspuWait(void)
 GLAPI void GLAPIENTRY glFlush()
 {
 	FIFO_PROLOGUE(ctx,2);
-	BEGIN_RING(SPU_COMMAND_SYNC,0);
+	BEGIN_RING(SPU_COMMAND_SYNC,0,0);
 	FIFO_EPILOGUE();
 	_flush_3d_driver(ctx);
 }
@@ -134,7 +133,7 @@ GLAPI void GLAPIENTRY glFlush()
 GLAPI void GLAPIENTRY glBegin(GLuint type)
 {
 	FIFO_PROLOGUE(ctx,2);
-	BEGIN_RING(SPU_COMMAND_GL_BEGIN,1);
+	BEGIN_RING(SPU_COMMAND_GL_BEGIN,1,0);
 	OUT_RING(type);
 	FIFO_EPILOGUE();
 }
@@ -142,14 +141,14 @@ GLAPI void GLAPIENTRY glBegin(GLuint type)
 GLAPI void GLAPIENTRY glEnd()
 {
 	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_END,0);
+	BEGIN_RING(SPU_COMMAND_GL_END,0,0);
 	FIFO_EPILOGUE();
 }
 
 GLAPI void GLAPIENTRY glVertex3f (GLfloat x, GLfloat y, GLfloat z)
 {
 	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_VERTEX3,3);
+	BEGIN_RING(SPU_COMMAND_GL_VERTEX3,3,0);
 	OUT_RINGf(x);
 	OUT_RINGf(y);
 	OUT_RINGf(z);
@@ -159,7 +158,7 @@ GLAPI void GLAPIENTRY glVertex3f (GLfloat x, GLfloat y, GLfloat z)
 GLAPI void GLAPIENTRY glColor3f (GLfloat r, GLfloat g, GLfloat b)
 {
 	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_COLOR3,3);
+	BEGIN_RING(SPU_COMMAND_GL_COLOR3,3,0);
 	OUT_RINGf(r);
 	OUT_RINGf(g);
 	OUT_RINGf(b);
@@ -169,7 +168,7 @@ GLAPI void GLAPIENTRY glColor3f (GLfloat r, GLfloat g, GLfloat b)
 GLAPI void GLAPIENTRY glColor4f (GLfloat r, GLfloat g, GLfloat b, GLfloat a)
 {
 	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_COLOR4,3);
+	BEGIN_RING(SPU_COMMAND_GL_COLOR4,3,0);
 	OUT_RINGf(r);
 	OUT_RINGf(g);
 	OUT_RINGf(b);
@@ -180,7 +179,7 @@ GLAPI void GLAPIENTRY glColor4f (GLfloat r, GLfloat g, GLfloat b, GLfloat a)
 GLAPI void GLAPIENTRY glColor3ub (GLubyte r, GLubyte g, GLubyte b)
 {
 	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_COLOR3,3);
+	BEGIN_RING(SPU_COMMAND_GL_COLOR3,3,0);
 	OUT_RINGf(r/255.0);
 	OUT_RINGf(g/255.0);
 	OUT_RINGf(b/255.0);
@@ -190,7 +189,7 @@ GLAPI void GLAPIENTRY glColor3ub (GLubyte r, GLubyte g, GLubyte b)
 GLAPI void GLAPIENTRY glColor4ub (GLubyte r, GLubyte g, GLubyte b, GLubyte a)
 {
 	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_COLOR4,3);
+	BEGIN_RING(SPU_COMMAND_GL_COLOR4,3,0);
 	OUT_RINGf(r/255.0);
 	OUT_RINGf(g/255.0);
 	OUT_RINGf(b/255.0);
@@ -201,7 +200,7 @@ GLAPI void GLAPIENTRY glColor4ub (GLubyte r, GLubyte g, GLubyte b, GLubyte a)
 GLAPI void GLAPIENTRY glTexCoord2f (GLfloat s, GLfloat t)
 {
 	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_TEX_COORD2,2);
+	BEGIN_RING(SPU_COMMAND_GL_TEX_COORD2,2,0);
 	OUT_RINGf(s);
 	OUT_RINGf(t);
 	FIFO_EPILOGUE();
@@ -210,7 +209,7 @@ GLAPI void GLAPIENTRY glTexCoord2f (GLfloat s, GLfloat t)
 GLAPI void GLAPIENTRY glTexCoord3f (GLfloat s, GLfloat t, GLfloat u)
 {
 	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_TEX_COORD3,3);
+	BEGIN_RING(SPU_COMMAND_GL_TEX_COORD3,3,0);
 	OUT_RINGf(s);
 	OUT_RINGf(t);
 	OUT_RINGf(u);
@@ -220,7 +219,7 @@ GLAPI void GLAPIENTRY glTexCoord3f (GLfloat s, GLfloat t, GLfloat u)
 GLAPI void GLAPIENTRY glTexCoord4f (GLfloat s, GLfloat t, GLfloat u, GLfloat v)
 {
 	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_TEX_COORD4,4);
+	BEGIN_RING(SPU_COMMAND_GL_TEX_COORD4,4,0);
 	OUT_RINGf(s);
 	OUT_RINGf(t);
 	OUT_RINGf(u);
@@ -231,14 +230,15 @@ GLAPI void GLAPIENTRY glTexCoord4f (GLfloat s, GLfloat t, GLfloat u, GLfloat v)
 GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
 {
 	Texture tex = localTextures[texture];
+	unsigned int tex_max_mipmap = tex->tex_max_mipmap;
 
-	FIFO_PROLOGUE(ctx,10+4*(1+tex->tex_max_mipmap));
-	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,3+4*(1+tex->tex_max_mipmap));
+	FIFO_PROLOGUE(ctx,10+4*(1+tex_max_mipmap));
+	BEGIN_RING(SPU_COMMAND_GL_BIND_TEXTURE,3+2*(1+tex_max_mipmap),1+tex_max_mipmap);
 	OUT_RING(tex->tex_log2_x);
 	OUT_RING(tex->tex_log2_y);
-	OUT_RING(tex->tex_max_mipmap);
+	OUT_RING(tex_max_mipmap);
 
-	for (int i=0; i<=tex->tex_max_mipmap; i++) {
+	for (int i=0; i<=tex_max_mipmap; i++) {
 		OUT_RINGea(tex->tex_data[i]);
 		OUT_RING(tex->tex_t_mult[i]);
 		OUT_RING(tex->tex_id_base[i]);

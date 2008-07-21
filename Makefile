@@ -57,6 +57,15 @@ test.static:	$(PPU_TEST_OBJS) $(SPU_HNDL)
 run:	test
 	./test
 
+big:	test
+	./test -0.9
+
+medium:	test
+	./test -1.7
+
+small:	test
+	./test -2.0
+
 dump:	test
 	./test dump.avi
 

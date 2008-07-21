@@ -60,7 +60,14 @@ static inline double getTimeSince(struct timespec startPoint) {
 unsigned long flag=0;
 
 int main(int argc, char* argv[]) {
-//	glspuSetup(NULL);
+	float scale = SCALE;
+
+	if (argc>1 && argv[1][0]=='-') {
+		scale=atof(&argv[1][1]);
+		argc--;
+		argv++;
+	}
+
 	glspuSetup(argc>1 ? argv[1] : NULL);
 
 	float onesec = 42670000.0;
@@ -105,9 +112,9 @@ int main(int argc, char* argv[]) {
 			float tx=0, ty=0, tz=0;
 			float tr=0, tg=0, tb=0;
 			for (v=0; v<4; v++) {
-				x = vertices[faces[f][v]][0] / SCALE;
-				y = vertices[faces[f][v]][1] / SCALE;
-				z = vertices[faces[f][v]][2] / SCALE;
+				x = vertices[faces[f][v]][0] / scale;
+				y = vertices[faces[f][v]][1] / scale;
+				z = vertices[faces[f][v]][2] / scale;
 
 				t = ca*x+sa*y;
 				y = ca*y-sa*x;

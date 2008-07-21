@@ -157,16 +157,17 @@ int nextTextureDefinitionPtr = 0;
 		nextTextureDefinitionPtr = (nextTextureDefinitionPtr+1)%NUMBER_OF_TEXTURE_DEFINITIONS;
 		currentTexture = definition;
 	}
+	definition->users = 0;
 
 	vec_uchar16 lo = spu_splats((unsigned char)0);
 	vec_uchar16 hi = spu_splats((unsigned char)0);
 
-	int log2_x = (int)(*from++);
-	int log2_y = (int)(*from++);
+	u32 log2x = *from++;
+	u32 log2y = *from++;
 
-	definition->shifts = spu_splats((int)((log2_x + (log2_y<<16))-0x50005));
-	definition->users = 0;
-	definition->mipmapshifts = spu_splats((int)(log2_x+log2_y));
+	definition->shifts = spu_splats((int)((log2x+(log2y<<16))-0x50005));
+	definition->mipmapshifts = spu_splats((int)(log2x+log2y));
+
 	u32 max_mipmap = *from++;
 	definition->tex_max_mipmap = max_mipmap;
 
