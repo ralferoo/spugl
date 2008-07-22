@@ -192,14 +192,6 @@ skip:
 
 		double uptoLoop = getTimeSince(startPoint);
 
-//		printf ("%d %d %d %2.2f%%", _end, _start, _end-_start,
-//			(float) (100.0*(_end-_start)/onesec/uptoLoop));
-
-//		printf ("%d %d %2.2f%%", _endBlocked, _startBlocked,
-//			(float) (100.0*(_endBlocked-_startBlocked)/onesec));
-
-//		printf("%f %f\n", uptoFlip, uptoLoop);
-
 		unsigned long blks_end = glspuBlocksProduced();
 		unsigned long caches_end = glspuCacheMisses();
 
@@ -208,7 +200,7 @@ skip:
 
 		// bah humbug, stdio buffering, bah!
 		char buffer[256];
-		sprintf(buffer,"\r[%d] %4.1f FPS (actual %5.1f) %5d blocks %6d misses %8.1f block/s   ",
+		sprintf(buffer,"\r[%5d] %4.1f FPS (actual %5.1f) %5d blocks %6d misses %8.1f block/s ",
 			flag, //cnt,
 			(float) 1.0/uptoLoop,
 			(float) 1.0/uptoFlip,
@@ -219,7 +211,6 @@ skip:
 		write(2,buffer,strlen(buffer));
 		if (uptoLoop > (1.0/60.f))
 			write(2, "*\n", 2);
-//		printf("%s\n", buffer);
 	}
 	usleep(250000);
 	glspuDestroy();
