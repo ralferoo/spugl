@@ -57,6 +57,9 @@ test.static:	$(PPU_TEST_OBJS) $(SPU_HNDL)
 run:	test
 	./test
 
+huge:	test
+	./test -0.65
+
 big:	test
 	./test -0.9
 

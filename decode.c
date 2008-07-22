@@ -176,7 +176,6 @@ int nextTextureDefinitionPtr = 0;
 		__READ_EA(from)
 		definition->tex_pixel_base[i] = ea;
 		definition->tex_t_blk_mult[i] = (unsigned short)(*from++);
-//		printf("%d: ea %x mult %x\n", i, (u32)ea, definition->tex_t_blk_mult[i]);
 
 		u32 tex_id_base = *from++;
 		lo = spu_insert((unsigned char)tex_id_base, lo, i);
