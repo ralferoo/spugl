@@ -208,7 +208,7 @@ skip:
 
 		// bah humbug, stdio buffering, bah!
 		char buffer[256];
-		sprintf(buffer,"[%d] %4.1f FPS (actual %5.1f) %5d blocks %6d misses %8.1f block/s   \r",
+		sprintf(buffer,"\r[%d] %4.1f FPS (actual %5.1f) %5d blocks %6d misses %8.1f block/s   ",
 			flag, //cnt,
 			(float) 1.0/uptoLoop,
 			(float) 1.0/uptoFlip,
@@ -217,6 +217,8 @@ skip:
 			(float) (100.0*(_end-_start)/onesec/uptoLoop),
 			(float) (100.0*(_endBlocked-_startBlocked)/onesec/uptoLoop));
 		write(2,buffer,strlen(buffer));
+		if (uptoLoop > (1.0/60.f))
+			write(2, "*\n", 2);
 //		printf("%s\n", buffer);
 	}
 	usleep(250000);
