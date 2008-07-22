@@ -9,8 +9,6 @@
  *
  ****************************************************************************/
 
-// #define MIP_COLOURS
-
 //////////////////////////////////////////////////////////////////////////////
 //
 // This file holds the standard shaders, the idea is that a shader processes
@@ -778,7 +776,6 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 	vec_float4 k_dx4 = mip_wA_mult*wA_dx4 + mip_sA_mult*sA_dx4 + mip_tA_mult*tA_dx4;
 	vec_float4 k_dy  = mip_wA_mult*wA_dy  + mip_sA_mult*sA_dy  + mip_tA_mult*tA_dy;
 
-	static vec_int4 ll = {-1,-1,-1,-1}; //spu_splats((unsigned int)0x123456);
 	do {
 		vec_uint4 uAa = (vec_uint4) Aa;
 		vec_uint4 uAb = (vec_uint4) Ab;
@@ -793,11 +790,6 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 			vec_int4 mipmap_real = log2_sqrt_clamp(k*w*w*w, adjust);			// determine mipmap level
 			vec_uint4 mipmap_clamp_sel = spu_cmpgt(max_mipmap,mipmap_real);
 			vec_int4 mipmap = spu_sel(max_mipmap,mipmap_real,mipmap_clamp_sel);		// clamp mipmap between 0..max_mipmap
-
-			vec_uint4 pattern = 
-				spu_or(spu_and(spu_cmpeq(spu_and(mipmap,1),1),0xff0000),
-					spu_or(spu_and(spu_cmpeq(spu_and(mipmap,2),2),0xff00),
-					       spu_and(spu_cmpeq(spu_and(mipmap,4),4),0xff)));
 
 			vec_float4 tf_s = spu_mul(sA, w);
 			vec_float4 tf_t = spu_mul(tA, w);
@@ -851,7 +843,6 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 			vec_uint4 gather = spu_or(gather_01,gather_23);
 			tex_keep = spu_or(tex_keep, gather);
 			vec_uint4 cache = spu_cntlz(gather);
-			//vec_uint4 cache_not_found = spu_and(pixel,spu_cmpeq(cache,spu_splats((unsigned int)32)));
 			vec_uint4 cache_not_found = spu_cmpeq(cache,spu_splats((unsigned int)32));
 			unsigned int cache_orx = spu_extract(spu_orx(cache_not_found),0);
 			if (__builtin_expect(cache_orx,0)) {  // amazingly gcc does move this out of the loop :)
@@ -870,7 +861,7 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 			vec_uint4 tex_ofs32 = spu_add(tex_ofs, tex_ofs32_add);
 			vec_uint4 addr00 = spu_add(tex_ofs,sub_block_pixel);
 		
-			// (x,y+1) is always the next line in physical memory
+			// (x,y+2) is always the next line in physical memory
 			vec_uint4 addr01 = spu_add(addr00, (unsigned int)(32*4));
 
 			// if x<32
@@ -987,12 +978,6 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 
 ///////////
 			vec_uint4 colour = (vec_uint4) spu_shuffle(pixel01_done,pixel23_done,rejoin);
-
-#ifdef MIP_COLOURS
-			colour = spu_xor(colour, pattern);	// tint image with mipmap indicators
-//			colour = pattern;			// make it *really* obvious
-#endif
-
 			vec_uint4 current = *ptr;
 			*ptr = spu_sel(current, colour, pixel);
 //PROCESS_BLOCK_END
