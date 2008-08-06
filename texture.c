@@ -239,7 +239,7 @@ void* finishTextureLoad(void* self, Block* block, ActiveBlock* active, int tag)
 	TEXcache2 &= active->TEXmerge2;
 	freeTextureMaps |= active->texturesMask;
 
-	shrinkTexture((void*)active->temp, (void*)active->temp);
+//	shrinkTexture((void*)active->temp, (void*)active->temp);
 	
 	// loaded some texture maps, chain on to original request
 	return active->tex_continue(active->tex_continue, block, active, tag);

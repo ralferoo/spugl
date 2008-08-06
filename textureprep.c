@@ -35,7 +35,7 @@ Texture convertGimpTexture(gimp_image* source) {
 
 		int width = (source->width+31)&~31;
 		int height = (source->height+31)&~31;
-		int mainsize = width*(height+1)*4;
+		int mainsize = width*height*4;
 
 		void* buffer = malloc(mainsize+127);
 		u32* pixels = (u32*) ((((unsigned int)buffer)+127)&~127);
@@ -70,6 +70,8 @@ Texture convertGimpTexture(gimp_image* source) {
 
 		// fake later mipmaps
 		for (int i=1; i<7; i++) {
+			width = (width/2 + 31)&~31; 	
+			height = (width/2 + 31)&~31; 	
 			tex->tex_id_base[i] = tex->tex_id_base[0];
 			tex->tex_data[i] = tex->tex_data[0];
 			tex->tex_t_mult[i] = tex->tex_t_mult[0];

@@ -32,6 +32,8 @@
 
 #define FIFO_SIZE 1024
 #define FIFO_DMA_TAG 12
+#define FIFO_MIP1_TAG 13
+#define FIFO_MIP2_TAG 14
 
 #define MAX_MIPMAP_LEVELS 10
 

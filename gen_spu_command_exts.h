@@ -16,5 +16,6 @@ extern SPU_COMMAND imp_old_glBindTexture;
 extern SPU_COMMAND imp_sync;
 extern SPU_COMMAND imp_glBindTexture;
 extern SPU_COMMAND impSetFlag;
+extern SPU_COMMAND imp_generateMipMap;
 extern SPU_COMMAND impScreenInfo;
 extern SPU_COMMAND impClearScreen;
