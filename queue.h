@@ -114,6 +114,7 @@ struct __ACTIVE {
 	vec_ushort8	TEXmerge1,TEXmerge2;	// for texture blits
 	unsigned int	texturesMask;
 	BlockHandler*	tex_continue;
+	unsigned int	temp;
 } __attribute__((aligned(16)));
 
 

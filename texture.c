@@ -211,6 +211,8 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 //			printf("starting DMA... list len %d, list at %x\n", list_len, dma_list);
 			spu_mfcdma64(texture, eah, dma_list, list_len, tag, MFC_GETL_CMD);
 
+			active->temp = (unsigned int) texture;
+
 			freeTextureMaps &= ~nextMask;
 			lastLoadedTextureMap = nextIndex;
 			texturesMask |= nextMask;
@@ -229,12 +231,16 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 	return &finishTextureLoad;
 }
 
+void shrinkTexture(void* in, void* out);
+
 void* finishTextureLoad(void* self, Block* block, ActiveBlock* active, int tag)
 {
 	TEXcache1 &= active->TEXmerge1;
 	TEXcache2 &= active->TEXmerge2;
 	freeTextureMaps |= active->texturesMask;
 
+	shrinkTexture((void*)active->temp, (void*)active->temp);
+	
 	// loaded some texture maps, chain on to original request
 	return active->tex_continue(active->tex_continue, block, active, tag);
 }
