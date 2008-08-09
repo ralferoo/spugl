@@ -227,16 +227,16 @@ void waitDMA(u32 mask) {
 	spu_mfcdma64(&mip_buffer1, mfc_ea2h(ea), mfc_ea2l(ea), 32*32*4, FIFO_MIP1_TAG, MFC_GET_CMD);
 
 	waitDMA(1<<FIFO_MIP2_TAG);
-//	shrinkTexture(&mip_buffer2, ((void*)&mip_buffer)+4*16);
+	shrinkTexture(&mip_buffer2, ((void*)&mip_buffer)+4*16);
 	
 	__READ_EA(from)
 	spu_mfcdma64(&mip_buffer2, mfc_ea2h(ea), mfc_ea2l(ea), 32*32*4, FIFO_MIP2_TAG, MFC_GET_CMD);
 
 	waitDMA(1<<FIFO_MIP1_TAG);
-//	shrinkTexture(&mip_buffer1, ((void*)&mip_buffer)+4*16*32);
+	shrinkTexture(&mip_buffer1, ((void*)&mip_buffer)+4*16*32);
 
 	waitDMA(1<<FIFO_MIP2_TAG);
-//	shrinkTexture(&mip_buffer2, ((void*)&mip_buffer)+4*16+4*16*32);
+	shrinkTexture(&mip_buffer2, ((void*)&mip_buffer)+4*16+4*16*32);
 	
 	// write texture back
 	__READ_EA(from)
