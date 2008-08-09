@@ -13,6 +13,7 @@
 #include <stdio.h>
 
 #include "struct.h"
+#include <GL/glspu.h>
 
 u32* prepare_texture(gimp_image* source);
 
@@ -68,6 +69,11 @@ Texture convertGimpTexture(gimp_image* source) {
 		tex->tex_log2_x = log2(width);
 		tex->tex_log2_y = log2(height);
 
+		//calculateMipmap(pixels, pixels, pixels, pixels, pixels);
+		for (int a=0; a<width/32*height/32; a++) {
+			void* p = pixels + a*32*32;
+			calculateMipmap(p, p, p, p, p);
+		}
 		// fake later mipmaps
 		for (int i=1; i<7; i++) {
 			width = (width/2 + 31)&~31; 	

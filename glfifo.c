@@ -189,7 +189,7 @@ GLAPI void GLAPIENTRY glColor3ub (GLubyte r, GLubyte g, GLubyte b)
 GLAPI void GLAPIENTRY glColor4ub (GLubyte r, GLubyte g, GLubyte b, GLubyte a)
 {
 	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_COLOR4,3,0);
+	BEGIN_RING(SPU_COMMAND_GL_COLOR4,4,0);
 	OUT_RINGf(r/255.0);
 	OUT_RINGf(g/255.0);
 	OUT_RINGf(b/255.0);
@@ -243,6 +243,18 @@ GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
 		OUT_RING(tex->tex_t_mult[i]);
 		OUT_RING(tex->tex_id_base[i]);
 	}
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY calculateMipmap(void* tl, void* tr, void* bl, void* br, void* o)
+{
+	FIFO_PROLOGUE(ctx,15);
+	BEGIN_RING(SPU_COMMAND_GENERATE_MIP_MAP,0,5);
+	OUT_RINGea(tl);
+	OUT_RINGea(tr);
+	OUT_RINGea(bl);
+	OUT_RINGea(br);
+	OUT_RINGea(o);
 	FIFO_EPILOGUE();
 }
 

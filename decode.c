@@ -198,42 +198,50 @@ static u32 set_flag_value = 0;
 	return from;
 }
 
-vec_uint4 mip_buffer1[32*32/4];
-vec_uint4 mip_buffer2[32*32/4];
-vec_uint4 mip_buffer[32*32/4];
+u32 mip_buffer1[32*32] __attribute__((aligned(128)));
+u32 mip_buffer2[32*32] __attribute__((aligned(128)));
+u32 mip_buffer[32*32] __attribute__((aligned(128)));
 
 void shrinkTexture(void* in, void* out);
+
+void waitDMA(u32 mask) {
+	unsigned int completed;
+	do {
+		mfc_write_tag_mask(mask);
+		completed = mfc_read_tag_status_immediate();
+	} while (!(completed&mask));
+}
 
 /*29*/void* imp_generateMipMap(u32* from, struct __TRIANGLE * triangle) {
 	u64 ea;
 	__READ_EA(from)
-	spu_mfcdma64(&mip_buffer1, mfc_ea2h(ea), mfc_ea2l(ea), 4, FIFO_MIP1_TAG, MFC_GET_CMD);
+	spu_mfcdma64(&mip_buffer1, mfc_ea2h(ea), mfc_ea2l(ea), 32*32*4, FIFO_MIP1_TAG, MFC_GET_CMD);
 
 	__READ_EA(from)
-	spu_mfcdma64(&mip_buffer2, mfc_ea2h(ea), mfc_ea2l(ea), 4, FIFO_MIP2_TAG, MFC_GET_CMD);
+	spu_mfcdma64(&mip_buffer2, mfc_ea2h(ea), mfc_ea2l(ea), 32*32*4, FIFO_MIP2_TAG, MFC_GET_CMD);
 
-	while (!(mfc_read_tag_status_immediate() & (1<<FIFO_MIP1_TAG)));
+	waitDMA(1<<FIFO_MIP1_TAG);
 	shrinkTexture(&mip_buffer1, &mip_buffer);
 	
 	__READ_EA(from)
-	spu_mfcdma64(&mip_buffer1, mfc_ea2h(ea), mfc_ea2l(ea), 4, FIFO_MIP1_TAG, MFC_GET_CMD);
+	spu_mfcdma64(&mip_buffer1, mfc_ea2h(ea), mfc_ea2l(ea), 32*32*4, FIFO_MIP1_TAG, MFC_GET_CMD);
 
-	while (!(mfc_read_tag_status_immediate() & (1<<FIFO_MIP2_TAG)));
-	shrinkTexture(&mip_buffer2, ((void*)&mip_buffer)+4*16);
+	waitDMA(1<<FIFO_MIP2_TAG);
+//	shrinkTexture(&mip_buffer2, ((void*)&mip_buffer)+4*16);
 	
 	__READ_EA(from)
-	spu_mfcdma64(&mip_buffer2, mfc_ea2h(ea), mfc_ea2l(ea), 4, FIFO_MIP2_TAG, MFC_GET_CMD);
+	spu_mfcdma64(&mip_buffer2, mfc_ea2h(ea), mfc_ea2l(ea), 32*32*4, FIFO_MIP2_TAG, MFC_GET_CMD);
 
-	while (!(mfc_read_tag_status_immediate() & (1<<FIFO_MIP1_TAG)));
-	shrinkTexture(&mip_buffer1, ((void*)&mip_buffer)+4*16*32);
+	waitDMA(1<<FIFO_MIP1_TAG);
+//	shrinkTexture(&mip_buffer1, ((void*)&mip_buffer)+4*16*32);
 
-	while (!(mfc_read_tag_status_immediate() & (1<<FIFO_MIP2_TAG)));
-	shrinkTexture(&mip_buffer2, ((void*)&mip_buffer)+4*16+4*16*32);
+	waitDMA(1<<FIFO_MIP2_TAG);
+//	shrinkTexture(&mip_buffer2, ((void*)&mip_buffer)+4*16+4*16*32);
 	
 	// write texture back
 	__READ_EA(from)
-	spu_mfcdma64(&mip_buffer, mfc_ea2h(ea), mfc_ea2l(ea), 4, FIFO_MIP1_TAG, MFC_GET_CMD);
-	while (!(mfc_read_tag_status_immediate() & (1<<FIFO_MIP1_TAG)));
+	spu_mfcdma64(&mip_buffer, mfc_ea2h(ea), mfc_ea2l(ea), 32*32*4, FIFO_MIP1_TAG, MFC_PUT_CMD);
+	waitDMA(1<<FIFO_MIP1_TAG);
 
 	return from;
 }

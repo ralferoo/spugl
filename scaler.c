@@ -33,6 +33,9 @@ void shrinkTexture(void* in, void* out) {
 
 	vec_uint4 left = spu_splats(4*16);
 
+	// a: ARGB ARGB ARGB ARGB
+	// b: ARGB ARGB ARGB ARGB
+
 	static const vec_uchar16 s_left = {
 		0, 4, 16, 20,		// A
 		1, 5, 17, 21,		// R
@@ -65,12 +68,12 @@ void shrinkTexture(void* in, void* out) {
 		// ARGB ARGB ARGB ARGB
 
 		vec_ushort8 avg01=spu_rlmask(spu_sumb(
-				(vec_uchar16) spu_shuffle(pixa_01, pixb_01, s_left),
-				(vec_uchar16) spu_shuffle(pixa_01, pixb_01, s_right)), -2);
+				(vec_uchar16) spu_shuffle(pixa_01, pixb_01, s_right),
+				(vec_uchar16) spu_shuffle(pixa_01, pixb_01, s_left)), -2);
 
 		vec_ushort8 avg23=spu_rlmask(spu_sumb(
-				(vec_uchar16) spu_shuffle(pixa_23, pixb_23, s_left),
-				(vec_uchar16) spu_shuffle(pixa_23, pixb_23, s_right)), -2);
+				(vec_uchar16) spu_shuffle(pixa_23, pixb_23, s_right),
+				(vec_uchar16) spu_shuffle(pixa_23, pixb_23, s_left)), -2);
 
 		vec_uint4 avg = (vec_uint4) spu_shuffle(avg01, avg23, merge);
 
@@ -79,8 +82,8 @@ void shrinkTexture(void* in, void* out) {
 		vec_uint4 which = spu_and(left,spu_splats((unsigned int)3));
 		vec_uint4 sel = spu_cmpeq(which,1);
 		left -= spu_splats(1);
-		dst += spu_sel(dst_dx,dst_dy,dst);
-		src += spu_sel(src_dx,src_dy,src);
+		dst += spu_sel(dst_dx,dst_dy,sel);
+		src += spu_sel(src_dx,src_dy,sel);
 	} while (spu_extract(left,0)>0);
 }
 
