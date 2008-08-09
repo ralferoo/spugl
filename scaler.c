@@ -33,8 +33,8 @@ void shrinkTexture(void* in, void* out) {
 
 	vec_uint4 left = spu_splats(4*16);
 
-	// a: ARGB ARGB ARGB ARGB
-	// b: ARGB ARGB ARGB ARGB
+	// a01: A1R1G1B1 A2R2G2B2 A3R3G3B3 A4R4G4B4
+	// b01: A5R5G5B5 A6R6G6B6 A7R7G7B7 A8R8G8B8
 
 	static const vec_uchar16 s_left = {
 		0, 4, 16, 20,		// A
@@ -48,12 +48,17 @@ void shrinkTexture(void* in, void* out) {
 		10, 14, 26, 30,		// G
 		11, 15, 27, 31};	// B
 
+	// sumbA -> A1A2A5A6 R1R2R5R6 G1G2G5G6 B1B2B5B6	
+	// sumbB -> A3A4A7A8 R3R4R7R8 G3G4G7G8 B3B4B7B8
+
+	// sumb -> x A3 x A1 x R3 x R1 x G3 x G1 x B3 x B1
+
 	// -> x Al x Rl x Gl x Bl, x Ar x Rr x Gr x Br
 
 	static const vec_uchar16 merge = {
 		 1,  5,  9, 13,
-		17, 21, 25, 29,
 		 3,  7, 11, 15,
+		17, 21, 25, 29,
 		19, 23, 27, 31};
 
 	do {
@@ -62,8 +67,8 @@ void shrinkTexture(void* in, void* out) {
 
 		vec_uint4 pixa_01 = sptr[0];
 		vec_uint4 pixa_23 = sptr[1];
-		vec_uint4 pixb_01 = sptr[32*4/sizeof(vec_uint4)];
-		vec_uint4 pixb_23 = sptr[32*4/sizeof(vec_uint4)+1];
+		vec_uint4 pixb_01 = sptr[0]; //32*4/sizeof(vec_uint4)];
+		vec_uint4 pixb_23 = sptr[1]; //32*4/sizeof(vec_uint4)+1];
 
 		// ARGB ARGB ARGB ARGB
 
