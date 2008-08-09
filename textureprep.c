@@ -63,7 +63,7 @@ Texture convertGimpTexture(gimp_image* source) {
 		tex->tex_id_base[0] = data[0]; data[0]+=(width*height)<<10;
 
 		tex->tex_data[0] = pixels;
-		tex->tex_t_mult[0] = (height)*32*4;
+		tex->tex_t_mult[0] = height*32*4;
 		tex->tex_width = width;
 		tex->tex_height = height;
 		tex->tex_log2_x = log2(width);
@@ -76,7 +76,7 @@ Texture convertGimpTexture(gimp_image* source) {
 			calculateMipmap(p, p, p, p, p);
 		}*/
 
-		// fake later mipmaps
+		// calculate later mipmaps
 		for (int i=1; i<7; i++) {
 			int nwidth = (width/2 + 31)&~31; 	
 			int nheight = (height/2 + 31)&~31; 	
@@ -96,9 +96,9 @@ Texture convertGimpTexture(gimp_image* source) {
 				}
 			}
 
-			tex->tex_id_base[i] = data[0]; data[0]+=(nwidth*nheight)<<10;
+			tex->tex_id_base[i] = data[0]; data[0]+=64; //(nwidth*nheight)<<10;
 			tex->tex_data[i] = pixels_shrink;
-			tex->tex_t_mult[i] = tex->tex_t_mult[0];
+			tex->tex_t_mult[i] = nheight*32*4;
 			tex->tex_max_mipmap = i;
 
 			pixels = pixels_shrink;
