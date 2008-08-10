@@ -38,6 +38,29 @@ static inline vec_float4 extract(
 	
 //////////////////////////////////////////////////////////////////////////////
 
+#define S_0 128
+#define S_80 0xe0
+
+//////////////////////////////////////////////////////////////////////////////
+
+static const vec_uchar16 shuf_gath_01 = {
+	2,3,128,128, 18,19,128,128, SEL_00 SEL_00};
+
+static const vec_uchar16 shuf_gath_23 = {
+	SEL_00 SEL_00 2,3,128,128, 18,19,128,128,};
+
+static const vec_uchar16 merge_tex_base = {
+       	S_80, S_80, 0x3, 0x13, S_80, S_80, 0x7, 0x17,
+       	S_80, S_80, 0xb, 0x1b, S_80, S_80, 0xf, 0x1f};	// 0x80 -> 0 on subsequent shuffle
+
+extern void* textureCache;
+extern void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag,
+			vec_float4 A, vec_uint4 left, vec_uint4* ptr, vec_uint4 tex_keep,
+			vec_int4 mipmap, vec_uint4 block_id, vec_uint4 s, vec_uint4 t, 
+			vec_uint4 cache_not_found, vec_uint4 pixel);
+
+//////////////////////////////////////////////////////////////////////////////
+
 void* linearColourFill(void* self, Block* block, ActiveBlock* active, int tag)
 {
 	Triangle* tri = block->triangle;
@@ -64,6 +87,15 @@ void* linearColourFill(void* self, Block* block, ActiveBlock* active, int tag)
 
 	vec_uint4 left = spu_splats(block->left);
 	vec_uint4* ptr = block->pixels;
+	
+	// new improved way of determining block id
+	TextureDefinition* tex_def = tri->texture;
+	vec_uchar16 tex_base_lo = tex_def->tex_base_lo;
+	vec_uchar16 tex_base_hi = tex_def->tex_base_hi;
+	vec_int4 mipmap = spu_splats(0);
+	vec_uchar16 base_shuffle = spu_shuffle(mipmap,spu_or(mipmap,0x10),merge_tex_base);
+	vec_uint4 base_id = (vec_uint4) spu_shuffle(tex_base_hi, tex_base_lo, base_shuffle);
+
 	do {
 		vec_uint4 uAa = (vec_uint4) Aa;
 		vec_uint4 uAb = (vec_uint4) Ab;
@@ -109,20 +141,6 @@ void* linearColourFill(void* self, Block* block, ActiveBlock* active, int tag)
 
 //////////////////////////////////////////////////////////////////////////////
 
-static const vec_uchar16 shuf_gath_01 = {
-	2,3,128,128, 18,19,128,128, SEL_00 SEL_00};
-
-static const vec_uchar16 shuf_gath_23 = {
-	SEL_00 SEL_00 2,3,128,128, 18,19,128,128,};
-
-extern void* textureCache;
-extern void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag,
-			vec_float4 A, vec_uint4 left, vec_uint4* ptr, vec_uint4 tex_keep,
-			vec_int4 mipmap, vec_uint4 block_id, vec_uint4 s, vec_uint4 t, 
-			vec_uint4 cache_not_found, vec_uint4 pixel);
-
-//////////////////////////////////////////////////////////////////////////////
-
 void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 {
 	Triangle* tri = block->triangle;
@@ -149,8 +167,15 @@ void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 
 	vec_uint4 left = spu_splats(block->left);
 	vec_uint4* ptr = block->pixels;
-	vec_uint4 tex_id_base = spu_splats((unsigned int)tri->tex_id_base);
 	vec_uint4 tex_keep = spu_splats((unsigned int)0);
+
+	// new improved way of determining block id
+	TextureDefinition* tex_def = tri->texture;
+	vec_uchar16 tex_base_lo = tex_def->tex_base_lo;
+	vec_uchar16 tex_base_hi = tex_def->tex_base_hi;
+	vec_int4 mipmap = spu_splats(0);
+	vec_uchar16 base_shuffle = spu_shuffle(mipmap,spu_or(mipmap,0x10),merge_tex_base);
+	vec_uint4 base_id = (vec_uint4) spu_shuffle(tex_base_hi, tex_base_lo, base_shuffle);
 
 	do {
 		vec_uint4 uAa = (vec_uint4) Aa;
@@ -180,7 +205,7 @@ void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 
 			vec_uint4 s_blk = spu_and(spu_rlmask(t_s,-29), 0x7);	//24+5
 			vec_uint4 t_blk = spu_and(spu_rlmask(t_t,-26), 0x38);	//24+2
-			vec_uint4 block_id = spu_add(tex_id_base,spu_or(s_blk,t_blk));
+			vec_uint4 block_id = spu_add(base_id,spu_or(s_blk,t_blk));
 
 			vec_uchar16 shuf_cmp_0 = (vec_uchar16) spu_splats((unsigned short)0x203);
 			vec_ushort8 copy_cmp_0 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_0);
@@ -271,11 +296,6 @@ void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 
 //////////////////////////////////////////////////////////////////////////////
 
-#define S_0 128
-#define S_80 0xe0
-
-//////////////////////////////////////////////////////////////////////////////
-
 void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 {
 	Triangle* tri = block->triangle;
@@ -303,7 +323,6 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 
 	vec_uint4 left = spu_splats(block->left);
 	vec_uint4* ptr = block->pixels;
-	vec_uint4 tex_id_base = spu_splats((unsigned int)tri->tex_id_base);
 	vec_uint4 tex_keep = spu_splats((unsigned int)0);
 
 	const vec_uchar16 shuf_cmp_0 = (vec_uchar16) spu_splats((unsigned short)0x203);
@@ -389,6 +408,13 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 	const vec_uint4 mask_t_sub=spu_splats((unsigned int)0x7c);
 
 	vec_float4 tex_cover = tri->tex_cover;
+			
+	// new improved way of determining block id
+	vec_uchar16 tex_base_lo = tex_def->tex_base_lo;
+	vec_uchar16 tex_base_hi = tex_def->tex_base_hi;
+	vec_int4 mipmap = spu_splats(0);
+	vec_uchar16 base_shuffle = spu_shuffle(mipmap,spu_or(mipmap,0x10),merge_tex_base);
+	vec_uint4 base_id = (vec_uint4) spu_shuffle(tex_base_hi, tex_base_lo, base_shuffle);
 
 	do {
 		vec_uint4 uAa = (vec_uint4) Aa;
@@ -417,7 +443,8 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 
 			vec_uint4 s_blk = block_s;
 			vec_uint4 t_blk = spu_sl(block_t,tex_tblk_shift_mrg);
-			vec_uint4 block_id = spu_add(t_blk,spu_add(s_blk,tex_id_base));
+
+			vec_uint4 block_id = spu_add(t_blk,spu_add(s_blk,base_id));
 
 			// if this was done as seperate high and low bytes, could probably remove a load of the selects
 
@@ -656,9 +683,6 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 
 	vec_uchar16 tex_base_lo = tex_def->tex_base_lo;
 	vec_uchar16 tex_base_hi = tex_def->tex_base_hi;
-	const vec_uchar16 merge_tex_base = (vec_uchar16) {
-        	S_80, S_80, 0x3, 0x13, S_80, S_80, 0x7, 0x17,
-        	S_80, S_80, 0xb, 0x1b, S_80, S_80, 0xf, 0x1f};	// 0x80 -> 0 on subsequent shuffle
 
 	const vec_uchar16 shuf_cmp_0 = (vec_uchar16) spu_splats((unsigned short)0x203);
 	const vec_uchar16 shuf_cmp_1 = (vec_uchar16) spu_splats((unsigned short)0x607);

@@ -60,7 +60,7 @@ Texture convertGimpTexture(gimp_image* source) {
 		}
 	
 		static unsigned int data[4] = {0};	// some weird alignment stuff here
-		tex->tex_id_base[0] = data[0]; data[0]+=(width*height)<<10;
+		tex->tex_id_base[0] = data[0]; data[0]+=(width*height)>>10;
 
 		tex->tex_data[0] = pixels;
 		tex->tex_t_mult[0] = height*32*4;
@@ -77,7 +77,7 @@ Texture convertGimpTexture(gimp_image* source) {
 		}*/
 
 		// calculate later mipmaps
-		for (int i=1; i<7; i++) {
+		for (int i=1; i<MAX_MIPMAP_LEVELS; i++) {
 			int nwidth = (width/2 + 31)&~31; 	
 			int nheight = (height/2 + 31)&~31; 	
 			mainsize = nwidth*nheight*4;
@@ -96,7 +96,7 @@ Texture convertGimpTexture(gimp_image* source) {
 				}
 			}
 
-			tex->tex_id_base[i] = data[0]; data[0]+=64; //(nwidth*nheight)<<10;
+			tex->tex_id_base[i] = data[0]; data[0]+=(nwidth*nheight)>>10;
 			tex->tex_data[i] = pixels_shrink;
 			tex->tex_t_mult[i] = nheight*32*4;
 			tex->tex_max_mipmap = i;
@@ -107,6 +107,16 @@ Texture convertGimpTexture(gimp_image* source) {
 		}
 
 	}
-
+/*
+	printf("tex_id_base = %x %x %x %x %x %x %x %x\n",
+		tex->tex_id_base[0],
+		tex->tex_id_base[1],
+		tex->tex_id_base[2],
+		tex->tex_id_base[3],
+		tex->tex_id_base[4],
+		tex->tex_id_base[5],
+		tex->tex_id_base[6],
+		tex->tex_id_base[7]);
+*/
 	return tex;
 }

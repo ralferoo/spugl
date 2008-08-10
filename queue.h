@@ -79,7 +79,9 @@ struct __TRIANGLE {
 	BlockHandler*	init_block;
 	TextureDefinition*	texture;
 
-	unsigned int	tex_id_base;	// base of texture ids (to guarantee unique)
+	vec_uchar16	tex_base_lo;	// together these hold the mipmap base id
+	vec_uchar16	tex_base_hi; 	// texture block ids (to guarantee unique)
+
 		 short	left;		// count of blocks left to produce
 	unsigned short	count;		// count of blocks that still have reference
 	unsigned char	step, step_start;
