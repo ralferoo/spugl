@@ -160,8 +160,6 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 
 			unsigned int s_blk = spu_extract(s, i);
 			unsigned int t_blk = spu_extract(t, i);
-//			unsigned int t_next = (t_blk+1)&(7>>mipmap);
-//			unsigned int s_next = (s_blk+1)&(7>>mipmap);
 
 			unsigned int t_next = (t_blk+1)&(textureDefinition->tex_mask_x>>mipmap);
 			unsigned int s_next = (s_blk+1)&(textureDefinition->tex_mask_y>>mipmap);
