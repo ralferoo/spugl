@@ -167,6 +167,8 @@ int nextTextureDefinitionPtr = 0;
 
 	definition->shifts = spu_splats((int)((log2x+(log2y<<16))-0x50005));
 	definition->mipmapshifts = spu_splats((int)(log2x+log2y));
+	definition->tex_mask_x = (1<<(log2x-5))-1;
+	definition->tex_mask_y = (1<<(log2y-5))-1;
 
 	u32 max_mipmap = *from++;
 	definition->tex_max_mipmap = max_mipmap;

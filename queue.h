@@ -56,7 +56,8 @@ struct __TEXTURE {
 	vec_int4	mipmapshifts;
 	unsigned short	users;		// number of triangle producers still using this texture
 	unsigned short	tex_max_mipmap;	// how many levels of mipmap are present
-	unsigned short	padding[2];
+	unsigned short	tex_mask_x;
+	unsigned short	tex_mask_y;	// base mask on block count (>>mipmap)
 
 	vec_uchar16	tex_base_lo;	// together these hold the mipmap base id
 	vec_uchar16	tex_base_hi; 	// texture block ids (to guarantee unique)
