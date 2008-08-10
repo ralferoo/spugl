@@ -209,7 +209,7 @@ skip:
 			(float) (100.0*(_end-_start)/onesec/uptoLoop),
 			(float) (100.0*(_endBlocked-_startBlocked)/onesec/uptoLoop));
 		write(2,buffer,strlen(buffer));
-		if (uptoLoop > (1.0/60.f))
+		if (uptoLoop > (1.0/58.4f))
 			write(2, "*\n", 2);
 	}
 	usleep(250000);

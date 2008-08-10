@@ -84,14 +84,14 @@ Texture convertGimpTexture(gimp_image* source) {
 
 			buffer = malloc(mainsize+127);
 			u32* pixels_shrink = (u32*) ((((unsigned int)buffer)+127)&~127);
-			printf("new buffer %x-%x\n", pixels_shrink, pixels_shrink+(mainsize-1)/4);
+//			printf("new buffer %x-%x\n", pixels_shrink, pixels_shrink+(mainsize-1)/4);
 			for (int x=0; x<nwidth; x+=32) {
 				for (int y=0; y<nheight; y+=32) {
 					u32* d = pixels_shrink + y*32 + x*nheight;
 					u32* s = pixels + y*64 + x*2*height;
 					int dy = height>32 ? 32*32 : 0;
 					int dx = width>32 ? height*32 : 0;
-					printf("calc mipmap %d %d,%d %x %x %d %d (%dx%d->%dx%d)\n", i, x,y, s, d, dx, dy, width, height, nwidth, nheight);
+//					printf("calc mipmap %d %d,%d %x %x %d %d (%dx%d->%dx%d)\n", i, x,y, s, d, dx, dy, width, height, nwidth, nheight);
 					calculateMipmap(s, s+dx, s+dy, s+dy+dx, d);
 				}
 			}

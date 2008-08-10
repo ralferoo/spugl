@@ -248,8 +248,6 @@ GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
 
 GLAPI void GLAPIENTRY calculateMipmap(void* tl, void* tr, void* bl, void* br, void* o)
 {
-	printf("%x %x %x %x -> %x\n", tl, tr, bl, br, o);
-
 	FIFO_PROLOGUE(ctx,15);
 	BEGIN_RING(SPU_COMMAND_GENERATE_MIP_MAP,0,5);
 	OUT_RINGea(tl);
