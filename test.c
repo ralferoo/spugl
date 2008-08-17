@@ -61,9 +61,11 @@ unsigned long flag=0;
 
 int main(int argc, char* argv[]) {
 	float scale = SCALE;
+	int magicScale = 1;
 
 	if (argc>1 && argv[1][0]=='-') {
 		scale=atof(&argv[1][1]);
+		magicScale = 0;
 		argc--;
 		argv++;
 	}
@@ -82,8 +84,11 @@ int main(int argc, char* argv[]) {
 
 		unsigned long blks_start = glspuBlocksProduced();
 		unsigned long caches_start = glspuCacheMisses();
-/*
-*/
+
+		if (magicScale) {
+			scale = (sin(flag/50.0)+1.0)*0.95 + SCALE;
+		}
+
 		a += 0.011;
 		b += 0.037;
 		c += 0.017;
