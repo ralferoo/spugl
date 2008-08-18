@@ -122,6 +122,10 @@ int dummyProducer(Triangle* tri, Block* block)
 
 int triangleProducer(Triangle* tri, Block* block)
 {
+	vec_int4 area = tri->area;
+	vec_int4 a_dx = tri->area_dx;
+	vec_int4 a_dy = tri->area_dy;
+
 	vec_float4 A = tri->A;
 	vec_float4 A_dx32 = tri->A_dx32;
 	vec_float4 A_dy32 = tri->A_dy32;
@@ -166,8 +170,47 @@ int triangleProducer(Triangle* tri, Block* block)
 	return bx | (by<<8);
 }
 
+#define FIXED_PREC 2
+
 static void imp_triangle(struct __TRIANGLE * triangle)
 {
+	// starting to rework using ints, mostly to avoid tearing issues (but also quicker)
+	
+	vec_int4 i_x = spu_convts(TRIx, FIXED_PREC);
+	vec_int4 i_y = spu_convts(TRIy, FIXED_PREC);
+
+	vec_int4 i_x_cw = spu_shuffle(i_x, i_x, shuffle_tri_cw);
+	vec_int4 i_y_cw = spu_shuffle(i_y, i_y, shuffle_tri_cw);
+
+	vec_int4 i_x_ccw = spu_shuffle(i_x, i_x, shuffle_tri_ccw);
+	vec_int4 i_y_ccw = spu_shuffle(i_y, i_y, shuffle_tri_ccw);
+
+	// i_face_sum = x0(y2-y1)+x1(y0-y2)+y2(y1-y0)
+	vec_int4 i_face_mul = spu_mulo((vec_short8)i_x, (vec_short8)spu_sub(i_y_ccw, i_y_cw));
+	int i_face_sum = spu_extract(i_face_mul, 0) +
+			 spu_extract(i_face_mul, 1) +
+			 spu_extract(i_face_mul, 2);
+	vec_int4 i_base_area = spu_insert(i_face_sum, spu_splats(0), 0);
+	vec_uint4 i_fcgt_area = spu_cmpgt(spu_splats(0), i_base_area);
+
+	vec_int4 i_area_dx = spu_sub(i_y_ccw, i_y_cw); // cy -> by
+	vec_int4 i_area_dy = spu_sub(i_x_cw, i_x_ccw); // bx -> cx
+
+	vec_int4 i_area_ofs = spu_add(
+		spu_mulo((vec_short8)spu_splats(spu_extract(i_x,0)),(vec_short8)i_area_dx),
+		spu_mulo((vec_short8)spu_splats(spu_extract(i_y,0)),(vec_short8)i_area_dy));
+
+	vec_uchar16 shuf_i_x = spu_slqwbyte(minimax_x, (u32)
+					spu_extract(spu_gather(spu_cmpgt(i_x, i_x_cw)), 0)&~1);
+
+	vec_uchar16 shuf_i_y = spu_slqwbyte(minimax_y, (u32)
+					spu_extract(spu_gather(spu_cmpgt(i_y, i_y_cw)), 0)&~1);
+
+	vec_int4 minmax_i = spu_shuffle(i_x, i_y, spu_or(minimax_add, 
+					spu_shuffle(shuf_i_x, shuf_i_y, minimax_merge)));
+
+//////
+//
 	vec_float4 t_vx_cw = spu_shuffle(TRIx, TRIx, shuffle_tri_cw);
 	vec_uint4 fcgt_x = spu_cmpgt(TRIx, t_vx_cw);	// all-ones if ax>bx, bx>cx, cx>ax, ???
 	u32 fcgt_bits_x = spu_extract(spu_gather(fcgt_x), 0) & ~1;
@@ -267,6 +310,26 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 				            spu_extract(minmax_block_topleft,0));
 	triangle->A_dy32 = spu_nmsub(pixels_wide,area_dx,spu_mul(muls32,area_dy));
 	triangle->A_dx4 = spu_mul(muls4,area_dx);
+
+/*
+	printf("%8.2f | %8.2f,%8.2f | %8.2f,%8.2f | +%8.2f,%8.2f\n",
+		spu_extract(base_area,0), spu_extract(area_dx,0), spu_extract(area_dy,0), 
+		spu_extract(area_dx,1), spu_extract(area_dy,1), 
+		spu_extract(area_dx,2), spu_extract(area_dy,2));
+	printf("%8x | %8x,%8x | %8x,%8x | %8x,%8x\n\n",
+		spu_extract(i_base_area,0), spu_extract(i_area_dx,0), spu_extract(i_area_dy,0), 
+		spu_extract(i_area_dx,1), spu_extract(i_area_dy,1), 
+		spu_extract(i_area_dx,2), spu_extract(i_area_dy,2));
+*/	
+
+///////////////////////////////////////////
+
+	triangle->area = spu_rlmaska(
+			spu_madd((vec_short8)spu_splats(spu_extract(minmax_block_mask,0)),(vec_short8)i_area_dx,
+	       		spu_madd((vec_short8)spu_splats(spu_extract(minmax_block_mask,1)),(vec_short8)i_area_dy,
+	      		spu_sub(i_base_area, i_area_ofs))), -FIXED_PREC);
+	triangle->area_dx = i_area_dx;
+	triangle->area_dy = i_area_dy;
 
 ///////////////////////////////////////////
 

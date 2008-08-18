@@ -28,3 +28,30 @@ Need at least 11 bits of precision, will use 13.2 (8k*8k, 1/4 pix precision)
 
 area_dx, area_dy can be at most 1920*1080 (0x1fa400, 22 bits inc sign) 
 maximum extent in any direction = 11 bits
+
+
+
+
+static inline vec_float4 extract(
+	vec_float4 what, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
+{
+	return	spu_madd(spu_splats(spu_extract(what,0)),tAa,
+		spu_madd(spu_splats(spu_extract(what,1)),tAb,
+		spu_mul (spu_splats(spu_extract(what,2)),tAc)));
+}
+
+	vec_float4 wA = extract(tri->w, Aa, Ab, Ac);
+	vec_float4 wA_dx4 = extract(tri->w, Aa_dx4, Ab_dx4, Ac_dx4);
+	vec_float4 wA_dy = extract(tri->w, Aa_dy, Ab_dy, Ac_dy);
+...
+			vec_float4 w = f1_0/wA;
+			vec_float4 tf_s = spu_mul(sA, w);
+			vec_float4 tf_t = spu_mul(tA, w);
+...
+		 A += spu_sel( A_dx4, A_dy,sel);
+		Aa += spu_sel(Aa_dx4,Aa_dy,sel);
+		Ab += spu_sel(Ab_dx4,Ab_dy,sel);
+		Ac += spu_sel(Ac_dx4,Ac_dy,sel);
+		wA += spu_sel(wA_dx4,wA_dy,sel);
+
+wA = w[0] * Aa + w[1] * Ab + w[2] * Ac
