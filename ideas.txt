@@ -5,13 +5,13 @@ Input vars:
 
 v_by_to_cy = v_y_ccw - v_y_cw
 face_mul = x * v_by_to_cy
-face_sum = sum[face_mul:0..2]
+face_sum = sum[face_mul:0..2]		(max 1920*1080*3 = 0x5eec00 = 23 bits)
 
 base_area = [face_sum, 0, 0, 0]
 fcgt_area = 0>base_area
 
-area_dx = v_y_ccw - v_y_cw // cy->by
-area_dy = v_x_cw - v_x_ccw // bx->cx
+area_dx = v_y_ccw - v_y_cw // cy->by	(max +-2*1080)
+area_dy = v_x_cw - v_x_ccw // bx->cx	(max +-2*1920)
 
 area_ofs = splats(x[0])*area_dx = splats(y[0])*area_dy
 
