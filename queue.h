@@ -74,7 +74,6 @@ struct __TRIANGLE {
 
 	vec_float4	A,A_dx,A_dy;	// weight information
 	vec_float4	A_dx4,A_dx32,A_dy32,blockA_dy;		// block init values
-	vec_float4	tex_cover;	// magic factor for mipmap calculations
 
 	TriangleHandler*	produce;
 	BlockHandler*	init_block;
