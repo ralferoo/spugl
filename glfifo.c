@@ -145,6 +145,15 @@ GLAPI void GLAPIENTRY glEnd()
 	FIFO_EPILOGUE();
 }
 
+GLAPI void GLAPIENTRY glVertex2f (GLfloat x, GLfloat y)
+{
+	FIFO_PROLOGUE(ctx,10);
+	BEGIN_RING(SPU_COMMAND_GL_VERTEX2,2,0);
+	OUT_RINGf(x);
+	OUT_RINGf(y);
+	FIFO_EPILOGUE();
+}
+
 GLAPI void GLAPIENTRY glVertex3f (GLfloat x, GLfloat y, GLfloat z)
 {
 	FIFO_PROLOGUE(ctx,10);
