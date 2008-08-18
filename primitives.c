@@ -229,12 +229,6 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 
 	vec_float4 v_bt_to_ct = spu_sub(v_t_cw, v_t_ccw); // deliberately change sign...
 
-	vec_float4 tex_cover_mul = spu_mul(TRIs, v_bt_to_ct);
-	float tex_cover = spu_extract(tex_cover_mul, 0) +
-			 spu_extract(tex_cover_mul, 1) +
-			 spu_extract(tex_cover_mul, 2);
-	triangle->tex_cover = spu_splats(tex_cover/face_sum);
-
 	////////////////////////////////
 	//
 	// clip minmax to screen boundary

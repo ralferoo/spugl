@@ -407,8 +407,6 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 	const vec_uint4 mask_s_sub=spu_splats((unsigned int)0xf80);
 	const vec_uint4 mask_t_sub=spu_splats((unsigned int)0x7c);
 
-	vec_float4 tex_cover = tri->tex_cover;
-			
 	// new improved way of determining block id
 	vec_uchar16 tex_base_lo = tex_def->tex_base_lo;
 	vec_uchar16 tex_base_hi = tex_def->tex_base_hi;
@@ -765,8 +763,6 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 	// actually these are always constant, but certainly 0xf80 is too big for andi
 	const vec_uint4 mask_s_sub=spu_splats((unsigned int)0xf80);
 	const vec_uint4 mask_t_sub=spu_splats((unsigned int)0x7c);
-
-	vec_float4 tex_cover = tri->tex_cover;
 
 	vec_float4 wA = extract(tri->w, Aa, Ab, Ac);
 	vec_float4 wA_dx4 = extract(tri->w, Aa_dx4, Ab_dx4, Ac_dx4);
