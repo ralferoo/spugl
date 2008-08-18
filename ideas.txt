@@ -1,0 +1,30 @@
+Input vars:
+		x,y [0..2]
+		v_x_cw, v_x_ccw
+		v_y_cw, y_y_ccw
+
+v_by_to_cy = v_y_ccw - v_y_cw
+face_mul = x * v_by_to_cy
+face_sum = sum[face_mul:0..2]
+
+base_area = [face_sum, 0, 0, 0]
+fcgt_area = 0>base_area
+
+area_dx = v_y_ccw - v_y_cw // cy->by
+area_dy = v_x_cw - v_x_ccw // bx->cx
+
+area_ofs = splats(x[0])*area_dx = splats(y[0])*area_dy
+
+A_dx = area_dx
+A_dy = area_dy
+
+// offset within a block compared to pixel top left
+A = block_left * area_dx + block_top * area_dy + (base_area-area_ofs)
+
+Assumptions:
+
+Highest resolution = 1920 * 1080
+Need at least 11 bits of precision, will use 13.2 (8k*8k, 1/4 pix precision)
+
+area_dx, area_dy can be at most 1920*1080 (0x1fa400, 22 bits inc sign) 
+maximum extent in any direction = 11 bits
