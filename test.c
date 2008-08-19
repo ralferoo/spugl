@@ -27,6 +27,8 @@
 #include <GL/gl.h>
 #include <GL/glspu.h>
 
+#include "joystick.h"
+
 float vertices[][6] = {
 	{ -100, -100, -100,	0,127,0},
 	{  100, -100, -100,	187,107,33},
@@ -78,7 +80,13 @@ int main(int argc, char* argv[]) {
 
 	int f,v;
 	int cnt = 0;
-	for (;;) {
+
+	stick_init();
+
+	// initial debounce
+	while (stick_button(3));
+
+	while (!stick_button(3)) {
 		struct timespec startPoint;
 		clock_gettime(CLOCK_MONOTONIC,&startPoint);
 
@@ -86,12 +94,22 @@ int main(int argc, char* argv[]) {
 		unsigned long caches_start = glspuCacheMisses();
 
 		if (magicScale) {
-			scale = (sin(flag/50.0)+1.0)*0.95 + SCALE;
+//			scale = (sin(flag/50.0)+1.0)*0.95 + SCALE;
+
+
+			scale = 1.0/(1.0 + stick_axis(3) * 0.00002);
+
 		}
 
+/*
 		a += 0.011;
 		b += 0.037;
 		c += 0.017;
+*/
+
+		a += stick_axis(0) * 0.000002;
+		b += stick_axis(1) * 0.000002;
+		c += stick_axis(2) * 0.000002;
 
 //if (cnt<16990) goto skip;
 
@@ -217,7 +235,10 @@ skip:
 		if (uptoLoop > (1.0/58.4f))
 			write(2, "*\n", 2);
 	}
-	usleep(250000);
+	stick_close();
+	exit(0);
+
+//	usleep(250000);
 	glspuDestroy();
 
 	// quick hack so that SPU debugging messages have a chance to come out

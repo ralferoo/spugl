@@ -287,7 +287,13 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	vec_int4 minmax_block = spu_rlmaska(minmax,-5);
 	vec_int4 minmax_block_mask = minmax & spu_splats(~31);
 	vec_float4 minmax_block_topleft = spu_convtf(minmax_block_mask,0);
-
+/*
+	printf("minmax %d %d %d %d\n",
+		spu_extract(minmax,0),
+		spu_extract(minmax,1),
+		spu_extract(minmax,2),
+		spu_extract(minmax,3));
+*/
 	int block_left = spu_extract(minmax_block,0);
 	int block_top = spu_extract(minmax_block,1);
 	int block_right = spu_extract(minmax_block,2);
