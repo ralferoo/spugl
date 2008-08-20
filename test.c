@@ -86,6 +86,8 @@ int main(int argc, char* argv[]) {
 	// initial debounce
 	while (stick_button(3));
 
+	int last_button = 0;
+
 	while (!stick_button(3)) {
 		struct timespec startPoint;
 		clock_gettime(CLOCK_MONOTONIC,&startPoint);
@@ -93,23 +95,27 @@ int main(int argc, char* argv[]) {
 		unsigned long blks_start = glspuBlocksProduced();
 		unsigned long caches_start = glspuCacheMisses();
 
-		if (magicScale) {
+		int but = stick_buttons() & ((1<<9) | (1<<8) | (1<<10) | (1<<11) | (1<<14) | (1<<13));
+		if (but) {
+//		if (a!=last_button) {
+//			last_button = a;
+//			magicScale = !magicScale;
+//		}
+//
+//		if (magicScale) {
 //			scale = (sin(flag/50.0)+1.0)*0.95 + SCALE;
-
-
 			scale = 1.0/(1.0 + stick_axis(3) * 0.00002);
 
+//			a += stick_axis(2) * 0.000002;
+			b += stick_axis(0) * 0.000002;
+			c += stick_axis(1) * 0.000002;
+		} else {
+			a += 0.011;
+			b += 0.037;
+			c += 0.017;
 		}
 
-/*
-		a += 0.011;
-		b += 0.037;
-		c += 0.017;
-*/
-
-		a += stick_axis(0) * 0.000002;
-		b += stick_axis(1) * 0.000002;
-		c += stick_axis(2) * 0.000002;
+//	printf("scale %8.6f a %10.6f b %10.6f c %10.6f\n", scale, a, b, c);
 
 //if (cnt<16990) goto skip;
 

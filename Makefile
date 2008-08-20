@@ -15,11 +15,11 @@ TARGETS = test
 
 LIBDIRS = -L/usr/lib
 
-#LIBS = -lm -lspe
-#LIBSPE2 = 
+LIBS = -lm -lspe -lpthread -lrt
+LIBSPE2 = 
 
-LIBS = -lm -lspe2 -lpthread 
-LIBSPE2 = -DUSE_LIBSPE2
+#LIBS = -lm -lspe2 -lpthread -lrt
+#LIBSPE2 = -DUSE_LIBSPE2
 
 USERLAND = 32
 #USERLAND = 64
@@ -49,7 +49,17 @@ SOURCE_DIST_FILES= README $(PPU_SRCS) $(SPU_HNDL) $(SHARED_HEADERS) gen_spu_comm
 all:	$(TARGETS)
 
 test:	$(PPU_TEST_OBJS) $(SPU_HNDL)
-	gcc -m$(USERLAND) -o test $(PPU_TEST_OBJS) $(SPU_HNDL) $(LIBS)
+	gcc -m$(USERLAND) -o test $(PPU_TEST_OBJS) $(SPU_HNDL) $(LIBDIRS) $(LIBS)
+
+texmap.sqf:	test
+	strip $<
+	rm -rf /tmp/texmap-build
+	mkdir /tmp/texmap-build
+	cp $< /tmp/texmap-build/launch
+	strip /tmp/texmap-build/launch
+	echo 'Texture Mapping Demo':`date '+%s'` >/tmp/texmap-build/.version
+	mksquashfs /tmp/texmap-build $@ -noappend
+	
 
 test.static:	$(PPU_TEST_OBJS) $(SPU_HNDL)
 	gcc -m$(USERLAND) -o test.static $(PPU_TEST_OBJS) $(SPU_HNDL) $(LIBS) -static
