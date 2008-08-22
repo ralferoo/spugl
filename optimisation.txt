@@ -111,4 +111,19 @@ When the buffer is looking "fullish":
 	Can restart back at 0, but cannot recycle beyond ENDPOINT
 	Initially, create fake triangles for all buffers to push the buffers back to the start again
 
+Thoughts
+--------
 
+Still wondering if persisting the blocks to a temporary queue is such a great plan.
+
+Particularly, the reading/writing of different queues will likely cause a lot of DMA unnecessarily.
+
+Perhaps it's sufficient to work from the per-triangle data and have the SPUs
+negotiate on which segments of the hilbert chain to draw.
+
+Textures
+--------
+
+For any mipmapped block, we should only ever need to fetch a maximum of 8 textures,
+corresponding to the corners of the block. If we preload these at the start we can
+defer rendering the whole block until we're ready to go.

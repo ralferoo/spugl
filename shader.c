@@ -60,6 +60,8 @@ extern void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, 
 			vec_uint4 cache_not_found, vec_uint4 pixel);
 
 //////////////////////////////////////////////////////////////////////////////
+//
+// do simple perspective correct gouraud colour fill
 
 void* linearColourFill(void* self, Block* block, ActiveBlock* active, int tag)
 {
@@ -140,6 +142,8 @@ void* linearColourFill(void* self, Block* block, ActiveBlock* active, int tag)
 }
 
 //////////////////////////////////////////////////////////////////////////////
+//
+// simple texture map, suitable for GL_NEAREST (no mipmapping)
 
 void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 {
@@ -295,6 +299,9 @@ void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 }
 
 //////////////////////////////////////////////////////////////////////////////
+//
+// first attempt at GL_LINEAR. not optimised muls from main loop, probably slower than
+// the mipmapped version!
 
 void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 {
@@ -639,6 +646,9 @@ void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int ta
 }
 
 //////////////////////////////////////////////////////////////////////////////
+//
+// this is the current best example, does GL_LINEAR with full mipmapping
+// support. still need to add alpha blending support to final write
 
 void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active, int tag)
 {
@@ -1016,6 +1026,13 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 		sA += spu_sel(sA_dx4,sA_dy,sel);
 		tA += spu_sel(tA_dx4,tA_dy,sel);
 		 k += spu_sel( k_dx4, k_dy,sel);
+
+		// TODO: at 2 clocks per sel, it's probably worth using a pre-hinted branch here
+		// TODO: and just do two adds on the dy transition, especially as all these are
+		// TODO: on pipeline 0
+
+		// TODO: also, each word of dx4/dy is the same, perhaps adds should be done with
+		// TODO: 4 attributes at a time and the shuffle to pull the data
 	} while (spu_extract(left,0)>0);
 
 	block->triangle->count--;
