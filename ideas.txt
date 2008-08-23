@@ -121,6 +121,51 @@ attempt to minimise DMA on the render buffer (which will be quite large as it wi
 include z-buffer and potentially in the future 2x2 AA). However, I think it'll actually
 generate more DMA to maintain this list than to take the hit of reading the data more.
 
+Texture cache
+-------------
+
+Most of the code for this is in texture.c. I currently use two vectors of 8 shorts
+to provide 16 texture block caches (a texture block is a 32x32 pixel block with an
+additional pre-fetched right and bottom edge, so 33x33 pixels in a 36x33 block in memory)
+
+Checking the cache, requires the following test per pixel:
+
+			vec_ushort8 copy_cmp_0 = (vec_ushort8) spu_shuffle(block_id,block_id,shuf_cmp_0);
+			vec_ushort8 matches1_0 = spu_cmpeq(TEXcache1,copy_cmp_0);
+			vec_ushort8 matches2_0 = spu_cmpeq(TEXcache2,copy_cmp_0);
+			vec_uint4 gather1_0 = spu_gather((vec_uchar16)matches1_0);
+			vec_uint4 gather2_0 = spu_gather((vec_uchar16)matches2_0);
+			vec_uint4 gather_0 = spu_sel(gather1_0, gather2_0, gather_merge);
+
+and to join them back up to 4 pixel's results and do the cache found test:
+
+			vec_uint4 gather_01 = spu_shuffle(gather_0,gather_1,shuf_gath_01);
+			vec_uint4 gather_23 = spu_shuffle(gather_2,gather_3,shuf_gath_23);
+			tex_keep = spu_or(tex_keep, gather);
+			vec_uint4 cache = spu_cntlz(gather);
+			vec_uint4 cache_not_found = spu_cmpeq(cache,spu_splats((unsigned int)32));
+			unsigned int cache_orx = spu_extract(spu_orx(cache_not_found),0);
+
+An idea I had from the mipmapping level code where I wanted to increase the capacity of
+the vector, it might be best to store high and low bytes seperately, with 16 entries in
+each part-vector, so:
+
+		copy_cmp_0_hi = spu_shuffle(block_id, block_id, shuf_cmp_0_hi);
+		copy_cmp_0_lo = spu_shuffle(block_id, block_id, shuf_cmp_0_lo);
+		matches_0 = spu_and(spu_cmpeq(TEXcache_hi, copy_cmp_0_hi),
+				    spu_cmpeq(TEXcache_lo, copy_cmp_0_lo))
+		gather_0 = spu_gather(matches_0);
+		
+The pipeline is slightly different in each case, neither seems to have a definite advantage
+but probably the second is easier to extend to a 32 line cache, which would be beneficial
+and there's probably sufficient space for increasing to 32 texture blocks cached (at
+4*36*33=4752 bytes per block = 152064 bytes for 32 blocks)
+
+Of perhaps more interest, if the texture is correctly mipmapped, it follows that there should
+only be a maximum of 4 blocks at each mip-map level in a block (not confirmed experimentally)
+so, assuming we don't have a really step perspective angle (which will kill the cache anyway)
+we could pre-load these textures and use a smaller vector to hold all the possibles and
+so need less calculations in the main loop.
 
 
 Integer notes
