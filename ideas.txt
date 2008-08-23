@@ -1,3 +1,14 @@
+This document explains the general principles used in shader.c, with some notes for
+precision of variables for when I'm moving it to integer based code.
+
+
+So, consider a triangle ABC with some point P inside it, representing the
+pixel currently being rendered. !Z!-
+
+
+
+
+
 Input vars:
 		x,y [0..2]
 		v_x_cw, v_x_ccw

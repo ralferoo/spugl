@@ -38,7 +38,7 @@ SPU_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(SPU_HNDL))
 
 SHARED_HEADERS = struct.h fifo.h types.h GL/*.h
 PPU_OBJS = ppufifo.o glfifo.o framebuffer.o textureprep.o joystick.o
-SPU_OBJS = spufifo.0 decode.0 primitives.0 fragment.0 queue.0 activeblock.0 shader.0 texture.0 myshader.0 scaler.0
+SPU_OBJS = spufifo.0 decode.0 primitives.0 fragment.0 queue.0 activeblock.0 shader.0 texture.0 myshader.0 scaler.0 oldshader.0
 GENSOURCES = decode.c fragment.c
 
 PPU_TEST_OBJS = $(PPU_OBJS) test.o $(TEXTURES)
