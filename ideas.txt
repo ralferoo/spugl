@@ -3,11 +3,131 @@ precision of variables for when I'm moving it to integer based code.
 
 
 So, consider a triangle ABC with some point P inside it, representing the
-pixel currently being rendered. !Z!-
+pixel currently being rendered. Each vertex A,B,C has a bunch of attributes
+which can be interpolated in 3D space to provide the intermediate attribute
+value at P (where attribute is something like pixel colour, texture coords,
+etc).
+
+However, because this interpolation must occur in 3D space, it's not
+directly useful as we step through screen space.
+
+However, considering the standard perspective transform
+	\[ x_s = w - \frac{x D}{z-D} \]
+	\[ y_s = h - \frac{y D}{z-D} \]
+we see that it's possible to linearly interpolate over screen space over
+$\frac{1}{z-D}$ (usually called w) and then recover the original 3D space
+attributes by dividing by w. This process is generally known as $\frac{1}{z}$
+interpolation and is a common result in most rasterising techniques.
+
+From discussions with sparky in #ps3dev, I learned that P's attributes can be
+interpolated using barycentric weights. Considering ABC and P again, the
+interpolation weighting for attribute s at P can be calculated as:
+
+\begin{equation}
+\[ s_P = \frac{s_A * area(PBC) + s_B * area(PCA) + s_C * area(PAB)}{area(ABC)} \]
+\label{weighting}
+\end{equation}
+
+Barycentric weights are a new one on me, but I can see how they could be derived
+from A-level maths by considering the weightings as mass at the centre of 
+a triangle and using moments.
+
+%\cite{http://geometryalgorithms.com/Archive/algorithm_0101/}
+
+If we consider the formula for area $A$ of the triangle $cpb$
+
+\begin{equation}
+\[ 2A = (x_p - x_c)(y_b - y_c)-(x_b - x_c)(y_p - y_c) \]
+\label{area}
+\end{equation}
+
+we can see that as $x_b$, $y_b$, $x_c$ and $y_c$ are constant for the triangle
+for all values of $p$, we can rewrite it as
+
+\begin{equation}
+\[ 2A = (x_p0 + \delta x - x_c)(y_b - y_c)-(x_b - x_c)(y_p0 + \delta y - y_c) \]
+\label{areadelta}
+\end{equation}
+
+Substuting \ref{areadelta} into \ref{equation}, we end up with
+
+\begin{equation}
+\[ s_P = \frac{s_a * (A_a0+dx*Adx_a+dy*Ady_a) + s_b * (A_b0+dx*Adx_b+dy*Ady_b) + s_c * (A_c0+dx*Adx_c+dy*Ady_c)}{A_abc} \]
+\end{equation}
+
+which can be further reduced to:
+
+\begin{equation}
+\[ s_P = sA_0 + dx*(sAdx_a+sAdx_b+sAdx_c) + dy*(sAdy_a+sAdy_b+sAdy_c) \]
+\end{equation}
+
+and therefore:
+
+\begin{equation}
+\[ s_P = sA_0 + dx*sAdx + dy*sAdy \]
+\label{weighting}
+\end{equation}
+
+and so we can see that there is a trivial interpolation in screen space 
+for each of the attributes as we step from pixel to pixel. Sadly, for such
+a useful result, it seems remarkably under-documented on the internet.
+
+Now, going back to \ref{area}, it's a well-known result that this calculation
+can also determine whether a triangle is specified as clockwise or counter-clockwise
+and is commonly used as part of the hidden surface test to cull individual triangles.
+This is possible as the sign of $area$ is negative if $p$ is to the right of the vector
+$bc$. We can therefore also use this result to determine if the point $p$ is inside the
+triangle $ABC$ by checking the signs of all three area calculations. In my usage,
+I have considered the triangle $cpb$ and therefore I want $p$ to my on the right of $bc$
+and therefore am expecting a negative sign.
+
+As the sign is stored in the top bit of both signed integers and floats, a bitwise AND
+of the areas of $cpb$, $bpa$ and $apc$ will have a MSB of 1 when inside the triangle and
+peforming a logical right shift by 31 produces a word-size bitmask.
+
+That describes the current state of the shader function in shader.c; the shaders in
+oldshader.c show the linear interpolation of the attributes and various stages of
+optimisation along the derivation of \ref{weighting}.
+
+
+This seems to work well in practice, however my existing code uses floats through for
+this calculation as originally I was calculating the area at each point. It is apparent
+that a float isn't quite accurate enough to hold the summed areas when considering the
+edges as occasionally there is the odd pixel tearing at the edges due to rounding.
+However, it's clear that this edge calculation can be done in fixed precision, although
+generally the attributes in \ref{weighting} must continue to be done in floating point
+during the main loop, but can be easily derived from the area constants using just a
+float scaling factor.
+
+Block generation using Hilbert curves
+-------------------------------------
+
+Currently, a very simple approach to rendering blocks occurs - I calculate the minimum
+block bounding box for the triangle, then test the corners of each block using the area
+test to ensure that the box isn't completely outside the triangle. If any corner of the
+box is inside the triangle or the triangle occurs wholly inside the block, we render
+the block. The biggest downside of this approach is that we rasterise horizontally, then
+vertically and due to the small size of the texture cache we have almost certainly lost
+the texture blocks on each block that would be common with the line above.
+
+The standard solution to this is using Hilbert curves to generate blocks that are always
+spatially local to the previous block, which should cut down texture cache lookups by
+around half. Moving to integers for the area and base for the weightings on each block
+will be much more numerically stable as the block deltas will always be (2<<n)*dx and
+(2<<n)*dy.
+
+I had planned to maintain a list of triangles to render organised by blocks in an
+attempt to minimise DMA on the render buffer (which will be quite large as it will also
+include z-buffer and potentially in the future 2x2 AA). However, I think it'll actually
+generate more DMA to maintain this list than to take the hit of reading the data more.
 
 
 
+Integer notes
+-------------
 
+
+Here are some notes about the floating point stuff:
 
 Input vars:
 		x,y [0..2]

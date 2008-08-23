@@ -74,6 +74,10 @@ void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active
 	Triangle* tri = block->triangle;
 	TextureDefinition* tex_def = tri->texture;
 
+	// the following are all wasteful as all elements are the same...
+	// also, i'm aiming to move all the barycentric weightings to integers to prevent
+	// tearing, which currently happens very rarely
+
 	vec_float4 A_dx = tri->A_dx;
 	vec_float4 Aa_dx = spu_splats(spu_extract(A_dx,0));
 	vec_float4 Ab_dx = spu_splats(spu_extract(A_dx,1));

@@ -18,6 +18,9 @@ blk_base = shuffle(shuffle(3 13 3 13 7 17 7 17 b 1b b 1b f 1f f 1f,mipmap,mipmap
 				Hilbert optimisations
 				---------------------
 
+[I think this plan will generate far to much DMA compared to the amount
+it's trying to avoid, so will probably not go with this plan]
+
 data_modified
 -------------
 
