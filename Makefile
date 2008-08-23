@@ -38,7 +38,7 @@ SPU_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(SPU_HNDL))
 
 SHARED_HEADERS = struct.h fifo.h types.h GL/*.h
 PPU_OBJS = ppufifo.o glfifo.o framebuffer.o textureprep.o joystick.o
-SPU_OBJS = spufifo.0 decode.0 primitives.0 fragment.0 queue.0 activeblock.0 shader.0 texture.0 myshader.0 scaler.0 oldshader.0
+SPU_OBJS = spufifo.0 decode.0 primitives.0 fragment.0 queue.0 activeblock.0 shader.0 texture.0 scaler.0 oldshader.0
 GENSOURCES = decode.c fragment.c
 
 PPU_TEST_OBJS = $(PPU_OBJS) test.o $(TEXTURES)
@@ -273,7 +273,40 @@ textureprep.o: /usr/include/bits/wchar.h /usr/include/gconv.h
 textureprep.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 textureprep.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
 textureprep.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
-textureprep.o: types.h
+textureprep.o: struct.h types.h spuregs.h ./GL/glspu.h ./GL/gl.h ./GL/glext.h
+textureprep.o: /usr/include/inttypes.h /usr/include/stdint.h
+joystick.o: /usr/include/stdlib.h /usr/include/features.h
+joystick.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+joystick.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+joystick.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h /usr/include/sys/types.h
+joystick.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+joystick.o: /usr/include/time.h /usr/include/endian.h
+joystick.o: /usr/include/bits/endian.h /usr/include/sys/select.h
+joystick.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
+joystick.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
+joystick.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+joystick.o: /usr/include/bits/stdlib-ldbl.h /usr/include/stdio.h
+joystick.o: /usr/include/libio.h /usr/include/_G_config.h
+joystick.o: /usr/include/wchar.h /usr/include/bits/wchar.h
+joystick.o: /usr/include/gconv.h /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+joystick.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
+joystick.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
+joystick.o: /usr/include/ctype.h /usr/include/string.h /usr/include/math.h
+joystick.o: /usr/include/bits/huge_val.h /usr/include/bits/mathdef.h
+joystick.o: /usr/include/bits/mathcalls.h /usr/include/unistd.h
+joystick.o: /usr/include/bits/posix_opt.h /usr/include/bits/confname.h
+joystick.o: /usr/include/getopt.h /usr/include/fcntl.h
+joystick.o: /usr/include/bits/fcntl.h /usr/include/stdint.h
+joystick.o: /usr/include/sys/ioctl.h /usr/include/bits/ioctls.h
+joystick.o: /usr/include/asm/ioctls.h /usr/include/asm/ioctl.h
+joystick.o: /usr/include/bits/ioctl-types.h /usr/include/termios.h
+joystick.o: /usr/include/bits/termios.h /usr/include/sys/ttydefaults.h
+joystick.o: /usr/include/sys/mman.h /usr/include/bits/mman.h
+joystick.o: /usr/include/linux/kd.h /usr/include/linux/types.h
+joystick.o: /usr/include/linux/posix_types.h /usr/include/linux/stddef.h
+joystick.o: /usr/include/asm/posix_types.h /usr/include/asm/types.h
+joystick.o: /usr/include/linux/joystick.h /usr/include/linux/input.h
+joystick.o: /usr/include/sys/time.h
 test.o: /usr/include/stdlib.h /usr/include/features.h
 test.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 test.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -290,7 +323,7 @@ test.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 test.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
 test.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
 test.o: ./GL/gl.h ./GL/glext.h /usr/include/inttypes.h /usr/include/stdint.h
-test.o: ./GL/glspu.h
+test.o: ./GL/glspu.h joystick.h
 
 spufifo.0: spuregs.h struct.h types.h
 spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
@@ -382,3 +415,11 @@ texture.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 texture.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 texture.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
 texture.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
+scaler.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
+scaler.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+scaler.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
+scaler.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
+oldshader.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
+oldshader.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+oldshader.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
+oldshader.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
