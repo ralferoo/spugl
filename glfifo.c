@@ -267,11 +267,67 @@ GLAPI void GLAPIENTRY calculateMipmap(void* tl, void* tr, void* bl, void* br, vo
 	FIFO_EPILOGUE();
 }
 
-/*
+GLAPI void GLAPIENTRY glLoadMatrixd(const GLdouble* mat)
+{
+	FIFO_PROLOGUE(ctx,10);
+	BEGIN_RING(SPU_COMMAND_GL_MATRIX,16,0);
+	OUT_RINGf(mat[0]);
+	OUT_RINGf(mat[1]);
+	OUT_RINGf(mat[2]);
+	OUT_RINGf(mat[3]);
+	OUT_RINGf(mat[4]);
+	OUT_RINGf(mat[5]);
+	OUT_RINGf(mat[6]);
+	OUT_RINGf(mat[7]);
+	OUT_RINGf(mat[8]);
+	OUT_RINGf(mat[9]);
+	OUT_RINGf(mat[10]);
+	OUT_RINGf(mat[11]);
+	OUT_RINGf(mat[12]);
+	OUT_RINGf(mat[13]);
+	OUT_RINGf(mat[14]);
+	OUT_RINGf(mat[15]);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glLoadMatrixf(const GLfloat* mat)
+{
+	FIFO_PROLOGUE(ctx,10);
+	BEGIN_RING(SPU_COMMAND_GL_MATRIX,16,0);
+	OUT_RINGf(mat[0]);
+	OUT_RINGf(mat[1]);
+	OUT_RINGf(mat[2]);
+	OUT_RINGf(mat[3]);
+	OUT_RINGf(mat[4]);
+	OUT_RINGf(mat[5]);
+	OUT_RINGf(mat[6]);
+	OUT_RINGf(mat[7]);
+	OUT_RINGf(mat[8]);
+	OUT_RINGf(mat[9]);
+	OUT_RINGf(mat[10]);
+	OUT_RINGf(mat[11]);
+	OUT_RINGf(mat[12]);
+	OUT_RINGf(mat[13]);
+	OUT_RINGf(mat[14]);
+	OUT_RINGf(mat[15]);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glMultMatrixf(const GLfloat* mat)
+{
+	glLoadMatrixf(mat);
+}
+
+GLAPI void GLAPIENTRY glMultMatrixd(const GLdouble* mat)
+{
+	glLoadMatrixd(mat);
+}
+
+
 // http://publib.boulder.ibm.com/infocenter/systems/index.jsp?topic=/com.ibm.aix.opengl/doc/openglrf/gluPerspective.htm
 GLAPI void GLAPIENTRY glFrustum( GLdouble left, GLdouble right,
                                    GLdouble bottom, GLdouble top,
-                                   GLdouble near_val, GLdouble far_val )
+                                   GLdouble near, GLdouble far )
 {
 	GLdouble A = (right+left)/(right-left);
 	GLdouble B = (top+bottom)/(top-bottom);
@@ -280,7 +336,7 @@ GLAPI void GLAPIENTRY glFrustum( GLdouble left, GLdouble right,
 
 	GLdouble mat[16] = {
 		2.0*near/(right-left),	0.0,			0.0,	 0.0,
-		0.0,			2.0*near/(top-0bottom),	0.0,	 0.0,
+		0.0,			2.0*near/(top-bottom),	0.0,	 0.0,
 		A,			B,			C,	-1.0,
 		0.0,			0.0,			D,	 0.0};
 
@@ -302,4 +358,4 @@ gluPerspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar)
 
    glFrustum(xmin, xmax, ymin, ymax, zNear, zFar);
 }
-*/
+

@@ -56,6 +56,13 @@ register vec_float4	TRIv		asm ("112");
 register vec_ushort8	TEXcache1	asm ("113");
 register vec_ushort8	TEXcache2	asm ("114");
 
+// these define the standard projection matrix
+
+register vec_float4	PROJ_x		asm ("115");
+register vec_float4	PROJ_y		asm ("116");
+register vec_float4	PROJ_z		asm ("117");
+register vec_float4	PROJ_w		asm ("118");
+
 #define SEL_A0 0,1,2,3,
 #define SEL_A1 4,5,6,7,
 #define SEL_A2 8,9,10,11,

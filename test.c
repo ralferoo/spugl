@@ -27,6 +27,8 @@
 #include <GL/gl.h>
 #include <GL/glspu.h>
 
+void gluPerspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar);
+
 #include "joystick.h"
 
 float vertices[][6] = {
@@ -73,6 +75,27 @@ int main(int argc, char* argv[]) {
 	}
 
 	glspuSetup(argc>1 ? argv[1] : NULL);
+
+/*
+	float recip_old = 420.0f / (in.z-282.0f);
+	float4 s_old = {.x=in.x*recip_old+screen.width/2, .y = in.y*recip_old+screen.height/2, .z = in.z*recip_old, .w = recip_old};
+
+	w = (z-282) / 420
+	x= x + width/2
+
+*/
+
+	GLfloat projectionMatrix[] = {
+		1.0,				0.0,				0.0,	0.0,
+		0.0,				1.0,				0.0,	0.0,
+		640.0f/420.0f,			360.0/420.0f,			1.0,	1.0/420.f,
+		(640.0f*-282.0f)/420.0f,	(360.f*-282.0f)/420.0f,		0.0,	-282.0f/420.f,
+	};
+	glLoadMatrixf(&projectionMatrix);
+
+//	glFrustum(-200, 200, -200, 200, 1000, 300);
+//	gluPerspective(45.0f,(GLfloat)(16.0/9.0),0.1f,100.0f);
+
 
 	float onesec = 42670000.0;
 

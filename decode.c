@@ -247,3 +247,20 @@ void waitDMA(u32 mask) {
 
 	return from;
 }
+
+/*40*/void* imp_glMatrix(float* from, struct __TRIANGLE * triangle) {
+
+	vec_float4 x = { from[ 0], from[ 1], from[ 2], from[ 3] };
+	vec_float4 y = { from[ 4], from[ 5], from[ 6], from[ 7] };
+	vec_float4 z = { from[ 8], from[ 9], from[10], from[11] };
+	vec_float4 w = { from[12], from[13], from[14], from[15] };
+
+	PROJ_x = x;
+	PROJ_y = y;
+	PROJ_z = z;
+	PROJ_w = w;
+
+	return &from[16];
+}
+
+extern void flush_queue();	

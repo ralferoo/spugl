@@ -510,7 +510,7 @@ void* imp_vertex(void* from, float4 in, struct __TRIANGLE * triangle)
 		  current_state >= sizeof(shuffle_map)/sizeof(shuffle_map[0])) {
 		raise_error(ERROR_VERTEX_INVALID_STATE);
 		return from;
-	}
+		}
 #endif
 	int ins = shuffle_map[current_state].insert;
 #ifdef CHECK_STATE_TABLE
@@ -526,9 +526,30 @@ void* imp_vertex(void* from, float4 in, struct __TRIANGLE * triangle)
 	// transformations here. they'll probably live here anyway, just
 	// done with matrices.
 
-	float recip = 420.0f / (in.z-282.0f);
-//	float recip = 420.0f / (in.z-180.0f);
-	float4 s = {.x=in.x*recip+screen.width/2, .y = in.y*recip+screen.height/2, .z = in.z*recip, .w = recip};
+	vec_float4 vin = {in.x, in.y, in.z, in.w }; // this should be parameter format!
+
+	vec_float4 matres = spu_madd(spu_splats(in.x), PROJ_x,
+			    spu_madd(spu_splats(in.y), PROJ_y,
+			    spu_madd(spu_splats(in.z), PROJ_z,
+			    spu_mul (spu_splats(in.w), PROJ_w))));
+
+	float recip = 1.0f/spu_extract(matres,3);
+	vec_float4 vrecip = spu_splats(recip);
+	vec_float4 vresdiv = spu_mul(matres, vrecip);
+	float4 sa = {.x = spu_extract(matres,0), .y = spu_extract(matres,1),
+		    .z = spu_extract(matres,2), .w = spu_extract(matres,3)};
+	float4 s = {.x = spu_extract(vresdiv,0), .y = spu_extract(vresdiv,1),
+		    .z = spu_extract(vresdiv,2), .w = recip};
+
+/*
+	float recip_old = 420.0f / (in.z-282.0f);
+	float4 s_old = {.x=in.x*recip_old+screen.width/2, .y = in.y*recip_old+screen.height/2, .z = in.z*recip_old, .w = recip_old};
+
+	printf(" in: %8.4f %8.4f %8.4f %8.4f\n", in.x, in.y, in.z, in.w);
+	printf("out: %8.4f %8.4f %8.4f %8.4f\n", sa.x, sa.y, sa.z, sa.w);
+	printf("new: %8.4f %8.4f %8.4f %8.4f (%8.4f)\n", s.x, s.y, s.z, s.w, spu_extract(matres,3));
+	printf("old: %8.4f %8.4f %8.4f %8.4f\n\n", s_old.x, s_old.y, s_old.z, s_old.w);
+*/
 
 	float4 c= current_colour;
 	float4 col = {.x=c.x*recip, .y = c.y*recip, .z = c.z*recip, .w = c.w*recip};
