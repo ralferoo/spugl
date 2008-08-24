@@ -77,12 +77,23 @@ int main(int argc, char* argv[]) {
 	glspuSetup(argc>1 ? argv[1] : NULL);
 
 /*
-	float recip_old = 420.0f / (in.z-282.0f);
-	float4 s_old = {.x=in.x*recip_old+screen.width/2, .y = in.y*recip_old+screen.height/2, .z = in.z*recip_old, .w = recip_old};
 
-	w = (z-282) / 420
-	x= x + width/2
+	near/(right-left) = 1/2
+	near/(top-bottom) = 1/2
+	
 
+	GLdouble A = (right+left)/(right-left);
+	GLdouble B = (top+bottom)/(top-bottom);
+	GLdouble C = (far+near)/(far-near);
+	GLdouble D = (2*far*near)/(far-near);
+
+	GLdouble mat[16] = {
+		2.0*near/(right-left),	0.0,			0.0,	 0.0,
+		0.0,			2.0*near/(top-bottom),	0.0,	 0.0,
+		A,			B,			C,	-1.0,
+		0.0,			0.0,			D,	 0.0};
+
+	glMultMatrixd(mat);
 */
 
 	GLfloat projectionMatrix[] = {
@@ -94,7 +105,7 @@ int main(int argc, char* argv[]) {
 	glLoadMatrixf(&projectionMatrix);
 
 //	glFrustum(-200, 200, -200, 200, 1000, 300);
-//	gluPerspective(45.0f,(GLfloat)(16.0/9.0),0.1f,100.0f);
+//	gluPerspective(45.0f,(GLfloat)(16.0/9.0),0.1f,1000.0f);
 
 
 	float onesec = 42670000.0;
@@ -179,6 +190,8 @@ int main(int argc, char* argv[]) {
 				t = cc*x+sc*z;
 				z = cc*z-sc*x;
 				x = t;
+
+				z-=25;
 
 				sx[v] = x;
 				sy[v] = y;
