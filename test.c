@@ -76,25 +76,7 @@ int main(int argc, char* argv[]) {
 
 	glspuSetup(argc>1 ? argv[1] : NULL);
 
-/*
-
-	near/(right-left) = 1/2
-	near/(top-bottom) = 1/2
-	
-
-	GLdouble A = (right+left)/(right-left);
-	GLdouble B = (top+bottom)/(top-bottom);
-	GLdouble C = (far+near)/(far-near);
-	GLdouble D = (2*far*near)/(far-near);
-
-	GLdouble mat[16] = {
-		2.0*near/(right-left),	0.0,			0.0,	 0.0,
-		0.0,			2.0*near/(top-bottom),	0.0,	 0.0,
-		A,			B,			C,	-1.0,
-		0.0,			0.0,			D,	 0.0};
-
-	glMultMatrixd(mat);
-*/
+	// NOTE THIS ISN'T A REAL OPENGL TRANSFORM!!!
 
 	GLfloat projectionMatrix[] = {
 		1.0,				0.0,				0.0,	0.0,
@@ -103,10 +85,6 @@ int main(int argc, char* argv[]) {
 		(640.0f*-282.0f)/420.0f,	(360.f*-282.0f)/420.0f,		0.0,	-282.0f/420.f,
 	};
 	glLoadMatrixf(&projectionMatrix);
-
-//	glFrustum(-200, 200, -200, 200, 1000, 300);
-//	gluPerspective(45.0f,(GLfloat)(16.0/9.0),0.1f,1000.0f);
-
 
 	float onesec = 42670000.0;
 
