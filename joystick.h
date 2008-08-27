@@ -1,6 +1,6 @@
 /*
  * This file is part of the python games library for the PS3, 
- * (c) 2007 Ranulf Doswell and 
+ * (c) 2007 Ranulf Doswell 
  *
  * This library may not be used or distributed without a licence, please
  * contact me for information if you wish to use it.
