@@ -11,6 +11,11 @@
 #include <fcntl.h>
 #include <sys/mount.h>
 
+#ifndef MNT_DETACH
+// not defined on my system for some reason :(
+#define MNT_DETACH 2
+#endif
+
 int main(int argc, char* argv[]) {
 	int server = socket(PF_UNIX, SOCK_STREAM, 0);
 
@@ -84,8 +89,9 @@ int main(int argc, char* argv[]) {
 
 	write(0, memory, strlen(memory));
 
-//	system("mount");
-	umount2(mountname, MNT_FORCE);
+	//sleep(5);
+
+	umount2(mountname, MNT_FORCE | MNT_DETACH);
 
 	exit(0);
 }
