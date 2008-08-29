@@ -12,7 +12,7 @@ int main(int argc, char* argv[]) {
 	struct sockaddr_un sock_addr = { AF_UNIX, "\0spuglserver" };
 	connect(server, (struct sockaddr *) &sock_addr, sizeof sock_addr);
 
-	int fds[1] = { STDOUT_FILENO };
+	int fds[2] = { STDOUT_FILENO, STDERR_FILENO };
 	char buffer[CMSG_SPACE(sizeof fds)];
 
 	struct msghdr message = {

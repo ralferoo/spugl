@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
                                &client_addr_len);
 	close(server);
 
-	int fds[1];
+	int fds[16];
 	char buffer[CMSG_SPACE(sizeof fds)];
 
 	char ping;
@@ -36,12 +36,18 @@ int main(int argc, char* argv[]) {
   		.msg_iovlen = 1,
 	};
 
+	memset(buffer, -1, sizeof buffer);
 	int r;
 	if ((r=recvmsg(client_connection, &message, 0)) > 0) {
-		printf("recvmsg = %x\n", r);
+		printf("recvmsg = %d, controllen=%d, iovlen=%d\n", 
+			r, message.msg_controllen, message.msg_iovlen);
 		struct cmsghdr *cmessage = CMSG_FIRSTHDR(&message);
 		memcpy(fds, CMSG_DATA(cmessage), sizeof fds);
 		write(fds[0], "HELLO\n", 6);
+		int i;
+		for (i=0; i<sizeof(fds)/sizeof(fds[0]); i++) {
+			printf("fd[%d] = %d\n", i, fds[i]);
+		}
 	}
 
 	write(client_connection, "spugl-0.0.1\n", 13);
