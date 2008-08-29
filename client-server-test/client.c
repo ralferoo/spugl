@@ -35,9 +35,12 @@ int main(int argc, char* argv[]) {
 
 	// ideally, we'd use a tmpfs backed system so we don't need msync
 
-	char tmp[65536];
-	memset(tmp,0,65536);
-	write(mem_fd,tmp,65536);
+//	char tmp[65536];
+//	memset(tmp,0,65536);
+//	write(mem_fd,tmp,65536);
+
+	lseek(mem_fd, 65535, SEEK_SET);
+	write(mem_fd,"",1);
 
 	void* memory = mmap(NULL, 65536,
 		PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0);
@@ -81,7 +84,7 @@ int main(int argc, char* argv[]) {
 
 	write(0, memory, strlen(memory));
 
-	system("mount");
+//	system("mount");
 	umount2(mountname, MNT_FORCE);
 
 	exit(0);
