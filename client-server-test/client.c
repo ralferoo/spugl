@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/mount.h>
 
 int main(int argc, char* argv[]) {
 	int server = socket(PF_UNIX, SOCK_STREAM, 0);
@@ -20,9 +21,19 @@ int main(int argc, char* argv[]) {
 	// we need to pass memory blocks used a file-backed fd :(
 
 	//int mem_fd = open("/dev/zero", O_RDWR);
-	int mem_fd = open("/tmp/virtmem", O_RDWR | O_CREAT, 0700);
-	unlink("/tmp/virtmem");
 
+	char* mountname = "/tmp/virtmem";
+	mkdir(mountname, 0700);
+	mount("spugl", mountname, "tmpfs", MS_NOATIME | MS_NODEV |
+			MS_NODIRATIME | MS_NOEXEC | MS_NOSUID, "");
+
+	char filename[256];
+	sprintf(filename, "%s/virtmem.%d", mountname, getpid());
+	int mem_fd = open(filename, O_RDWR | O_CREAT, 0700);
+	unlink(filename);
+	printf("%s\n", filename);
+
+	// ideally, we'd use a tmpfs backed system so we don't need msync
 
 	char tmp[65536];
 	memset(tmp,0,65536);
@@ -69,6 +80,9 @@ int main(int argc, char* argv[]) {
 	write(0, rbuffer, i);
 
 	write(0, memory, strlen(memory));
+
+	system("mount");
+	umount2(mountname, MNT_FORCE);
 
 	exit(0);
 }
