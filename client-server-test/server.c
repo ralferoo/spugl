@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/mman.h>
 
 int main(int argc, char* argv[]) {
 	int server = socket(PF_UNIX, SOCK_STREAM, 0);
@@ -47,6 +48,16 @@ int main(int argc, char* argv[]) {
 		int i;
 		for (i=0; i<sizeof(fds)/sizeof(fds[0]); i++) {
 			printf("fd[%d] = %d\n", i, fds[i]);
+		}
+
+		int mem_fd = fds[1];
+		void* memory = mmap(NULL, 65536,
+			PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0);
+		if (memory!=NULL) {
+			printf("original: %s", memory);
+			sprintf(memory, "Updated contents is fd %d at address %x\n", mem_fd, memory);
+			msync(memory, 65536, MS_SYNC);
+			printf("updated: %s", memory);
 		}
 	}
 
