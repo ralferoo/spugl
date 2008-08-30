@@ -79,7 +79,7 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 
 	if ((lseek(mem_fd, request->alloc.size-1, SEEK_SET) == -1) || (write(mem_fd, "", 1)<1)) {
 		close(mem_fd);
-		sprintf(buffer, "cannot extend temporary file %s to size %d", filename, request->alloc.size);
+		sprintf(buffer, "cannot extend temporary file %s to size %u", filename, request->alloc.size);
 		syslog(LOG_INFO, buffer);
 
 		reply->alloc.id = 0;
