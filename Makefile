@@ -9,9 +9,6 @@
 #
 ############################################################################
 
-version:
-	@TAG=`git tag` ; echo $$TAG.`git rev-list $$TAG..HEAD | wc -l`
-
 BASE_NAME = spugl-client-0.1
 
 TARGETS = test
@@ -75,6 +72,8 @@ texmap.sqf:	test
 	echo 'Texture Mapping Demo':`date '+%s'` >/tmp/texmap-build/.version
 	mksquashfs /tmp/texmap-build $@ -noappend
 	
+spugl-client/daemon.h: .
+	./version.sh
 
 test.static:	$(PPU_TEST_OBJS) $(SPU_HNDL)
 	gcc -m$(USERLAND) -o test.static $(PPU_TEST_OBJS) $(SPU_HNDL) $(LIBS) -static
