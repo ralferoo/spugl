@@ -46,6 +46,12 @@ PPU_SRCS := $(patsubst %.o,%.c,$(PPU_TEST_OBJS))
 
 SOURCE_DIST_FILES= README $(PPU_SRCS) $(SPU_HNDL) $(SHARED_HEADERS) gen_spu_command_defs.h
 
+DAEMON_TARGETS_C := $(wildcard spugl-server/*.c)
+DAEMON_TARGETS := $(patsubst %.c,%.o,$(DAEMON_TARGETS_C))
+
+spugl:	$(DAEMON_TARGETS)
+	gcc -o $@ $(DAEMON_TARGETS)
+
 all:	$(TARGETS)
 
 test:	$(PPU_TEST_OBJS) $(SPU_HNDL)

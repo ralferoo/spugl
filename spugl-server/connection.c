@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include <syslog.h>
+#include <stdio.h>
 #include "connection.h"
 
 void handleConnect(struct Connection* connection) {
