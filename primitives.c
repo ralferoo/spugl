@@ -91,6 +91,7 @@ extern void* linearColourFill(void* self, Block* block, ActiveBlock* active, int
 extern void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag);
 extern void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int tag);
 extern void* fastTextureMapFill(void* self, Block* block, ActiveBlock* active, int tag);
+extern void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active, int tag);
 
 int dummyProducer(Triangle* tri, Block* block)
 {
@@ -121,6 +122,10 @@ int dummyProducer(Triangle* tri, Block* block)
 
 int triangleProducer(Triangle* tri, Block* block)
 {
+	vec_int4 area = tri->area;
+	vec_int4 a_dx = tri->area_dx;
+	vec_int4 a_dy = tri->area_dy;
+
 	vec_float4 A = tri->A;
 	vec_float4 A_dx32 = tri->A_dx32;
 	vec_float4 A_dy32 = tri->A_dy32;
@@ -165,8 +170,47 @@ int triangleProducer(Triangle* tri, Block* block)
 	return bx | (by<<8);
 }
 
+#define FIXED_PREC 2
+
 static void imp_triangle(struct __TRIANGLE * triangle)
 {
+	// starting to rework using ints, mostly to avoid tearing issues (but also quicker)
+	
+	vec_int4 i_x = spu_convts(TRIx, FIXED_PREC);
+	vec_int4 i_y = spu_convts(TRIy, FIXED_PREC);
+
+	vec_int4 i_x_cw = spu_shuffle(i_x, i_x, shuffle_tri_cw);
+	vec_int4 i_y_cw = spu_shuffle(i_y, i_y, shuffle_tri_cw);
+
+	vec_int4 i_x_ccw = spu_shuffle(i_x, i_x, shuffle_tri_ccw);
+	vec_int4 i_y_ccw = spu_shuffle(i_y, i_y, shuffle_tri_ccw);
+
+	// i_face_sum = x0(y2-y1)+x1(y0-y2)+y2(y1-y0)
+	vec_int4 i_face_mul = spu_mulo((vec_short8)i_x, (vec_short8)spu_sub(i_y_ccw, i_y_cw));
+	int i_face_sum = spu_extract(i_face_mul, 0) +
+			 spu_extract(i_face_mul, 1) +
+			 spu_extract(i_face_mul, 2);
+	vec_int4 i_base_area = spu_insert(i_face_sum, spu_splats(0), 0);
+	vec_uint4 i_fcgt_area = spu_cmpgt(spu_splats(0), i_base_area);
+
+	vec_int4 i_area_dx = spu_sub(i_y_ccw, i_y_cw); // cy -> by
+	vec_int4 i_area_dy = spu_sub(i_x_cw, i_x_ccw); // bx -> cx
+
+	vec_int4 i_area_ofs = spu_add(
+		spu_mulo((vec_short8)spu_splats(spu_extract(i_x,0)),(vec_short8)i_area_dx),
+		spu_mulo((vec_short8)spu_splats(spu_extract(i_y,0)),(vec_short8)i_area_dy));
+
+	vec_uchar16 shuf_i_x = spu_slqwbyte(minimax_x, (u32)
+					spu_extract(spu_gather(spu_cmpgt(i_x, i_x_cw)), 0)&~1);
+
+	vec_uchar16 shuf_i_y = spu_slqwbyte(minimax_y, (u32)
+					spu_extract(spu_gather(spu_cmpgt(i_y, i_y_cw)), 0)&~1);
+
+	vec_int4 minmax_i = spu_shuffle(i_x, i_y, spu_or(minimax_add, 
+					spu_shuffle(shuf_i_x, shuf_i_y, minimax_merge)));
+
+//////
+//
 	vec_float4 t_vx_cw = spu_shuffle(TRIx, TRIx, shuffle_tri_cw);
 	vec_uint4 fcgt_x = spu_cmpgt(TRIx, t_vx_cw);	// all-ones if ax>bx, bx>cx, cx>ax, ???
 	u32 fcgt_bits_x = spu_extract(spu_gather(fcgt_x), 0) & ~1;
@@ -223,6 +267,11 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	triangle->A_dy = area_dy;
 
 
+	vec_float4 v_t_cw = spu_shuffle(TRIt, TRIt, shuffle_tri_cw);
+	vec_float4 v_t_ccw = spu_shuffle(TRIt, TRIt, shuffle_tri_ccw);
+
+	vec_float4 v_bt_to_ct = spu_sub(v_t_cw, v_t_ccw); // deliberately change sign...
+
 	////////////////////////////////
 	//
 	// clip minmax to screen boundary
@@ -238,7 +287,13 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	vec_int4 minmax_block = spu_rlmaska(minmax,-5);
 	vec_int4 minmax_block_mask = minmax & spu_splats(~31);
 	vec_float4 minmax_block_topleft = spu_convtf(minmax_block_mask,0);
-
+/*
+	printf("minmax %d %d %d %d\n",
+		spu_extract(minmax,0),
+		spu_extract(minmax,1),
+		spu_extract(minmax,2),
+		spu_extract(minmax,3));
+*/
 	int block_left = spu_extract(minmax_block,0);
 	int block_top = spu_extract(minmax_block,1);
 	int block_right = spu_extract(minmax_block,2);
@@ -262,6 +317,26 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	triangle->A_dy32 = spu_nmsub(pixels_wide,area_dx,spu_mul(muls32,area_dy));
 	triangle->A_dx4 = spu_mul(muls4,area_dx);
 
+/*
+	printf("%8.2f | %8.2f,%8.2f | %8.2f,%8.2f | +%8.2f,%8.2f\n",
+		spu_extract(base_area,0), spu_extract(area_dx,0), spu_extract(area_dy,0), 
+		spu_extract(area_dx,1), spu_extract(area_dy,1), 
+		spu_extract(area_dx,2), spu_extract(area_dy,2));
+	printf("%8x | %8x,%8x | %8x,%8x | %8x,%8x\n\n",
+		spu_extract(i_base_area,0), spu_extract(i_area_dx,0), spu_extract(i_area_dy,0), 
+		spu_extract(i_area_dx,1), spu_extract(i_area_dy,1), 
+		spu_extract(i_area_dx,2), spu_extract(i_area_dy,2));
+*/	
+
+///////////////////////////////////////////
+
+	triangle->area = spu_rlmaska(
+			spu_madd((vec_short8)spu_splats(spu_extract(minmax_block_mask,0)),(vec_short8)i_area_dx,
+	       		spu_madd((vec_short8)spu_splats(spu_extract(minmax_block_mask,1)),(vec_short8)i_area_dy,
+	      		spu_sub(i_base_area, i_area_ofs))), -FIXED_PREC);
+	triangle->area_dx = i_area_dx;
+	triangle->area_dy = i_area_dy;
+
 ///////////////////////////////////////////
 
 /*
@@ -272,7 +347,7 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 
 	triangle->texture = currentTexture;
 	currentTexture->users++;
-	triangle->tex_id_base = currentTexture->tex_id_base;
+//	triangle->tex_id_base = currentTexture->tex_id_base;
 
 //	triangle->init_block = &linearColourFill;
 
@@ -282,7 +357,9 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 //		triangle->init_block = &textureMapFill;
 //	else
 //
-	triangle->init_block = &linearTextureMapFill;
+//	triangle->init_block = &linearTextureMapFill;
+
+	triangle->init_block = &lessMulsLinearTextureMapFill;
 
 //	triangle->init_block = &fastTextureMapFill;
 
@@ -294,6 +371,8 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	unsigned long triangle_is_visible_mask = spu_extract(fcgt_area, 0);
 	triangle->count = 1 & triangle_is_visible_mask;
 	triangle->produce = (void*)( ((u32)&triangleProducer) & triangle_is_visible_mask );
+
+//	printf("[%d] %f, %f -> %f\n", triangle->count, face_sum, tex_cover, tex_cover/face_sum);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -431,7 +510,7 @@ void* imp_vertex(void* from, float4 in, struct __TRIANGLE * triangle)
 		  current_state >= sizeof(shuffle_map)/sizeof(shuffle_map[0])) {
 		raise_error(ERROR_VERTEX_INVALID_STATE);
 		return from;
-	}
+		}
 #endif
 	int ins = shuffle_map[current_state].insert;
 #ifdef CHECK_STATE_TABLE
@@ -447,9 +526,30 @@ void* imp_vertex(void* from, float4 in, struct __TRIANGLE * triangle)
 	// transformations here. they'll probably live here anyway, just
 	// done with matrices.
 
-	float recip = 420.0f / (in.z-282.0f);
-//	float recip = 420.0f / (in.z-180.0f);
-	float4 s = {.x=in.x*recip+screen.width/2, .y = in.y*recip+screen.height/2, .z = in.z*recip, .w = recip};
+	vec_float4 vin = {in.x, in.y, in.z, in.w }; // this should be parameter format!
+
+	vec_float4 matres = spu_madd(spu_splats(in.x), PROJ_x,
+			    spu_madd(spu_splats(in.y), PROJ_y,
+			    spu_madd(spu_splats(in.z), PROJ_z,
+			    spu_mul (spu_splats(in.w), PROJ_w))));
+
+	float recip = 1.0f/spu_extract(matres,3);
+	vec_float4 vrecip = spu_splats(recip);
+	vec_float4 vresdiv = spu_mul(matres, vrecip);
+	float4 sa = {.x = spu_extract(matres,0), .y = spu_extract(matres,1),
+		    .z = spu_extract(matres,2), .w = spu_extract(matres,3)};
+	float4 s = {.x = spu_extract(vresdiv,0), .y = spu_extract(vresdiv,1),
+		    .z = spu_extract(vresdiv,2), .w = recip};
+
+/*
+	float recip_old = 420.0f / (in.z-282.0f);
+	float4 s_old = {.x=in.x*recip_old+screen.width/2, .y = in.y*recip_old+screen.height/2, .z = in.z*recip_old, .w = recip_old};
+
+	printf(" in: %8.4f %8.4f %8.4f %8.4f\n", in.x, in.y, in.z, in.w);
+	printf("out: %8.4f %8.4f %8.4f %8.4f\n", sa.x, sa.y, sa.z, sa.w);
+	printf("new: %8.4f %8.4f %8.4f %8.4f (%8.4f)\n", s.x, s.y, s.z, s.w, spu_extract(matres,3));
+	printf("old: %8.4f %8.4f %8.4f %8.4f\n\n", s_old.x, s_old.y, s_old.z, s_old.w);
+*/
 
 	float4 c= current_colour;
 	float4 col = {.x=c.x*recip, .y = c.y*recip, .z = c.z*recip, .w = c.w*recip};

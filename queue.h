@@ -22,16 +22,20 @@
 //
 // NUMBER_OF_TRIS		no limit, but there's no advantage to having this bigger than blocks
 // NUMBER_OF_QUEUED_BLOCKS	maximum and optimally 32; needs to fit in bitmask
-// NUMBER_OF_ACTIVE_BLOCKS	should be at least 2; any more than 4 and the DMA queue could fill
+// NUMBER_OF_ACTIVE_BLOCKS	should be between 2 and 4
 // NUMBER_OF_TEXTURE_DEFINITIONS	should be at least NUMBER_OF_TRIS or else texture.c needs work
 
 #define NUMBER_OF_TRIS	10	
 #define NUMBER_OF_QUEUED_BLOCKS 32
-#define NUMBER_OF_ACTIVE_BLOCKS 4
+#define NUMBER_OF_ACTIVE_BLOCKS 1
 #define NUMBER_OF_TEXTURE_DEFINITIONS 10
 
 #define FIFO_SIZE 1024
 #define FIFO_DMA_TAG 12
+#define FIFO_MIP1_TAG 13
+#define FIFO_MIP2_TAG 14
+
+#define MAX_MIPMAP_LEVELS 10
 
 typedef struct __TEXTURE TextureDefinition;
 typedef struct __BLOCK Block;
@@ -49,11 +53,17 @@ typedef void (ActiveBlockFlush)(ActiveBlock* active, int tag);
 struct __TEXTURE {
 	vec_short8	shifts;		// interleaved shift masks,  odd: log2(height)  (s_blk_max)
 					// interleaved shift masks, even: log2(width)	(t_blk_max)
-
-	u64 		tex_pixel_base;	// the base texture address for block(0,0)
-	unsigned short	tex_id_base;	// base of texture ids (to guarantee unique)
+	vec_int4	mipmapshifts;
 	unsigned short	users;		// number of triangle producers still using this texture
-	unsigned short	tex_t_blk_mult; // how to find the offset of a t block (s is easy ;)
+	unsigned short	tex_max_mipmap;	// how many levels of mipmap are present
+	unsigned short	tex_mask_x;
+	unsigned short	tex_mask_y;	// base mask on block count (>>mipmap)
+
+	vec_uchar16	tex_base_lo;	// together these hold the mipmap base id
+	vec_uchar16	tex_base_hi; 	// texture block ids (to guarantee unique)
+
+	u64 		tex_pixel_base[MAX_MIPMAP_LEVELS]; // the base texture address for block(0,0)
+	unsigned short	tex_t_blk_mult[MAX_MIPMAP_LEVELS]; // how to find the offset of a t block (s is easy ;)
 } __attribute__ ((aligned(16)));
 
 // this holds a triangle, i.e. something that creates blocks to be rendered
@@ -62,6 +72,8 @@ struct __TRIANGLE {
 	vec_float4	r,g,b,a;	// primary colour
 	vec_float4	s,t,u,v;	// primary texture
 
+	vec_uint4	area, area_dx, area_dy;
+
 	vec_float4	A,A_dx,A_dy;	// weight information
 	vec_float4	A_dx4,A_dx32,A_dy32,blockA_dy;		// block init values
 
@@ -69,7 +81,9 @@ struct __TRIANGLE {
 	BlockHandler*	init_block;
 	TextureDefinition*	texture;
 
-	unsigned int	tex_id_base;	// base of texture ids (to guarantee unique)
+	vec_uchar16	tex_base_lo;	// together these hold the mipmap base id
+	vec_uchar16	tex_base_hi; 	// texture block ids (to guarantee unique)
+
 		 short	left;		// count of blocks left to produce
 	unsigned short	count;		// count of blocks that still have reference
 	unsigned char	step, step_start;
@@ -106,6 +120,7 @@ struct __ACTIVE {
 	vec_ushort8	TEXmerge1,TEXmerge2;	// for texture blits
 	unsigned int	texturesMask;
 	BlockHandler*	tex_continue;
+	unsigned int	temp;
 } __attribute__((aligned(16)));
 
 

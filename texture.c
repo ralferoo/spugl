@@ -61,7 +61,7 @@ void* finishTextureLoad(void* self, Block* block, ActiveBlock* active, int tag);
 
 void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag,
 			vec_float4 A, vec_uint4 left, vec_uint4* ptr, vec_uint4 tex_keep,
-			vec_uint4 block_id, vec_uint4 s, vec_uint4 t,
+			vec_int4 mipmap_vec, vec_uint4 block_id, vec_uint4 s, vec_uint4 t,
 			vec_uint4 cache_not_found, vec_uint4 pixel)
 {
 	block->A = A;
@@ -106,11 +106,15 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 
 ////////////////////////////////////////////////////////////////////
 
-	//vec_uint4 tex_id_base = spu_splats((unsigned int)block->triangle->tex_id_base);
-
 	TextureDefinition* textureDefinition = block->triangle->texture;
-	vec_uint4 tex_id_base = spu_splats((unsigned int)textureDefinition->tex_id_base);
-	vec_uint4 needs_sub = spu_sub(block_id,tex_id_base);
+
+/*
+	printf("cache miss for block %x %x %x %x\n", 
+		spu_extract(block_id,0),
+		spu_extract(block_id,1),
+		spu_extract(block_id,2),
+		spu_extract(block_id,3));
+*/
 
 	vec_ushort8 TEXmerge1 = spu_splats((unsigned short)-1);
 	vec_ushort8 TEXmerge2 = spu_splats((unsigned short)-1);
@@ -121,7 +125,7 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 	for (i=0,m=0x8; m && freeTextureMaps; m>>=1,i++) {
 		if (n&m) {			// as soon as we find a 1 bit we are done
 			unsigned int want = spu_extract(block_id,i);
-			unsigned short want_sub = spu_extract(needs_sub,i);
+			unsigned int mipmap = spu_extract(mipmap_vec,i);
 			int nextBit1 = first_bit(freeTextureMaps);
 			int nextBit2 = first_bit(freeTextureMaps & ((1<<lastLoadedTextureMap)-1) );
 			int nextIndex = nextBit2<0 ? nextBit1 : nextBit2;
@@ -156,44 +160,42 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 
 			unsigned int s_blk = spu_extract(s, i);
 			unsigned int t_blk = spu_extract(t, i);
-			unsigned int t_next = (t_blk+1)&7;
 
-			// this sucks with the mults, but hey!
-			unsigned short t_mult = textureDefinition->tex_t_blk_mult;
-			unsigned int ofs = s_blk*32*32*4 + t_blk*t_mult;
-			unsigned int ofs_next = s_blk*32*32*4 + t_next*t_mult;
-			unsigned long long ea = textureDefinition->tex_pixel_base + ofs;
-			unsigned long long ea_next = textureDefinition->tex_pixel_base + ofs_next;
+			unsigned int t_next = (t_blk+1)&(textureDefinition->tex_mask_x>>mipmap);
+			unsigned int s_next = (s_blk+1)&(textureDefinition->tex_mask_y>>mipmap);
 
-//			printf("pixel_base %llx, ea %llx, ea_next %llx. %d%d%d\n",
-//				textureDefinition->tex_pixel_base, ea, ea_next, 1,2,3);
+			unsigned short t_mult = textureDefinition->tex_t_blk_mult[mipmap];
 
-//			unsigned int desired = spu_extract(needs_sub, i);
-//			unsigned long long ea = block->triangle->texture_base + (desired<<(5+5+2));
-			unsigned long len = 33*32*4;
-			
-			unsigned long eah = ea >> 32;
-			unsigned long eal = ea & ~127;
-			unsigned long eal_next = ea_next & ~127;
+			unsigned int s_ofs = s_blk*32*32*4;
+			unsigned int t_ofs = t_blk*t_mult;
+
+			unsigned int sn_ofs = s_next*32*32*4;
+			unsigned int tn_ofs = t_next*t_mult;
+
+			unsigned long long ea_ = textureDefinition->tex_pixel_base[mipmap];
+			unsigned long eah = ea_ >> 32;
+			unsigned long ea  = ea_ & 0xffffffff;
+			unsigned long eal = ea + s_ofs + t_ofs;
+			unsigned long eal_next = ea + s_ofs + tn_ofs;
+			unsigned long eabl = ea + sn_ofs + t_ofs;
+			unsigned long eabl_next = ea + sn_ofs + tn_ofs;
+
 			u32* texture = &textureCache[nextIndex].textureBuffer[0];
-
-//			printf("want %d(base %d)->%d, reading to %x from %x:%08x len %x tag %d\n",
-//				want, spu_extract(tex_id_base,0), nextIndex, texture, eah, eal, len, tag);
 
 			if (mfc_stat_cmd_queue() == 0) {
 //				printf("DMA queue full; bailing...\n");
 				break;
 			}
 
-			static vec_uint4 load_dma_list[NUMBER_TEX_MAPS][34];
+			static vec_uint4 load_dma_list[NUMBER_TEX_MAPS][35];
 
 			vec_uint4* dma_list = &load_dma_list[nextIndex][0];
 			vec_uint4* list_ptr = dma_list;
 
-			vec_uint4 block0 = { 33*32*4, eal, 16, eal_next };
+			vec_uint4 block0 = { 32*32*4, eal, 32*4, eabl };
 			*list_ptr++ = block0;
 
-			vec_uint4 block = { 16, eal_next+32*4, 16, eal_next+32*4*2 };
+			vec_uint4 block = { 16, eal_next, 16, eal_next+32*4 };
 			vec_uint4 step = { 0, 32*4*2, 0, 32*4*2 };
 	
 			int qq;
@@ -202,13 +204,15 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 				block += step;
 			}
 
-//	vec_uint4 step2 = { 0, stride2, 0, stride2};
-//	vec_uint4 step4 = spu_add(step2, step2);
+			vec_uint4 block_l = { 16, eabl_next, 0, 0 };
+			*list_ptr++ = block_l;
 
-			unsigned int list_len = ((void*)list_ptr)-((void*)dma_list);
+			unsigned int list_len = (((void*)list_ptr)-((void*)dma_list))-8;
 
 //			printf("starting DMA... list len %d, list at %x\n", list_len, dma_list);
 			spu_mfcdma64(texture, eah, dma_list, list_len, tag, MFC_GETL_CMD);
+
+			active->temp = (unsigned int) texture;
 
 			freeTextureMaps &= ~nextMask;
 			lastLoadedTextureMap = nextIndex;
@@ -228,12 +232,16 @@ void* loadMissingTextures(void* self, Block* block, ActiveBlock* active, int tag
 	return &finishTextureLoad;
 }
 
+void shrinkTexture(void* in, void* out);
+
 void* finishTextureLoad(void* self, Block* block, ActiveBlock* active, int tag)
 {
 	TEXcache1 &= active->TEXmerge1;
 	TEXcache2 &= active->TEXmerge2;
 	freeTextureMaps |= active->texturesMask;
 
+//	shrinkTexture((void*)active->temp, (void*)active->temp);
+	
 	// loaded some texture maps, chain on to original request
 	return active->tex_continue(active->tex_continue, block, active, tag);
 }

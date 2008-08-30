@@ -1,0 +1,40 @@
+Mipmapper code
+
+* Fix the fact I only interpolate on one vertical line
+
+Rasteriser inner loop
+
+* Add Z buffer to rasteriser
+* Add alpha blend to rasteriser
+* Add stencil buffer to rasteriser
+* Fix pixel offset error (centre at p+0.5, rather than p)
+* Add support for oversampling, e.g. 2x2 RGSS (fig 5.29, Realtime Rendering)
+* Rework texture lookup to support 32 textures
+* Rewrite as assembler chunks that can be bolted together to make shaders
+
+Block generation
+
+* Ditch the intermediate storage of blocks, generate progressively by walking
+  part a Hilbert curve
+* Add workload negotitation code and use more than one SPU
+
+Graphics pipeline
+
+* Implement proper OpenGL pipeline rather than the current single projection
+  matrix
+* Revisit GLES spec to ensure I haven't missed anything fundamental
+* Migrate towards GLES-like FIFO API rather than the current hotpotch
+
+Main FIFO
+
+* Rework memory recycling using the DMA "setvar" method instead of watching
+  the read pointer - we might need to use areas of the buffer for vertex 
+  buffers that are used after they are defined
+* Tidy up macros
+* Implement GLES compatible API to populate the FIFO
+
+Other
+
+* Shader compiler
+* Profiling
+

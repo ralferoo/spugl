@@ -9,6 +9,13 @@
  *
  ****************************************************************************/
 
+#define SCALE 0.9
+//#define SCALE 1.0
+//#define SCALE 1.7
+//#define SCALE 2.0
+//#define SCALE 2.5
+//#define SCALE 3.0
+
 #define SYNC_WITH_FRAME
 // #define DOUBLE_SYNC
 // #define BLACK_MIDDLES
@@ -19,6 +26,10 @@
 
 #include <GL/gl.h>
 #include <GL/glspu.h>
+
+void gluPerspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar);
+
+#include "joystick.h"
 
 float vertices[][6] = {
 	{ -100, -100, -100,	0,127,0},
@@ -53,7 +64,27 @@ static inline double getTimeSince(struct timespec startPoint) {
 unsigned long flag=0;
 
 int main(int argc, char* argv[]) {
-	glspuSetup();
+	float scale = SCALE;
+	int magicScale = 1;
+
+	if (argc>1 && argv[1][0]=='-') {
+		scale=atof(&argv[1][1]);
+		magicScale = 0;
+		argc--;
+		argv++;
+	}
+
+	glspuSetup(argc>1 ? argv[1] : NULL);
+
+	// NOTE THIS ISN'T A REAL OPENGL TRANSFORM!!!
+
+	GLfloat projectionMatrix[] = {
+		1.0,				0.0,				0.0,	0.0,
+		0.0,				1.0,				0.0,	0.0,
+		640.0f/420.0f,			360.0/420.0f,			1.0,	1.0/420.f,
+		(640.0f*-282.0f)/420.0f,	(360.f*-282.0f)/420.0f,		0.0,	-282.0f/420.f,
+	};
+	glLoadMatrixf(&projectionMatrix);
 
 	float onesec = 42670000.0;
 
@@ -61,17 +92,42 @@ int main(int argc, char* argv[]) {
 
 	int f,v;
 	int cnt = 0;
-	for (;;) {
+
+	stick_init();
+
+	// initial debounce
+	while (stick_button(3));
+
+	int last_button = 0;
+
+	while (!stick_button(3)) {
 		struct timespec startPoint;
 		clock_gettime(CLOCK_MONOTONIC,&startPoint);
 
 		unsigned long blks_start = glspuBlocksProduced();
 		unsigned long caches_start = glspuCacheMisses();
-/*
-*/
-		a += 0.011;
-		b += 0.037;
-		c += 0.017;
+
+		int but = stick_buttons() & ((1<<9) | (1<<8) | (1<<10) | (1<<11) | (1<<14) | (1<<13));
+		if (but) {
+//		if (a!=last_button) {
+//			last_button = a;
+//			magicScale = !magicScale;
+//		}
+//
+//		if (magicScale) {
+//			scale = (sin(flag/50.0)+1.0)*0.95 + SCALE;
+			scale = 1.0/(1.0 + stick_axis(3) * 0.00002);
+
+//			a += stick_axis(2) * 0.000002;
+			b += stick_axis(0) * 0.000002;
+			c += stick_axis(1) * 0.000002;
+		} else {
+			a += 0.011;
+			b += 0.037;
+			c += 0.017;
+		}
+
+//	printf("scale %8.6f a %10.6f b %10.6f c %10.6f\n", scale, a, b, c);
 
 //if (cnt<16990) goto skip;
 
@@ -97,9 +153,9 @@ int main(int argc, char* argv[]) {
 			float tx=0, ty=0, tz=0;
 			float tr=0, tg=0, tb=0;
 			for (v=0; v<4; v++) {
-				x = vertices[faces[f][v]][0];
-				y = vertices[faces[f][v]][1];
-				z = vertices[faces[f][v]][2];
+				x = vertices[faces[f][v]][0] / scale;
+				y = vertices[faces[f][v]][1] / scale;
+				z = vertices[faces[f][v]][2] / scale;
 
 				t = ca*x+sa*y;
 				y = ca*y-sa*x;
@@ -112,6 +168,8 @@ int main(int argc, char* argv[]) {
 				t = cc*x+sc*z;
 				z = cc*z-sc*x;
 				x = t;
+
+				z-=25;
 
 				sx[v] = x;
 				sy[v] = y;
@@ -177,14 +235,6 @@ skip:
 
 		double uptoLoop = getTimeSince(startPoint);
 
-//		printf ("%d %d %d %2.2f%%", _end, _start, _end-_start,
-//			(float) (100.0*(_end-_start)/onesec/uptoLoop));
-
-//		printf ("%d %d %2.2f%%", _endBlocked, _startBlocked,
-//			(float) (100.0*(_endBlocked-_startBlocked)/onesec));
-
-//		printf("%f %f\n", uptoFlip, uptoLoop);
-
 		unsigned long blks_end = glspuBlocksProduced();
 		unsigned long caches_end = glspuCacheMisses();
 
@@ -193,7 +243,7 @@ skip:
 
 		// bah humbug, stdio buffering, bah!
 		char buffer[256];
-		sprintf(buffer,"[%d] %4.1f FPS (actual %5.1f) %5d blocks %6d misses %8.1f block/s   \r",
+		sprintf(buffer,"\r[%5d] %4.1f FPS (actual %5.1f) %5d blocks %6d misses %8.1f block/s ",
 			flag, //cnt,
 			(float) 1.0/uptoLoop,
 			(float) 1.0/uptoFlip,
@@ -201,10 +251,14 @@ skip:
 			((float)blks_end-blks_start)/uptoLoop,
 			(float) (100.0*(_end-_start)/onesec/uptoLoop),
 			(float) (100.0*(_endBlocked-_startBlocked)/onesec/uptoLoop));
-		write(1,buffer,strlen(buffer));
-//		printf("%s\n", buffer);
+		write(2,buffer,strlen(buffer));
+		if (uptoLoop > (1.0/58.4f))
+			write(2, "*\n", 2);
 	}
-	usleep(250000);
+	stick_close();
+	exit(0);
+
+//	usleep(250000);
 	glspuDestroy();
 
 	// quick hack so that SPU debugging messages have a chance to come out

@@ -56,6 +56,13 @@ register vec_float4	TRIv		asm ("112");
 register vec_ushort8	TEXcache1	asm ("113");
 register vec_ushort8	TEXcache2	asm ("114");
 
+// these define the standard projection matrix
+
+register vec_float4	PROJ_x		asm ("115");
+register vec_float4	PROJ_y		asm ("116");
+register vec_float4	PROJ_z		asm ("117");
+register vec_float4	PROJ_w		asm ("118");
+
 #define SEL_A0 0,1,2,3,
 #define SEL_A1 4,5,6,7,
 #define SEL_A2 8,9,10,11,
@@ -70,6 +77,34 @@ register vec_ushort8	TEXcache2	asm ("114");
 
 
 
+
+static inline vec_int4 log2(vec_float4 a) {
+	qword ra = (qword) a;
+	qword t0 = si_rotmi(ra,-23);
+	qword t1 = si_andi(t0,255);
+	qword t2 = si_ai(t1,-127);
+	return (vec_int4) t2;
+}
+
+
+static inline vec_int4 log2_sqrt_clamp(vec_float4 a, vec_int4 adjust) {
+	qword ra = (qword) a;
+	qword rb = (qword) adjust;
+	qword t0 = si_shli(ra,1);
+	qword t1 = si_rotmi(t0,-24);
+	qword t2p = si_sfi(t1,127);
+	qword t2 = si_sf(t2p,rb);
+	qword t2a = si_rotmai(t2,-1);
+	qword t3 = si_rotmai(t2,-31);
+	qword t4 = si_andc(t2a,t3);
+	return (vec_int4) t4;
+}
+
+
+static inline vec_float4 max(vec_float4 a, vec_float4 b) {
+	vec_uint4 cmp = spu_cmpgt(a,b);
+	return (vec_float4) spu_sel(b,a,cmp);
+}
 
 static inline vec_float4 div(vec_float4 a, vec_float4 b) {
 	qword ra = (qword) a;

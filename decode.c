@@ -157,14 +157,34 @@ int nextTextureDefinitionPtr = 0;
 		nextTextureDefinitionPtr = (nextTextureDefinitionPtr+1)%NUMBER_OF_TEXTURE_DEFINITIONS;
 		currentTexture = definition;
 	}
-
-	u64 ea;
-	__READ_EA(from)
-	definition->tex_pixel_base = ea;
-	definition->tex_id_base = *from++;
-	definition->shifts = spu_splats((short)(*from++));
-	definition->tex_t_blk_mult = (unsigned short)(*from++);
 	definition->users = 0;
+
+	vec_uchar16 lo = spu_splats((unsigned char)0);
+	vec_uchar16 hi = spu_splats((unsigned char)0);
+
+	u32 log2x = *from++;
+	u32 log2y = *from++;
+
+	definition->shifts = spu_splats((int)((log2x+(log2y<<16))-0x50005));
+	definition->mipmapshifts = spu_splats((int)(log2x+log2y));
+	definition->tex_mask_x = (1<<(log2x-5))-1;
+	definition->tex_mask_y = (1<<(log2y-5))-1;
+
+	u32 max_mipmap = *from++;
+	definition->tex_max_mipmap = max_mipmap;
+
+	for (int i=0; i<=max_mipmap; i++) {
+		u64 ea;
+		__READ_EA(from)
+		definition->tex_pixel_base[i] = ea;
+		definition->tex_t_blk_mult[i] = (unsigned short)(*from++);
+
+		u32 tex_id_base = *from++;
+		lo = spu_insert((unsigned char)tex_id_base, lo, i);
+		hi = spu_insert((unsigned char)(tex_id_base>>8), hi, i);
+	}
+	definition->tex_base_lo = lo;
+	definition->tex_base_hi = hi;
 
  	return from;
 }
@@ -179,3 +199,68 @@ static u32 set_flag_value = 0;
 
 	return from;
 }
+
+u32 mip_buffer1[32*32] __attribute__((aligned(128)));
+u32 mip_buffer2[32*32] __attribute__((aligned(128)));
+u32 mip_buffer[32*32] __attribute__((aligned(128)));
+
+void shrinkTexture(void* in, void* out);
+
+void waitDMA(u32 mask) {
+	unsigned int completed;
+	do {
+		mfc_write_tag_mask(mask);
+		completed = mfc_read_tag_status_immediate();
+	} while (!(completed&mask));
+}
+
+/*29*/void* imp_generateMipMap(u32* from, struct __TRIANGLE * triangle) {
+	u64 ea;
+	__READ_EA(from)
+	spu_mfcdma64(&mip_buffer1, mfc_ea2h(ea), mfc_ea2l(ea), 32*32*4, FIFO_MIP1_TAG, MFC_GET_CMD);
+
+	__READ_EA(from)
+	spu_mfcdma64(&mip_buffer2, mfc_ea2h(ea), mfc_ea2l(ea), 32*32*4, FIFO_MIP2_TAG, MFC_GET_CMD);
+
+	waitDMA(1<<FIFO_MIP1_TAG);
+	shrinkTexture(&mip_buffer1, &mip_buffer);
+	
+	__READ_EA(from)
+	spu_mfcdma64(&mip_buffer1, mfc_ea2h(ea), mfc_ea2l(ea), 32*32*4, FIFO_MIP1_TAG, MFC_GET_CMD);
+
+	waitDMA(1<<FIFO_MIP2_TAG);
+	shrinkTexture(&mip_buffer2, ((void*)&mip_buffer)+4*16);
+	
+	__READ_EA(from)
+	spu_mfcdma64(&mip_buffer2, mfc_ea2h(ea), mfc_ea2l(ea), 32*32*4, FIFO_MIP2_TAG, MFC_GET_CMD);
+
+	waitDMA(1<<FIFO_MIP1_TAG);
+	shrinkTexture(&mip_buffer1, ((void*)&mip_buffer)+4*16*32);
+
+	waitDMA(1<<FIFO_MIP2_TAG);
+	shrinkTexture(&mip_buffer2, ((void*)&mip_buffer)+4*16+4*16*32);
+	
+	// write texture back
+	__READ_EA(from)
+	spu_mfcdma64(&mip_buffer, mfc_ea2h(ea), mfc_ea2l(ea), 32*32*4, FIFO_MIP1_TAG, MFC_PUT_CMD);
+	waitDMA(1<<FIFO_MIP1_TAG);
+
+	return from;
+}
+
+/*40*/void* imp_glMatrix(float* from, struct __TRIANGLE * triangle) {
+
+	vec_float4 x = { from[ 0], from[ 1], from[ 2], from[ 3] };
+	vec_float4 y = { from[ 4], from[ 5], from[ 6], from[ 7] };
+	vec_float4 z = { from[ 8], from[ 9], from[10], from[11] };
+	vec_float4 w = { from[12], from[13], from[14], from[15] };
+
+	PROJ_x = x;
+	PROJ_y = y;
+	PROJ_z = z;
+	PROJ_w = w;
+
+	return &from[16];
+}
+
+extern void flush_queue();	

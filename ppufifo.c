@@ -118,14 +118,18 @@ DriverContext _init_3d_driver(int master)
 #ifdef USE_LIBSPE2
 	void* ls = spe_ls_area_get(context->spe_ctx);
 
-	while(!spe_out_mbox_status(context->spe_ctx))
+	while(!spe_out_mbox_status(context->spe_ctx)) {
 		sched_yield();
+		asm("sync");
+	}
 	spe_out_mbox_read(context->spe_ctx, &addr, 1);
 #else
 	void* ls = spe_get_ls(context->spe_id);
 
-	while(!spe_stat_out_mbox(context->spe_id))
+	while(!spe_stat_out_mbox(context->spe_id)) {
 		sched_yield();
+		asm("sync");
+	}
 	addr = spe_read_out_mbox(context->spe_id);
 #endif
 
@@ -147,13 +151,15 @@ int _flush_3d_driver(DriverContext _context)
 
 	// use a flush as an opportunity to reset the fifo buffer
 	u32* __fifo_ptr = (u32*)_FROM_EA(control->fifo_written);
-	BEGIN_RING(SPU_COMMAND_JUMP,1);
+	BEGIN_RING(SPU_COMMAND_JUMP,0,1);
 	OUT_RINGea(context->fifo_buffer);
-	control->fifo_written = context->fifo_buffer;
+	control->fifo_written = _MAKE_EA(context->fifo_buffer);
 
 	if (control->fifo_written != control->fifo_read) {
-		while (control->fifo_written != control->fifo_read) 
+		while (control->fifo_written != control->fifo_read) {
 			sched_yield();
+			asm("sync");
+		}
 	}
 }
 

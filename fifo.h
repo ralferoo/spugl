@@ -34,6 +34,7 @@ typedef void* DriverContext;
 #if defined(USERLAND_32_BITS)
 #define _MAKE_EA(x) ( (u64) ((u32)((void*)x)) )
 #define _FROM_EA(x) ((void*)((u32)((u64)x)))
+#define FIFO_EA_SIZE 1
 #define OUT_RINGea(addr) \
 { u64 ea = _MAKE_EA(addr); \
   *__fifo_ptr++ = (u32)(ea&0xffffffffUL); \
@@ -47,6 +48,7 @@ typedef void* DriverContext;
 #elif defined(USERLAND_64_BITS)
 #define _MAKE_EA(x) ((u64)((void*)x))
 #define _FROM_EA(x) ((void*)((u64)x))
+#define FIFO_EA_SIZE 2
 #define OUT_RINGea(addr) \
 { u64 _____ea = _MAKE_EA(addr); \
   *__fifo_ptr++ = (u32)(_____ea>>32); \
@@ -82,7 +84,7 @@ __fifo_ptr = 0UL;
 
 #define OUT_RING(v) { *(__fifo_ptr)++ = (u32)v; }
 #define OUT_RINGf(v) { union __f2i temp; temp.f = v;  *(__fifo_ptr)++ = temp.i; }
-#define BEGIN_RING(c,s) OUT_RING(c | (s<<24))
+#define BEGIN_RING(c,s,sp) OUT_RING(c | (((s)+FIFO_EA_SIZE*(sp))<<24))
 
 union __f2i
 {

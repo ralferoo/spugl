@@ -122,6 +122,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 
 	int running = 1;
 	while (running) {
+		asm("sync");
 		process_queue(&fifoTriangleGenerator, &blockActivater);
 	}
 }

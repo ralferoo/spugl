@@ -12,6 +12,7 @@
 
 #include <fcntl.h>
 #include <stdint.h>
+#include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <linux/kd.h>
@@ -49,6 +50,9 @@ typedef struct {
 	char* current;
 	int drawFrame;
 
+	int dumpFD;
+	unsigned long dumpLength;
+
 	_bitmap_image image;
 } ScreenObject;
 
@@ -78,6 +82,7 @@ static void Screen_initResources(ScreenObject* self) {
 	self->desiredMode = -1;
 	self->graphicsMode = 0;
 	self->hasUnblankedScreen = 0;
+	self->dumpFD = -1;
 }
 
 static void Screen_closeResources(ScreenObject* self) {
@@ -92,6 +97,10 @@ static void Screen_closeResources(ScreenObject* self) {
 	if (self->graphicsMode) {
 		switchMode(self, 0);
 		self->graphicsMode = 0;
+	}
+	if (self->dumpFD >= 0) {
+		close(self->dumpFD);
+		self->dumpFD = -1;
 	}
 	self->desiredMode = -1;
 }
@@ -167,6 +176,13 @@ Screen_flip(ScreenObject *self)
 
 	self->current = self->drawFrame ? (self->addr + self->lengthPerFrame)
 									: self->addr;
+
+	if (self->dumpFD >= 0) {
+		char* drawn = self->drawFrame ? (self->addr + self->lengthPerFrame)
+									: self->addr;
+		write(self->dumpFD, drawn, self->dumpLength);
+	}
+
 	return showFrame;
 }
 
@@ -196,9 +212,54 @@ static int Screen_setMode(ScreenObject* self, int desiredMode) {
 	return 0;
 }
 
+static void
+Screen_openDumpFile(ScreenObject *self, char* dumpName, int width, int height)
+{
+	if (self->dumpFD >= 0) {
+		close(self->dumpFD);
+		self->dumpFD = -1;
+	}
+
+#ifndef RAW_DUMP
+        int fd[2];
+        if (pipe(fd)<0)
+                return;
+
+        int pid = fork();
+        if (pid<0) {
+                close(fd[0]);
+                close(fd[1]);
+        } else if (pid==0) {
+                // child thread
+                close(fd[1]);           // close write pipe
+		char buffer[1024];
+		sprintf(buffer, "mencoder -demuxer rawvideo -rawvideo format=argb:w=%d:h=%d:fps=30 /dev/fd/%d -ovc lavc -oac mp3lame -lavcopts vbitrate=4000 -o %s >/dev/null 2>/dev/null", width, height, fd[0], dumpName);
+		//sprintf(buffer, "cat - >%s", width, height, fd[0], dumpName);
+
+                setpgid(0,0);
+                char* argv[] = {"/bin/sh", "-c", buffer, NULL};
+                char* envp[] = {NULL};
+                if (execve(argv[0], argv, envp)<0) {
+                        close(0);
+                        close(1);
+                        exit(0);
+                }
+        } else {
+                close(fd[0]);           // close read pipe
+		self->dumpLength = width * height * 4;
+                self->dumpFD = fd[1]; // keep write pipe
+        }
+#else
+	self->dumpFD = open(dumpName, O_WRONLY | O_CREAT);
+	self->dumpLength = width * height * 4;
+
+	printf("Writing to %s, fd=%d\n", dumpName, self->dumpFD);
+#endif
+}
+
 static int _screen_initialised = 0;
 static ScreenObject _screen;
-BitmapImage _getScreen(void)
+BitmapImage _getScreen(char* dumpName)
 {
 	if (_screen_initialised == 0) {
 		_screen_initialised = 1;
@@ -212,6 +273,10 @@ BitmapImage _getScreen(void)
 		    4*(_screen.res.xres * _screen.res.xoff + _screen.res.yoff);
 
 		printf("screen size is %dx%d pixels\n", _screen.image.width, _screen.image.height);
+
+		if (dumpName) {
+			Screen_openDumpFile(&_screen, dumpName, _screen.image.width, _screen.image.height);
+		}
 
 		return &(_screen.image);
 	}
