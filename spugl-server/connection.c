@@ -12,6 +12,7 @@
 #include <syslog.h>
 #include <stdio.h>
 #include "connection.h"
+#include "../spugl-client/daemon.h"
 
 void handleConnect(struct Connection* connection) {
 	char buffer[512];
