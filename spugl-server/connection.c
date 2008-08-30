@@ -186,5 +186,3 @@ int handleConnectionData(struct Connection* connection) {
 
 	return 0;
 }
-
-
