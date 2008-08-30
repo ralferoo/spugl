@@ -9,6 +9,9 @@
 #
 ############################################################################
 
+version:
+	@TAG=`git tag` ; echo $$TAG.`git rev-list $$TAG..HEAD | wc -l`
+
 BASE_NAME = spugl-client-0.1
 
 TARGETS = test
