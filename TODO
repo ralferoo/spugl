@@ -1,3 +1,7 @@
+Mipmapper code
+
+* Fix the fact I only interpolate on one vertical line
+
 Rasteriser inner loop
 
 * Add Z buffer to rasteriser
