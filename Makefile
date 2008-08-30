@@ -387,6 +387,34 @@ spugl-server/connection.o: /usr/include/bits/libio-ldbl.h
 spugl-server/connection.o: /usr/include/bits/stdio_lim.h
 spugl-server/connection.o: /usr/include/bits/sys_errlist.h
 spugl-server/connection.o: /usr/include/bits/stdio-ldbl.h
+spugl-server/connection.o: /usr/include/errno.h /usr/include/bits/errno.h
+spugl-server/connection.o: /usr/include/linux/errno.h
+spugl-server/connection.o: /usr/include/asm/errno.h
+spugl-server/connection.o: /usr/include/asm-generic/errno.h
+spugl-server/connection.o: /usr/include/asm-generic/errno-base.h
+spugl-server/connection.o: /usr/include/unistd.h
+spugl-server/connection.o: /usr/include/bits/posix_opt.h
+spugl-server/connection.o: /usr/include/bits/confname.h /usr/include/getopt.h
+spugl-server/connection.o: /usr/include/stdlib.h /usr/include/sys/types.h
+spugl-server/connection.o: /usr/include/time.h /usr/include/endian.h
+spugl-server/connection.o: /usr/include/bits/endian.h
+spugl-server/connection.o: /usr/include/sys/select.h
+spugl-server/connection.o: /usr/include/bits/select.h
+spugl-server/connection.o: /usr/include/bits/sigset.h
+spugl-server/connection.o: /usr/include/bits/time.h
+spugl-server/connection.o: /usr/include/sys/sysmacros.h
+spugl-server/connection.o: /usr/include/bits/pthreadtypes.h
+spugl-server/connection.o: /usr/include/alloca.h
+spugl-server/connection.o: /usr/include/bits/stdlib-ldbl.h
+spugl-server/connection.o: /usr/include/string.h /usr/include/fcntl.h
+spugl-server/connection.o: /usr/include/bits/fcntl.h /usr/include/sys/mman.h
+spugl-server/connection.o: /usr/include/bits/mman.h /usr/include/sys/socket.h
+spugl-server/connection.o: /usr/include/sys/uio.h /usr/include/bits/uio.h
+spugl-server/connection.o: /usr/include/bits/socket.h
+spugl-server/connection.o: /usr/lib/gcc/spu/4.0.2/include/limits.h
+spugl-server/connection.o: /usr/include/bits/sockaddr.h
+spugl-server/connection.o: /usr/include/asm/socket.h
+spugl-server/connection.o: /usr/include/asm/sockios.h
 spugl-server/connection.o: spugl-server/connection.h spugl-client/daemon.h
 spugl-server/main.o: /usr/include/stdio.h /usr/include/features.h
 spugl-server/main.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
