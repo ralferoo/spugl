@@ -11,7 +11,7 @@
 
 BASE_NAME = spugl-client-0.1
 
-TARGETS = test
+TARGETS = test spugl client
 
 LIBDIRS = -L/usr/lib
 
@@ -52,13 +52,13 @@ DAEMON_TARGETS := $(patsubst %.c,%.o,$(DAEMON_TARGETS_C))
 CLIENT_TARGETS_C := $(wildcard spugl-client/*.c)
 CLIENT_TARGETS := $(patsubst %.c,%.o,$(CLIENT_TARGETS_C))
 
+all:	$(TARGETS)
+
 spugl:	$(DAEMON_TARGETS)
 	gcc -o $@ $(DAEMON_TARGETS)
 
 client:	$(CLIENT_TARGETS)
 	gcc -o $@ $(CLIENT_TARGETS)
-
-all:	$(TARGETS)
 
 test:	$(PPU_TEST_OBJS) $(SPU_HNDL)
 	gcc -m$(USERLAND) -o test $(PPU_TEST_OBJS) $(SPU_HNDL) $(LIBDIRS) $(LIBS)
@@ -72,7 +72,7 @@ texmap.sqf:	test
 	echo 'Texture Mapping Demo':`date '+%s'` >/tmp/texmap-build/.version
 	mksquashfs /tmp/texmap-build $@ -noappend
 	
-spugl-client/daemon.h: .
+spugl-client/daemon.h: .git
 	./version.sh
 
 test.static:	$(PPU_TEST_OBJS) $(SPU_HNDL)
