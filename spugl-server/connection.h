@@ -16,4 +16,4 @@ struct Connection {
 
 void handleConnect(struct Connection* connection);
 void handleDisconnect(struct Connection* connection);
-void handleConnectionData(struct Connection* connection);
+int handleConnectionData(struct Connection* connection);

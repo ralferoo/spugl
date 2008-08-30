@@ -104,10 +104,11 @@ int main(int argc, char* argv[]) {
 		for (i=1; i<=connectionCount && *curr_ptr; i++) {
 			struct Connection* connection = *curr_ptr;
 			if (p[i].revents & POLLIN) {
-				handleConnectionData(connection);
+				if (handleConnectionData(connection))
+					goto disconnected;
 			}
 			if (p[i].revents & (POLLERR|POLLHUP)) {
-				handleDisconnect(connection);
+disconnected:			handleDisconnect(connection);
 				// unlink from connection list
 				*curr_ptr = connection->nextConnection;
 				close(connection->fd);
