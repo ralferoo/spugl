@@ -19,7 +19,7 @@
 int main(int argc, char* argv[]) {
 	int server = socket(PF_UNIX, SOCK_STREAM, 0);
 
-	struct sockaddr_un sock_addr = { AF_UNIX, "\0spuglserver" };
+	struct sockaddr_un sock_addr = { AF_UNIX, "\0spugl-server" };
 	connect(server, (struct sockaddr *) &sock_addr, sizeof sock_addr);
 
 	// it seems passing /dev/zero through SCM_RIGHTS doesn't work, so

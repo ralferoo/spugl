@@ -10,7 +10,7 @@
 int main(int argc, char* argv[]) {
 	int server = socket(PF_UNIX, SOCK_STREAM, 0);
 
-	struct sockaddr_un sock_addr = { AF_UNIX, "\0spuglserver" };
+	struct sockaddr_un sock_addr = { AF_UNIX, "\0spugl-server" };
 	bind(server, (struct sockaddr *) &sock_addr, sizeof sock_addr);
 	listen(server, 5);
 
