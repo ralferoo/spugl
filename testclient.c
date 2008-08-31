@@ -31,6 +31,7 @@ int main(int argc, char* argv[]) {
 	buffer = SPUGL_allocateBuffer(server, 1024*1024);
 	SPUGL_freeBuffer(buffer);	
 
+	SPUGL_flush(queue);
 	SPUGL_freeCommandQueue(queue);	
 
 	SPUGL_invalidRequest(server);

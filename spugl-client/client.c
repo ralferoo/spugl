@@ -192,6 +192,25 @@ void SPUGL_disconnect(int server) {
 	close(server);
 }
 
+void SPUGL_flush(struct CommandQueue* buffer) {
+	struct SPUGL_Buffer* ptr = firstBuffer;
+	while (ptr) {
+		if (ptr->data == buffer) {
+			// send flush message to server
+			struct SPUGL_request request;
+			request.command = SPUGLR_FLUSH;
+			request.flush.id = ptr->id;
+			send(ptr->server_fd, &request, sizeof(request), 0);
+
+			// wait for server to reply - means server has flushed queue
+			struct SPUGL_reply reply;
+			recv(ptr->server_fd, &reply, sizeof(reply), 0);
+			return;
+		}
+		ptr = ptr->next;
+	}
+}
+
 void SPUGL_invalidRequest(int server) {
 	struct SPUGL_request request;
 	request.command = 4242;

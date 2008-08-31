@@ -43,11 +43,12 @@ int handleConnectionData(struct Connection* connection, char* mountname);
 
 struct Allocation {
 	struct Allocation* nextAllocation;
-	int fd;
-	int conn_fd;
 	void* buffer;
 	unsigned long size;
 	unsigned long id;
+	int fd;
+	int conn_fd;
+	int isCommandQueue;
 };
 
 

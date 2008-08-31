@@ -22,6 +22,9 @@ int SPUGL_connect();
 // disconnects the client from the server
 void SPUGL_disconnect(int server);
 
+// waits until command queue has finished processing
+void SPUGL_flush(struct CommandQueue* buffer);
+
 // allocates/frees an OpenGL FIFO
 struct CommandQueue* SPUGL_allocateCommandQueue(int server, unsigned long size);
 void SPUGL_freeCommandQueue(struct CommandQueue* buffer);

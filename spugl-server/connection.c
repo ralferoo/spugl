@@ -90,6 +90,23 @@ void freeBuffer(struct Connection* connection, struct SPUGL_request* request) {
 #endif
 }
 
+void flushQueue(struct Connection* connection, struct SPUGL_request* request, struct SPUGL_reply* reply) {
+	struct Allocation* ptr = connection->firstAllocation;
+	while (ptr) {
+		if (ptr->isCommandQueue && 
+		    ptr->conn_fd == connection->fd &&
+		    ptr->id == request->flush.id) {
+
+			// TODO: this is a placeholder...
+
+			// acknowledge flush
+			send(connection->fd, reply, sizeof(struct SPUGL_reply), 0);
+			return;
+		}
+		ptr = ptr->nextAllocation;
+	}
+}
+
 static int alloc_id = 0;
 static int name_id = 0;
 
@@ -154,6 +171,7 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 		n->buffer = memory;
 		n->size = request->alloc.size;
 		n->id = ++alloc_id;
+		n->isCommandQueue = commandQueue;
 		connection->firstAllocation = n;
 
 		reply->alloc.id = n->id;
@@ -228,6 +246,10 @@ int handleConnectionData(struct Connection* connection, char* mountname) {
 		case SPUGLR_FREE_COMMAND_QUEUE:
 		case SPUGLR_FREE_BUFFER:
 			freeBuffer(connection, &request);
+			break;
+			
+		case SPUGLR_FLUSH:
+			flushQueue(connection, &request, &reply);
 			break;
 			
 		default: 
