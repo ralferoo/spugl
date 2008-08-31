@@ -14,6 +14,11 @@
 #define VERSION_REVISION 20
 #define VERSION_STRING "0.1.20"
 
+//////////////////////////////////////////////////////////////////////////
+//
+// This is the structure of the socket level communcations between client
+// and server
+
 struct SPUGL_request {
 	unsigned short command;
 	union {
@@ -44,3 +49,20 @@ struct SPUGL_reply {
 	};
 };
 		
+//////////////////////////////////////////////////////////////////////////
+//
+// This is the simple structure of a command queue
+
+struct CommandQueue {
+	unsigned long write_ptr;	// relative to &write_ptr
+	unsigned long read_ptr;		// relative to &write_ptr
+	unsigned long data[0];
+};
+
+// This contains a list of command queues and a chain to the next list
+// (this is private to server and should move there!)
+
+struct CommandQueueList {
+	CommandQueueList* next;
+	CommandQueue* queues[31];
+};
