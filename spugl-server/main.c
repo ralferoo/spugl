@@ -89,14 +89,9 @@ int main(int argc, char* argv[]) {
 
 	int connectionCount = 0;
 	struct Connection* firstConnection = NULL;
+	struct Connection* firstClosedConnection = NULL;
 
 	while (!terminated) {
-		struct Connection* conn = firstConnection;
-		while (conn) {
-			processOutstandingRequests(conn);
-			conn = conn->nextConnection;
-		}
-
 		struct pollfd p[connectionCount+1];
 		sigset_t sigs;
 		struct timespec timeout;
@@ -123,45 +118,64 @@ int main(int argc, char* argv[]) {
 		timeout.tv_sec = 10;
 		timeout.tv_nsec = 0;
 
-		if (ppoll(p, i, &timeout, &sigs) <1)
-			continue;
-
-		struct Connection** curr_ptr = &firstConnection;
-		for (i=1; i<=connectionCount && *curr_ptr; i++) {
-			struct Connection* connection = *curr_ptr;
-			if (p[i].revents & POLLIN) {
-				if (handleConnectionData(connection, mountname))
-					goto disconnected;
+		if (ppoll(p, i, &timeout, &sigs) >=0 ) {
+			struct Connection** curr_ptr = &firstConnection;
+			for (i=1; i<=connectionCount && *curr_ptr; i++) {
+				struct Connection* connection = *curr_ptr;
+				if (p[i].revents & POLLIN) {
+					if (handleConnectionData(connection, mountname))
+						goto disconnected;
+				}
+				if (p[i].revents & (POLLERR|POLLHUP)) {
+disconnected:				handleDisconnect(connection);
+					// unlink from connection list
+					*curr_ptr = connection->nextConnection;
+					connectionCount--;
+					// hook into close connection list
+					connection->nextConnection = firstClosedConnection;
+					firstClosedConnection = connection;
+				} else {
+					// move to next connection
+					curr_ptr = &(connection->nextConnection);
+				} 
 			}
-			if (p[i].revents & (POLLERR|POLLHUP)) {
-disconnected:			handleDisconnect(connection);
-				// unlink from connection list
-				*curr_ptr = connection->nextConnection;
-				close(connection->fd);
-				free(connection);
-				connectionCount--;
-			} else {
-				// move to next connection
-				curr_ptr = &(connection->nextConnection);
-			} 
+	
+			if (p[0].revents & POLLIN) {
+				struct sockaddr_un client_addr;
+				socklen_t client_addr_len = sizeof(client_addr);
+				int client_connection = accept(server,
+                               			(struct sockaddr *) &client_addr,
+                               			&client_addr_len);
+	
+				if (client_connection < 0) {
+					syslog(LOG_INFO, "accept on incoming connection failed");
+				} else {
+					struct Connection* connection = malloc(sizeof(struct Connection));
+					connection->fd = client_connection;
+					connection->nextConnection = firstConnection;
+					firstConnection = connection;
+					connectionCount++;
+					handleConnect(connection);
+				}
+			}
 		}
 
-		if (p[0].revents & POLLIN) {
-			struct sockaddr_un client_addr;
-			socklen_t client_addr_len = sizeof(client_addr);
-			int client_connection = accept(server,
-                               		(struct sockaddr *) &client_addr,
-                               		&client_addr_len);
-
-			if (client_connection < 0) {
-				syslog(LOG_INFO, "accept on incoming connection failed");
+		// process other events
+		struct Connection* conn = firstConnection;
+		while (conn) {
+			processOutstandingRequests(conn);
+			conn = conn->nextConnection;
+		}
+		struct Connection** closed = &firstClosedConnection;
+		while (*closed) {
+			struct Connection* conn = *closed;
+			processOutstandingRequests(conn);
+			if (conn->firstAllocation == NULL) {
+				*closed = conn->nextConnection;
+				close(conn->fd);
+				free(conn);
 			} else {
-				struct Connection* connection = malloc(sizeof(struct Connection));
-				connection->fd = client_connection;
-				connection->nextConnection = firstConnection;
-				firstConnection = connection;
-				connectionCount++;
-				handleConnect(connection);
+				closed = &(conn->nextConnection);
 			}
 		}
 	}

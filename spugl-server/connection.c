@@ -32,35 +32,32 @@ char SPUGL_VERSION[] = "spugl version " VERSION_STRING;
 void handleConnect(struct Connection* connection) {
 	connection->firstAllocation = NULL;
 
-//#ifdef DEBUG
+#ifdef DEBUG
 	char buffer[512];
 	sprintf(buffer, "got new connection on fd %d, address %x\n", connection->fd, connection);
 	syslog(LOG_INFO, buffer);
-//#endif
+#else
+	syslog(LOG_INFO, "client connected");
+#endif
 }
 
 void handleDisconnect(struct Connection* connection) {
-//#ifdef DEBUG
+#ifdef DEBUG
 	char buffer[512];
 	sprintf(buffer, "lost connection on fd %d, address %x\n", connection->fd, connection);
 	syslog(LOG_INFO, buffer);
-//#endif
-
-	struct Allocation* toFree = connection->firstAllocation;
-	while (toFree) {
-		struct Allocation* del = toFree;
-		toFree = toFree->nextAllocation;
-
-#ifdef DEBUG
-		sprintf(buffer, "freeing buffer %d on exit at %x, size %d on fd %d conn %d", del->id, del->buffer, del->size, del->fd, del->conn_fd);
-		syslog(LOG_INFO, buffer);
+#else
+//	syslog(LOG_INFO, "connection died");
 #endif
 
-		munmap(del->buffer, del->size);
-		close(del->fd);
-		free(del);
+	struct Allocation* ptr = connection->firstAllocation;
+	while (ptr) {
+//		ptr->flags |= ALLOCATION_FLAGS_FREEWAIT;
+		ptr->flags |= ALLOCATION_FLAGS_FREEDONE; 
+		ptr = ptr->nextAllocation;
 	}
-	connection->firstAllocation = NULL;
+	// signal closed
+	connection->fd = -1;
 }
 
 void freeBuffer(struct Connection* connection, struct SPUGL_request* request) {
@@ -83,9 +80,8 @@ void freeBuffer(struct Connection* connection, struct SPUGL_request* request) {
 void flushQueue(struct Connection* connection, struct SPUGL_request* request, struct SPUGL_reply* reply) {
 	struct Allocation* ptr = connection->firstAllocation;
 	while (ptr) {
-		if (ptr->conn_fd == connection->fd &&
-		    ptr->id == request->flush.id &&
-		   (ptr->flags&ALLOCATION_FLAGS_ISCOMMANDQUEUE) ) {
+		if (ptr->conn_fd == connection->fd && ptr->id == request->flush.id &&
+		   		(ptr->flags&ALLOCATION_FLAGS_ISCOMMANDQUEUE) ) {
 //			ptr->flags |= ALLOCATION_FLAGS_FLUSHWAIT;
 			ptr->flags |= ALLOCATION_FLAGS_FLUSHDONE;
 			return;
@@ -93,7 +89,7 @@ void flushQueue(struct Connection* connection, struct SPUGL_request* request, st
 		ptr = ptr->nextAllocation;
 	}
 	
-	// can't find a matching queue, just acknowledge flush
+	// can't find a matching queue, just acknowledge flush anyway
 	send(connection->fd, reply, sizeof(struct SPUGL_reply), 0);
 }
 
@@ -105,8 +101,10 @@ void processOutstandingRequests(struct Connection* connection) {
 			del->flags &= ~ALLOCATION_FLAGS_FLUSHDONE;
  
 			// acknowledge flush
-			struct SPUGL_reply reply;
-			send(connection->fd, &reply, sizeof(struct SPUGL_reply), 0);
+			if (connection->fd >=0) {
+				struct SPUGL_reply reply;
+				send(connection->fd, &reply, sizeof(struct SPUGL_reply), 0);
+			}
 		}
 		if (del->flags & ALLOCATION_FLAGS_FREEDONE) {
 #ifdef DEBUG
@@ -171,11 +169,13 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 		reply->alloc.id = 0;
 		send(connection->fd, reply, sizeof(struct SPUGL_reply), 0);
 	} else {
+		int flags = 0;
 		if (commandQueue) {
 			// initialise queue pointers to first bit of free buffer
 			struct CommandQueue* queue = (struct CommandQueue*) memory;
 			queue->write_ptr = queue->read_ptr =
 				((void*)(&queue->data[0])) - ((void*)&queue->write_ptr);
+			flags |= ALLOCATION_FLAGS_ISCOMMANDQUEUE;
 		}
 
 #ifdef DEBUG
@@ -190,12 +190,7 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 		n->buffer = memory;
 		n->size = request->alloc.size;
 		n->id = ++alloc_id;
-
-		int flags = 0;
-		if (commandQueue)
-			flags |= ALLOCATION_FLAGS_ISCOMMANDQUEUE;
 		n->flags = flags;
-
 		connection->firstAllocation = n;
 
 		reply->alloc.id = n->id;
@@ -238,7 +233,7 @@ int handleConnectionData(struct Connection* connection, char* mountname) {
 //		return 0;		// need to retry, go back to polling loop
 
 	if (len != sizeof(request)) {	// if short packet returned, bail out
-		sprintf(buffer, "short request length %d on fd %d", len, connection->fd);
+		sprintf(buffer, "short request length %d", len);
 		syslog(LOG_ERR, buffer);
 		return 1;
 	}
@@ -254,7 +249,7 @@ int handleConnectionData(struct Connection* connection, char* mountname) {
 			if (request.version.major > VERSION_MAJOR ||
 				(request.version.major == VERSION_MAJOR  &&
 				 request.version.minor > VERSION_MINOR)) {
-				sprintf(buffer, "client version too high, requested %d.%d.%d on fd %d", request.version.major, request.version.minor, request.version.revision, connection->fd);
+				sprintf(buffer, "client version too high, requested %d.%d.%d", request.version.major, request.version.minor, request.version.revision);
 				syslog(LOG_ERR, buffer);
 				return 1;
 			}
@@ -277,7 +272,8 @@ int handleConnectionData(struct Connection* connection, char* mountname) {
 			break;
 			
 		default: 
-			sprintf(buffer, "invalid request command %d on fd %d", request.command, connection->fd);
+			//sprintf(buffer, "invalid request command %d on fd %d", request.command, connection->fd);
+			sprintf(buffer, "invalid request command %d", request.command);
 			syslog(LOG_ERR, buffer);
 			return 1;
 	}
