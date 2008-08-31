@@ -11,18 +11,18 @@
 
 BASE_NAME = spugl-client-0.1
 
-TARGETS = test spugl client
+TARGETS = test server client
 
 LIBDIRS = -L/usr/lib
 
-LIBS = -lm -lspe -lpthread -lrt
-LIBSPE2 = 
+#LIBS = -lm -lspe -lpthread -lrt
+#LIBSPE2 = 
 
-#LIBS = -lm -lspe2 -lpthread -lrt
-#LIBSPE2 = -DUSE_LIBSPE2
+LIBS = -lm -lspe2 -lpthread -lrt
+LIBSPE2 = -DUSE_LIBSPE2
 
-#USERLAND = 32
-USERLAND = 64
+USERLAND = 32
+#USERLAND = 64
 
 PPUCC = gcc
 PPUCCFLAGS = -c -ggdb -m$(USERLAND) $(LIBSPE2) -DUSERLAND_$(USERLAND)_BITS -I. -Wno-trigraphs -std=gnu99
@@ -54,7 +54,7 @@ CLIENT_TARGETS := $(patsubst %.c,%.o,$(CLIENT_TARGETS_C))
 
 all:	$(TARGETS)
 
-spugl:	$(DAEMON_TARGETS)
+server:	$(DAEMON_TARGETS)
 	gcc -m$(USERLAND) -o $@ $(DAEMON_TARGETS)
 
 client:	$(CLIENT_TARGETS)
@@ -173,7 +173,7 @@ clean:
 	rm -rf build dist
 	rm -f .gen test
 	rm -f textures/*.o
-	rm -f spugl client spugl-*/*.o
+	rm -f server client spugl-*/*.o
 
 # gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h
 

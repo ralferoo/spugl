@@ -91,7 +91,7 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 		return;
 	}
 
-	void* memory = mmap(NULL, 65536, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0);
+	void* memory = mmap(NULL, request->alloc.size, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0);
 	if (memory==NULL) {
 		close(mem_fd);
 		sprintf(buffer, "cannot mmap temporary file %s", filename);

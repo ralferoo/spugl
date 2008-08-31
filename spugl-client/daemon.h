@@ -58,11 +58,3 @@ struct CommandQueue {
 	unsigned long read_ptr;		// relative to &write_ptr
 	unsigned long data[0];
 };
-
-// This contains a list of command queues and a chain to the next list
-// (this is private to server and should move there!)
-
-struct CommandQueueList {
-	CommandQueueList* next;
-	CommandQueue* queues[31];
-};
