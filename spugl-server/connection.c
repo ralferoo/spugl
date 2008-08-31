@@ -27,7 +27,7 @@
 #include "commandqueue.h"
 #include "../spugl-client/daemon.h"
 
-char SPUGL_VERSION[] = VERSION_STRING;
+char SPUGL_VERSION[] = "spugl version " VERSION_STRING;
 
 void handleConnect(struct Connection* connection) {
 	connection->firstAllocation = NULL;

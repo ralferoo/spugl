@@ -32,6 +32,7 @@ struct SPUGL_Buffer {
 	unsigned long id;
 	unsigned long size;
 	int fd;
+	int server_fd;
 };
 
 static struct SPUGL_Buffer* firstBuffer;
@@ -46,17 +47,17 @@ void* SPUGL_allocateBuffer(int server, unsigned long size) {
 	return (struct CommandQueue*) _allocate(server, size, SPUGLR_ALLOC_BUFFER);
 }
 	
-static void _freeBuffer(int server, void* buffer, unsigned short command);
+static void _freeBuffer(void* buffer, unsigned short command);
 
-void SPUGL_freeCommandQueue(int server, struct CommandQueue* buffer) {
-	_freeBuffer(server, buffer, SPUGLR_FREE_COMMAND_QUEUE);
+void SPUGL_freeCommandQueue(struct CommandQueue* buffer) {
+	_freeBuffer(buffer, SPUGLR_FREE_COMMAND_QUEUE);
 }
 
-void SPUGL_freeBuffer(int server, void* buffer) {
-	_freeBuffer(server, buffer, SPUGLR_FREE_COMMAND_QUEUE);
+void SPUGL_freeBuffer(void* buffer) {
+	_freeBuffer(buffer, SPUGLR_FREE_COMMAND_QUEUE);
 }
 
-static void _freeBuffer(int server, void* buffer, unsigned short command) {
+static void _freeBuffer(void* buffer, unsigned short command) {
 	struct SPUGL_Buffer** ptr = &firstBuffer;
 	while (*ptr) {
 		struct SPUGL_Buffer* test = *ptr;
@@ -70,7 +71,7 @@ static void _freeBuffer(int server, void* buffer, unsigned short command) {
 			struct SPUGL_reply reply;
 			request.command = command;
 			request.free.id = test->id;
-			send(server, &request, sizeof(request), 0);
+			send(test->server_fd, &request, sizeof(request), 0);
 
 			// unmap the buffer and close the file
 			munmap(buffer, test->size);
@@ -131,6 +132,7 @@ static void* _allocate(int server, unsigned long size, unsigned short command) {
 					header->id = reply.alloc.id;
 					header->fd = mem_fd;
 					header->size = request.alloc.size;
+					header->server_fd = server;
 					firstBuffer = header;
 					return memory;
 				} else {
