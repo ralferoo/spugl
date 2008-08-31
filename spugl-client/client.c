@@ -22,6 +22,7 @@
 #include <fcntl.h>
 
 #include "daemon.h"
+#include "client.h"
 
 struct SPUGL_Buffer {
 	struct SPUGL_Buffer* next;
@@ -35,11 +36,11 @@ static struct SPUGL_Buffer* firstBuffer;
 
 static void* _allocate(int server, unsigned long size, unsigned short command);
 
-void* allocateCommandQueue(int server, unsigned long size) {
+struct CommandQueue* SPUGL_allocateCommandQueue(int server, unsigned long size) {
 	return _allocate(server, size, SPUGLR_ALLOC_COMMAND_QUEUE);
 }
 	
-struct CommandQueue* allocateBuffer(int server, unsigned long size) {
+void* SPUGL_allocateBuffer(int server, unsigned long size) {
 	return (struct CommandQueue*) _allocate(server, size, SPUGLR_ALLOC_BUFFER);
 }
 	
@@ -112,17 +113,17 @@ static void* _allocate(int server, unsigned long size, unsigned short command) {
 	}
 }
 
-int main(int argc, char* argv[]) {
+int SPUGL_connect() {
 	struct sockaddr_un sock_addr = { AF_UNIX, "\0spugl-server" };
 	int server = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (server<0) {
-		printf("Cannot create communication socket\n");
-		exit(1);
+		//printf("Cannot create communication socket\n");
+		return -1;
 	}
 	
 	if (connect(server, (struct sockaddr *) &sock_addr, sizeof sock_addr)<0) {
-		printf("Cannot connect to spugl server\n");
-		exit(1);
+		//printf("Cannot connect to spugl server\n");
+		return -2;
 	}
 
 	struct SPUGL_request request;
@@ -137,15 +138,15 @@ int main(int argc, char* argv[]) {
 	request.version.minor = VERSION_MINOR;
 	request.version.revision = VERSION_REVISION;
 	send(server, &request, sizeof(request), 0);
-
-	allocateCommandQueue(server, 2047*1024);
-	allocateBuffer(server, 2047*1024*1024);
-
-	request.command = 42;
-	send(server, &request, sizeof(request), 0);
-
-	close(server);
-
-	exit(0);
+	return server;
 }
 
+void SPUGL_disconnect(int server) {
+	close(server);
+}
+
+void SPUGL_invalidRequest(int server) {
+	struct SPUGL_request request;
+	request.command = 4242;
+	send(server, &request, sizeof(request), 0);
+}
