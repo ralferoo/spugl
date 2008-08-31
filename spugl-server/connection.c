@@ -98,6 +98,7 @@ void flushQueue(struct Connection* connection, struct SPUGL_request* request, st
 		    ptr->id == request->flush.id) {
 
 			// TODO: this is a placeholder...
+			// TODO: mark flag, wait until clear, send sighup, send packet late
 
 			// acknowledge flush
 			send(connection->fd, reply, sizeof(struct SPUGL_reply), 0);

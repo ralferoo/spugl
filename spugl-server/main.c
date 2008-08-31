@@ -37,10 +37,12 @@ static volatile sig_atomic_t terminated = 0;
 
 static void sig_hup(int sig)
 {
+	// no-op, but will cause the ppoll to exit early
 }
 
 static void sig_term(int sig)
 {
+	// gracefully handle the exit signal
         terminated = 1;
 }
 
@@ -74,6 +76,7 @@ int main(int argc, char* argv[]) {
 	sa.sa_handler = sig_term;
 	sigaction(SIGTERM, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
+
 	sa.sa_handler = sig_hup;
 	sigaction(SIGHUP, &sa, NULL);
 
@@ -110,7 +113,7 @@ int main(int argc, char* argv[]) {
 			p[i].revents = 0;
 			current = current->nextConnection;
 		}
-		timeout.tv_sec = 1;
+		timeout.tv_sec = 10;
 		timeout.tv_nsec = 0;
 
 		if (ppoll(p, i, &timeout, &sigs) <1)
