@@ -23,10 +23,30 @@
 
 #include "daemon.h"
 
-void allocate(int server, unsigned long size) {
+struct SPUGL_Buffer {
+	struct SPUGL_Buffer* next;
+	void* data;
+	unsigned long id;
+	unsigned long size;
+	int fd;
+};
+
+static struct SPUGL_Buffer* firstBuffer;
+
+static void* _allocate(int server, unsigned long size, unsigned short command);
+
+void* allocateCommandQueue(int server, unsigned long size) {
+	return _allocate(server, size, SPUGLR_ALLOC_COMMAND_QUEUE);
+}
+	
+struct CommandQueue* allocateBuffer(int server, unsigned long size) {
+	return (struct CommandQueue*) _allocate(server, size, SPUGLR_ALLOC_BUFFER);
+}
+	
+static void* _allocate(int server, unsigned long size, unsigned short command) {
 	struct SPUGL_request request;
 	struct SPUGL_reply reply;
-	request.command = SPUGLR_ALLOC_COMMAND_QUEUE;
+	request.command = command;
 	request.alloc.size = size;
 	send(server, &request, sizeof(request), 0);
 
@@ -54,14 +74,41 @@ void allocate(int server, unsigned long size) {
 			int mem_fd = fds[0];
 			void* memory = mmap(NULL, request.alloc.size, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0);
 			if (memory!=NULL) {
-				sprintf(memory, "HELLO! Updated contents is fd %d at address %x\n", mem_fd, memory);
-				msync(memory, 65536, MS_SYNC);
-			}
+				struct CommandQueue* queue = (struct CommandQueue*) memory;
+				printf("fd %d, memory %x, size %d, id %d, write %x, read %x\n",
+					mem_fd, memory, request.alloc.size, reply.alloc.id,
+					queue->write_ptr, queue->read_ptr);
 
-			printf("fd %d, memory %x, size %d, id %d\n", mem_fd, memory, request.alloc.size, reply.alloc.id);
+				struct SPUGL_Buffer* header = malloc(sizeof(struct SPUGL_Buffer));
+				if (header!=NULL) {
+					header->next = firstBuffer;
+					header->data = memory;
+					header->id = reply.alloc.id;
+					header->fd = mem_fd;
+					header->size = request.alloc.size;
+					return memory;
+				} else {
+					// no memory for header data
+					printf("Couldn't allocate memory header\n");
+					munmap(memory, request.alloc.size);
+					close(mem_fd);
+					return NULL;
+				}
+			} else {
+				// couldn't mmap file
+				printf("Couldn't mmap memory\n");
+				close(mem_fd);
+				return NULL;
+			}
 		} else {
-			printf("Couldn't allocate memory\n");
+			// nothing returned from server
+			printf("Couldn't allocate memory on server\n");
+			return NULL;
 		}
+	} else {
+		// short data returned from server
+		printf("Couldn't allocate memory - no response from server\n");
+		return NULL;
 	}
 }
 
@@ -91,8 +138,8 @@ int main(int argc, char* argv[]) {
 	request.version.revision = VERSION_REVISION;
 	send(server, &request, sizeof(request), 0);
 
-	allocate(server, 2047*1024);
-	allocate(server, 2047*1024*1024);
+	allocateCommandQueue(server, 2047*1024);
+	allocateBuffer(server, 2047*1024*1024);
 
 	request.command = 42;
 	send(server, &request, sizeof(request), 0);

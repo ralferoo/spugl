@@ -58,7 +58,7 @@ void handleDisconnect(struct Connection* connection) {
 }
 
 static int alloc_id = 0;
-void allocateBuffer(struct Connection* connection, struct SPUGL_request* request, struct SPUGL_reply* reply) {
+void allocateBuffer(struct Connection* connection, struct SPUGL_request* request, struct SPUGL_reply* reply, int commandQueue) {
 	char buffer[512];
 
 	char* mountname = "/tmp";
@@ -100,13 +100,15 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 		reply->alloc.id = 0;
 		send(connection->fd, reply, sizeof(struct SPUGL_reply), 0);
 	} else {
-//	unsigned long pointers[2] = {0,0};
-//	write(mem_fd, &pointers, sizeof(pointers));
+		if (commandQueue) {
+			// initialise queue pointers to first bit of free buffer
+			struct CommandQueue* queue = (struct CommandQueue*) memory;
+			queue->write_ptr = queue->read_ptr =
+				((void*)(&queue->data[0])) - ((void*)&queue->write_ptr);
+		}
+
 		sprintf(buffer, "Allocated buffer on fd %d at address %x, size %d\n", mem_fd, memory, request->alloc.size);
 		syslog(LOG_INFO, buffer);
-
-//		sprintf(memory, "Initial contents is fd %d at address %x\n", mem_fd, memory);
-//		msync(memory, strlen(memory)+1, MS_SYNC);
 
 		struct Allocation* n = malloc(sizeof(struct Allocation));
 		n->nextAllocation = connection->firstAllocation;
@@ -178,8 +180,12 @@ int handleConnectionData(struct Connection* connection) {
 				return 1;
 			}
 			break;
+		case SPUGLR_ALLOC_BUFFER:
+			allocateBuffer(connection, &request, &reply, 0);
+			break;
+
 		case SPUGLR_ALLOC_COMMAND_QUEUE: 
-			allocateBuffer(connection, &request, &reply);
+			allocateBuffer(connection, &request, &reply, 1);
 			break;
 
 		default: 
@@ -188,8 +194,8 @@ int handleConnectionData(struct Connection* connection) {
 			return 1;
 	}
 				
-	sprintf(buffer, "processed command %d on fd %d, address %x\n", request.command, connection->fd);
-	syslog(LOG_INFO, buffer);
+//	sprintf(buffer, "processed command %d on fd %d\n", request.command, connection->fd);
+//	syslog(LOG_INFO, buffer);
 
 	return 0;
 }
