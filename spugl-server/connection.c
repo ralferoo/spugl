@@ -22,6 +22,7 @@
 #include <sys/socket.h>
 
 #include "connection.h"
+#include "commandqueue.h"
 #include "../spugl-client/daemon.h"
 
 char SPUGL_VERSION[] = VERSION_STRING;

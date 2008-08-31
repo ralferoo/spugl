@@ -11,8 +11,8 @@
 
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 1
-#define VERSION_REVISION 26
-#define VERSION_STRING "0.1.26"
+#define VERSION_REVISION 27
+#define VERSION_STRING "0.1.27"
 
 //////////////////////////////////////////////////////////////////////////
 //
@@ -52,14 +52,4 @@ struct SPUGL_reply {
 			unsigned long id;
 		} alloc;
 	};
-};
-		
-//////////////////////////////////////////////////////////////////////////
-//
-// This is the simple structure of a command queue
-
-struct CommandQueue {
-	unsigned long write_ptr;	// relative to &write_ptr
-	unsigned long read_ptr;		// relative to &write_ptr
-	unsigned long data[0];
 };

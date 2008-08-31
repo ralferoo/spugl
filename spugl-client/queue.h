@@ -9,13 +9,12 @@
  *
  ****************************************************************************/
 
-#include "../spugl-client/queue.h"
+//////////////////////////////////////////////////////////////////////////
+//
+// This is the simple structure of a command queue
 
-// This contains a list of command queues and a chain to the next list
-// (this is private to server and should move there!)
-
-struct CommandQueueList {
-	struct CommandQueueList* next;
-	struct CommandQueue* queues[31];
+struct CommandQueue {
+	unsigned long write_ptr;	// relative to &write_ptr
+	unsigned long read_ptr;		// relative to &write_ptr
+	unsigned long data[0];
 };
-

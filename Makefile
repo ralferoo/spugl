@@ -379,7 +379,9 @@ spugl-client/client.o: /usr/include/string.h /usr/include/sys/mman.h
 spugl-client/client.o: /usr/include/bits/mman.h /usr/include/sys/stat.h
 spugl-client/client.o: /usr/include/bits/stat.h /usr/include/fcntl.h
 spugl-client/client.o: /usr/include/bits/fcntl.h spugl-client/daemon.h
-spugl-client/client.o: spugl-client/client.h
+spugl-client/client.o: spugl-client/client.h queue.h types.h
+spugl-client/client.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+spugl-client/client.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
 spugl-server/connection.o: /usr/include/syslog.h /usr/include/sys/syslog.h
 spugl-server/connection.o: /usr/include/features.h /usr/include/sys/cdefs.h
 spugl-server/connection.o: /usr/include/bits/wordsize.h
@@ -426,7 +428,9 @@ spugl-server/connection.o: /usr/lib/gcc/spu/4.0.2/include/limits.h
 spugl-server/connection.o: /usr/include/bits/sockaddr.h
 spugl-server/connection.o: /usr/include/asm/socket.h
 spugl-server/connection.o: /usr/include/asm/sockios.h
-spugl-server/connection.o: spugl-server/connection.h spugl-client/daemon.h
+spugl-server/connection.o: spugl-server/connection.h
+spugl-server/connection.o: spugl-server/commandqueue.h spugl-client/queue.h
+spugl-server/connection.o: spugl-client/daemon.h
 spugl-server/main.o: /usr/include/stdio.h /usr/include/features.h
 spugl-server/main.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 spugl-server/main.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h

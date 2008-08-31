@@ -9,6 +9,12 @@
  *
  ****************************************************************************/
 
+#include "queue.h"
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Function prototypes
+
 // this returns a connection to the server, passed to all other routines.
 // returns negative integer on error
 int SPUGL_connect();
