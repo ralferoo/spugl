@@ -148,7 +148,7 @@ gen_spu_command_table.h: .gen
 depend: .gen
 	@echo checking dependencies
 	@makedepend -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(PPU_SRCS) -DUSERLAND_$(USERLAND)_BITS
-	@makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(CLIENT_TARGETS_C) $(DAEMON_TARGETS_C)
+	@makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(CLIENT_LIB_TARGETS_C) $(DAEMON_TARGETS_C)
 	@makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.0 $(SPU_SRCS) -DSPU_REGS -DUSERLAND_$(USERLAND)_BITS
 	@rm -f Makefile.bak
 	@for i in $(SPU_OBJS) ; do grep $$i:.*spuregs.h Makefile >/dev/null || [ ! -f `basename $$i .0`.c ] || ( echo ERROR: $$i does not refer to spuregs.h && false) ; done
@@ -348,6 +348,38 @@ test.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
 test.o: ./GL/gl.h ./GL/glext.h /usr/include/inttypes.h /usr/include/stdint.h
 test.o: ./GL/glspu.h joystick.h
 
+spugl-client/client.o: /usr/include/stdio.h /usr/include/features.h
+spugl-client/client.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+spugl-client/client.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+spugl-client/client.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+spugl-client/client.o: /usr/include/bits/types.h
+spugl-client/client.o: /usr/include/bits/typesizes.h /usr/include/libio.h
+spugl-client/client.o: /usr/include/_G_config.h /usr/include/wchar.h
+spugl-client/client.o: /usr/include/bits/wchar.h /usr/include/gconv.h
+spugl-client/client.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+spugl-client/client.o: /usr/include/bits/libio-ldbl.h
+spugl-client/client.o: /usr/include/bits/stdio_lim.h
+spugl-client/client.o: /usr/include/bits/sys_errlist.h
+spugl-client/client.o: /usr/include/bits/stdio-ldbl.h /usr/include/stdlib.h
+spugl-client/client.o: /usr/include/sys/types.h /usr/include/time.h
+spugl-client/client.o: /usr/include/endian.h /usr/include/bits/endian.h
+spugl-client/client.o: /usr/include/sys/select.h /usr/include/bits/select.h
+spugl-client/client.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
+spugl-client/client.o: /usr/include/sys/sysmacros.h
+spugl-client/client.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+spugl-client/client.o: /usr/include/bits/stdlib-ldbl.h /usr/include/unistd.h
+spugl-client/client.o: /usr/include/bits/posix_opt.h
+spugl-client/client.o: /usr/include/bits/confname.h /usr/include/getopt.h
+spugl-client/client.o: /usr/include/sys/socket.h /usr/include/sys/uio.h
+spugl-client/client.o: /usr/include/bits/uio.h /usr/include/bits/socket.h
+spugl-client/client.o: /usr/lib/gcc/spu/4.0.2/include/limits.h
+spugl-client/client.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
+spugl-client/client.o: /usr/include/asm/sockios.h /usr/include/sys/un.h
+spugl-client/client.o: /usr/include/string.h /usr/include/sys/mman.h
+spugl-client/client.o: /usr/include/bits/mman.h /usr/include/sys/stat.h
+spugl-client/client.o: /usr/include/bits/stat.h /usr/include/fcntl.h
+spugl-client/client.o: /usr/include/bits/fcntl.h spugl-client/daemon.h
+spugl-client/client.o: spugl-client/client.h
 spugl-server/connection.o: /usr/include/syslog.h /usr/include/sys/syslog.h
 spugl-server/connection.o: /usr/include/features.h /usr/include/sys/cdefs.h
 spugl-server/connection.o: /usr/include/bits/wordsize.h
