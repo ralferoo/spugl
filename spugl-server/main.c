@@ -45,6 +45,7 @@ static void sig_term(int sig)
 }
 
 int main(int argc, char* argv[]) {
+	// location to create tmpfs mountpoint and place mmap'ed files
 	char* mountname = "/tmp/virtmem";
 
 	int server = socket(PF_UNIX, SOCK_STREAM, 0);
@@ -65,8 +66,8 @@ int main(int argc, char* argv[]) {
 	}
 
 	mkdir(mountname, 0700);
-	mount("spugl", mountname, "tmpfs", MS_NOATIME | MS_NODEV |
-				   MS_NODIRATIME | MS_NOEXEC | MS_NOSUID, "");
+	mount("spugl", mountname, "tmpfs",
+			MS_NOATIME | MS_NODEV | MS_NODIRATIME | MS_NOEXEC | MS_NOSUID, "");
 
 	struct sigaction sa;
 	memset(&sa, 0, sizeof(sa));
@@ -109,7 +110,6 @@ int main(int argc, char* argv[]) {
 			p[i].fd = current->fd;
 			p[i].events = POLLIN | POLLERR | POLLHUP;
 			p[i].revents = 0;
-//			printf("fd %d -> %x\n", current->fd, current);
 			current = current->nextConnection;
 		}
 		timeout.tv_sec = 1;

@@ -9,6 +9,8 @@
  *
  ****************************************************************************/
 
+// #define DEBUG
+
 #include <syslog.h>
 #include <stdio.h>
 #include <errno.h>
@@ -30,23 +32,29 @@ char SPUGL_VERSION[] = VERSION_STRING;
 void handleConnect(struct Connection* connection) {
 	connection->firstAllocation = NULL;
 
+//#ifdef DEBUG
 	char buffer[512];
 	sprintf(buffer, "got new connection on fd %d, address %x\n", connection->fd, connection);
 	syslog(LOG_INFO, buffer);
+//#endif
 }
 
 void handleDisconnect(struct Connection* connection) {
+//#ifdef DEBUG
 	char buffer[512];
 	sprintf(buffer, "lost connection on fd %d, address %x\n", connection->fd, connection);
 	syslog(LOG_INFO, buffer);
+//#endif
 
 	struct Allocation* toFree = connection->firstAllocation;
 	while (toFree) {
 		struct Allocation* del = toFree;
 		toFree = toFree->nextAllocation;
 
+#ifdef DEBUG
 		sprintf(buffer, "freeing buffer %d on exit at %x, size %d on fd %d conn %d", del->id, del->buffer, del->size, del->fd, del->conn_fd);
 		syslog(LOG_INFO, buffer);
+#endif
 
 		munmap(del->buffer, del->size);
 		close(del->fd);
@@ -60,9 +68,11 @@ void freeBuffer(struct Connection* connection, struct SPUGL_request* request) {
 	while (*ptr) {
 		struct Allocation* del = *ptr;
 		if (del->conn_fd == connection->fd && del->id == request->free.id) {
+#ifdef DEBUG
 			char buffer[512];
 			sprintf(buffer, "freeing buffer %d at %x, size %d on fd %d conn %d", del->id, del->buffer, del->size, del->fd, del->conn_fd);
 			syslog(LOG_INFO, buffer);
+#endif
 
 			*ptr = del->nextAllocation;
 
@@ -73,9 +83,11 @@ void freeBuffer(struct Connection* connection, struct SPUGL_request* request) {
 		}
 		ptr = &(del->nextAllocation);
 	}
+#ifdef DEBUG
 	char buffer[512];
 	sprintf(buffer, "request to free buffer %d conn %d but not found", request->free.id, connection->fd);
 	syslog(LOG_INFO, buffer);
+#endif
 }
 
 static int alloc_id = 0;
@@ -88,8 +100,10 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 	sprintf(filename, "%s/virtmem.%d.%d", mountname, getpid(), ++name_id);
 	int mem_fd = open(filename, O_RDWR | O_CREAT, 0700);
 	if (mem_fd<0) {
+#ifdef DEBUG
 		sprintf(buffer, "cannot create temporary file %s", filename);
 		syslog(LOG_INFO, buffer);
+#endif
 		reply->alloc.id = 0;
 		send(connection->fd, reply, sizeof(struct SPUGL_reply), 0);
 		return;
@@ -100,8 +114,10 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 
 	if ((lseek(mem_fd, request->alloc.size-1, SEEK_SET) == -1) || (write(mem_fd, "", 1)<1)) {
 		close(mem_fd);
+#ifdef DEBUG
 		sprintf(buffer, "cannot extend temporary file %s to size %u", filename, request->alloc.size);
 		syslog(LOG_INFO, buffer);
+#endif
 
 		reply->alloc.id = 0;
 		send(connection->fd, reply, sizeof(struct SPUGL_reply), 0);
@@ -111,8 +127,10 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 	void* memory = mmap(NULL, request->alloc.size, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0);
 	if (memory==NULL) {
 		close(mem_fd);
+#ifdef DEBUG
 		sprintf(buffer, "cannot mmap temporary file %s", filename);
 		syslog(LOG_INFO, buffer);
+#endif
 
 		reply->alloc.id = 0;
 		send(connection->fd, reply, sizeof(struct SPUGL_reply), 0);
@@ -124,8 +142,10 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 				((void*)(&queue->data[0])) - ((void*)&queue->write_ptr);
 		}
 
+#ifdef DEBUG
 		sprintf(buffer, "Allocated buffer on fd %d at address %x, size %d, file %s\n", mem_fd, memory, request->alloc.size, filename);
 		syslog(LOG_INFO, buffer);
+#endif
 
 		struct Allocation* n = malloc(sizeof(struct Allocation));
 		n->nextAllocation = connection->firstAllocation;

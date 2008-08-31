@@ -9,6 +9,8 @@
  *
  ****************************************************************************/
 
+// #define DEBUG
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -59,7 +61,9 @@ static void _freeBuffer(int server, void* buffer, unsigned short command) {
 	while (*ptr) {
 		struct SPUGL_Buffer* test = *ptr;
 		if (test->data == buffer) {
+#ifdef DEBUG
 			printf("freeing %x %x %x size %d\n", buffer, test, test->data, test->size);
+#endif
 
 			// tell the server we've junked the buffer
 			struct SPUGL_request request;
@@ -114,9 +118,11 @@ static void* _allocate(int server, unsigned long size, unsigned short command) {
 			void* memory = mmap(NULL, request.alloc.size, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0);
 			if (memory!=NULL) {
 				struct CommandQueue* queue = (struct CommandQueue*) memory;
+#ifdef DEBUG
 				printf("fd %d, memory %x, size %d, id %d, write %x, read %x\n",
 					mem_fd, memory, request.alloc.size, reply.alloc.id,
 					queue->write_ptr, queue->read_ptr);
+#endif
 
 				struct SPUGL_Buffer* header = malloc(sizeof(struct SPUGL_Buffer));
 				if (header!=NULL) {

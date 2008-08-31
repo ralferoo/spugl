@@ -463,8 +463,14 @@ spugl-server/main.o: /usr/include/asm/sigcontext.h /usr/include/asm/ptrace.h
 spugl-server/main.o: /usr/include/bits/sigstack.h
 spugl-server/main.o: /usr/include/bits/sigthread.h /usr/include/poll.h
 spugl-server/main.o: /usr/include/sys/poll.h /usr/include/bits/poll.h
-spugl-server/main.o: /usr/include/sys/socket.h /usr/include/sys/uio.h
-spugl-server/main.o: /usr/include/bits/uio.h /usr/include/bits/socket.h
+spugl-server/main.o: /usr/include/fcntl.h /usr/include/bits/fcntl.h
+spugl-server/main.o: /usr/include/sys/mount.h /usr/include/sys/ioctl.h
+spugl-server/main.o: /usr/include/bits/ioctls.h /usr/include/asm/ioctls.h
+spugl-server/main.o: /usr/include/asm/ioctl.h /usr/include/bits/ioctl-types.h
+spugl-server/main.o: /usr/include/termios.h /usr/include/bits/termios.h
+spugl-server/main.o: /usr/include/sys/ttydefaults.h /usr/include/sys/socket.h
+spugl-server/main.o: /usr/include/sys/uio.h /usr/include/bits/uio.h
+spugl-server/main.o: /usr/include/bits/socket.h
 spugl-server/main.o: /usr/lib/gcc/spu/4.0.2/include/limits.h
 spugl-server/main.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
 spugl-server/main.o: /usr/include/asm/sockios.h /usr/include/sys/un.h
@@ -472,7 +478,8 @@ spugl-server/main.o: /usr/include/string.h /usr/include/sys/mman.h
 spugl-server/main.o: /usr/include/bits/mman.h /usr/include/sys/wait.h
 spugl-server/main.o: /usr/include/sys/resource.h /usr/include/bits/resource.h
 spugl-server/main.o: /usr/include/bits/waitflags.h
-spugl-server/main.o: /usr/include/bits/waitstatus.h spugl-server/connection.h
+spugl-server/main.o: /usr/include/bits/waitstatus.h /usr/include/sys/stat.h
+spugl-server/main.o: /usr/include/bits/stat.h spugl-server/connection.h
 
 spufifo.0: spuregs.h struct.h types.h
 spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
