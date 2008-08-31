@@ -44,11 +44,14 @@ void handleDisconnect(struct Connection* connection) {
 
 		sprintf(buffer, "freeing buffer %d at %x, size %d on fd %d", del->id, del->buffer, del->size, del->fd);
 		syslog(LOG_INFO, buffer);
-		syslog(LOG_INFO, del->buffer);
 
 		munmap(del->buffer, del->size);
 		close(del->fd);
 		free(del);
+
+		sprintf(buffer, "freed buffer %d at %x, size %d on fd %d", del->id, del->buffer, del->size, del->fd);
+		syslog(LOG_INFO, buffer);
+
 	}
 	connection->firstAllocation = NULL;
 }
@@ -98,8 +101,11 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 	} else {
 //	unsigned long pointers[2] = {0,0};
 //	write(mem_fd, &pointers, sizeof(pointers));
-		sprintf(memory, "Initial contents is fd %d at address %x\n", mem_fd, memory);
-		msync(memory, strlen(memory)+1, MS_SYNC);
+		sprintf(buffer, "Allocated buffer on fd %d at address %x, size %d\n", mem_fd, memory, request->alloc.size);
+		syslog(LOG_INFO, buffer);
+
+//		sprintf(memory, "Initial contents is fd %d at address %x\n", mem_fd, memory);
+//		msync(memory, strlen(memory)+1, MS_SYNC);
 
 		struct Allocation* n = malloc(sizeof(struct Allocation));
 		n->nextAllocation = connection->firstAllocation;
