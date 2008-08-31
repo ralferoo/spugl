@@ -34,7 +34,7 @@ void handleDisconnect(struct Connection* connection);
 
 // handle a request from client
 // return non-zero if we should disconnect the client
-int handleConnectionData(struct Connection* connection);
+int handleConnectionData(struct Connection* connection, char* mountname);
 
 
 //////////////////////////////////////////////////////////////////////////////

@@ -15,14 +15,23 @@
 #include <syslog.h>
 #include <signal.h>
 #include <poll.h>
+#include <fcntl.h>
 
+#include <sys/mount.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "connection.h"
+
+#ifndef MNT_DETACH
+// not defined on my system for some reason :(
+#define MNT_DETACH 2
+#endif
 
 static volatile sig_atomic_t terminated = 0;
 
@@ -36,6 +45,8 @@ static void sig_term(int sig)
 }
 
 int main(int argc, char* argv[]) {
+	char* mountname = "/tmp/virtmem";
+
 	int server = socket(PF_UNIX, SOCK_STREAM, 0);
 
 	openlog("spugl", LOG_NDELAY | LOG_PID, LOG_DAEMON);
@@ -52,6 +63,10 @@ int main(int argc, char* argv[]) {
 		syslog(LOG_ERR, "cannot listen on spugl-server socket");
 		exit(1);
 	}
+
+	mkdir(mountname, 0700);
+	mount("spugl", mountname, "tmpfs", MS_NOATIME | MS_NODEV |
+				   MS_NODIRATIME | MS_NOEXEC | MS_NOSUID, "");
 
 	struct sigaction sa;
 	memset(&sa, 0, sizeof(sa));
@@ -107,7 +122,7 @@ int main(int argc, char* argv[]) {
 		for (i=1; i<=connectionCount && *curr_ptr; i++) {
 			struct Connection* connection = *curr_ptr;
 			if (p[i].revents & POLLIN) {
-				if (handleConnectionData(connection))
+				if (handleConnectionData(connection, mountname))
 					goto disconnected;
 			}
 			if (p[i].revents & (POLLERR|POLLHUP)) {
@@ -145,53 +160,8 @@ disconnected:			handleDisconnect(connection);
 
 	close(server);
 	syslog(LOG_INFO, "exiting");
-/*
 
-
-	int fds[16];
-	char buffer[CMSG_SPACE(sizeof fds)];
-
-	char ping;
-	struct iovec ping_vec = {
-  		.iov_base = &ping,
-  		.iov_len = sizeof ping,
-	};
-
-	struct msghdr message = {
-  		.msg_control = buffer,
-  		.msg_controllen = sizeof buffer,
-  		.msg_iov = &ping_vec,
-  		.msg_iovlen = 1,
-	};
-
-	memset(buffer, -1, sizeof buffer);
-	int r;
-	if ((r=recvmsg(client_connection, &message, 0)) > 0) {
-		printf("recvmsg = %d, controllen=%d, iovlen=%d\n", 
-			r, message.msg_controllen, message.msg_iovlen);
-		struct cmsghdr *cmessage = CMSG_FIRSTHDR(&message);
-		memcpy(fds, CMSG_DATA(cmessage), sizeof fds);
-		write(fds[0], "HELLO\n", 6);
-		int i;
-		for (i=0; i<sizeof(fds)/sizeof(fds[0]); i++) {
-			printf("fd[%d] = %d\n", i, fds[i]);
-		}
-
-		int mem_fd = fds[1];
-		void* memory = mmap(NULL, 65536,
-			PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0);
-		if (memory!=NULL) {
-			printf("original: %s", memory);
-			sprintf(memory, "Updated contents is fd %d at address %x\n", mem_fd, memory);
-			msync(memory, 65536, MS_SYNC);
-			printf("updated: %s", memory);
-		}
-	}
-
-	write(client_connection, "spugl-0.0.1\n", 13);
-
-	sleep(1);
-	exit(0);
-*/
+	umount2(mountname, MNT_FORCE | MNT_DETACH);
+	rmdir(mountname);
 }
 

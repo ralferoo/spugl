@@ -79,17 +79,13 @@ void freeBuffer(struct Connection* connection, struct SPUGL_request* request) {
 }
 
 static int alloc_id = 0;
-void allocateBuffer(struct Connection* connection, struct SPUGL_request* request, struct SPUGL_reply* reply, int commandQueue) {
+static int name_id = 0;
+
+void allocateBuffer(struct Connection* connection, struct SPUGL_request* request, struct SPUGL_reply* reply, int commandQueue, char* mountname) {
 	char buffer[512];
 
-	char* mountname = "/tmp";
-//	char* mountname = "/tmp/virtmem";
-//	mkdir(mountname, 0700);
-//	mount("spugl", mountname, "tmpfs", MS_NOATIME | MS_NODEV |
-//			MS_NODIRATIME | MS_NOEXEC | MS_NOSUID, "");
-
 	char filename[256];
-	sprintf(filename, "%s/virtmem.%d", mountname, getpid());
+	sprintf(filename, "%s/virtmem.%d.%d", mountname, getpid(), ++name_id);
 	int mem_fd = open(filename, O_RDWR | O_CREAT, 0700);
 	if (mem_fd<0) {
 		sprintf(buffer, "cannot create temporary file %s", filename);
@@ -128,7 +124,7 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 				((void*)(&queue->data[0])) - ((void*)&queue->write_ptr);
 		}
 
-		sprintf(buffer, "Allocated buffer on fd %d at address %x, size %d\n", mem_fd, memory, request->alloc.size);
+		sprintf(buffer, "Allocated buffer on fd %d at address %x, size %d, file %s\n", mem_fd, memory, request->alloc.size, filename);
 		syslog(LOG_INFO, buffer);
 
 		struct Allocation* n = malloc(sizeof(struct Allocation));
@@ -168,10 +164,9 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 
 		sendmsg(connection->fd, &message, 0);
 	}
-//	umount2(mountname, MNT_FORCE | MNT_DETACH);
 }
 
-int handleConnectionData(struct Connection* connection) {
+int handleConnectionData(struct Connection* connection, char* mountname) {
 	struct SPUGL_request request;
 	struct SPUGL_reply reply;
 	char buffer[512];
@@ -203,11 +198,11 @@ int handleConnectionData(struct Connection* connection) {
 			}
 			break;
 		case SPUGLR_ALLOC_BUFFER:
-			allocateBuffer(connection, &request, &reply, 0);
+			allocateBuffer(connection, &request, &reply, 0, mountname);
 			break;
 
 		case SPUGLR_ALLOC_COMMAND_QUEUE: 
-			allocateBuffer(connection, &request, &reply, 1);
+			allocateBuffer(connection, &request, &reply, 1, mountname);
 			break;
 
 		case SPUGLR_FREE_COMMAND_QUEUE:
