@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <syslog.h>
 #include <signal.h>
+#define __USE_GNU
 #include <poll.h>
 #include <fcntl.h>
 

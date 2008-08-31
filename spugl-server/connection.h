@@ -48,7 +48,9 @@ struct Allocation {
 	unsigned long id;
 	int fd;
 	int conn_fd;
-	int isCommandQueue;
+	int flags;
 };
+
+#define ALLOCATION_FLAGS_ISCOMMANDQUEUE 1
 
 

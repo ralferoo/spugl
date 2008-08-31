@@ -93,7 +93,7 @@ void freeBuffer(struct Connection* connection, struct SPUGL_request* request) {
 void flushQueue(struct Connection* connection, struct SPUGL_request* request, struct SPUGL_reply* reply) {
 	struct Allocation* ptr = connection->firstAllocation;
 	while (ptr) {
-		if (ptr->isCommandQueue && 
+		if ((ptr->flags&ALLOCATION_FLAGS_ISCOMMANDQUEUE) && 
 		    ptr->conn_fd == connection->fd &&
 		    ptr->id == request->flush.id) {
 
@@ -172,7 +172,12 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 		n->buffer = memory;
 		n->size = request->alloc.size;
 		n->id = ++alloc_id;
-		n->isCommandQueue = commandQueue;
+
+		int flags = 0;
+		if (commandQueue)
+			flags |= ALLOCATION_FLAGS_ISCOMMANDQUEUE;
+		n->flags = flags;
+
 		connection->firstAllocation = n;
 
 		reply->alloc.id = n->id;
