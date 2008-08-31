@@ -44,6 +44,44 @@ void* SPUGL_allocateBuffer(int server, unsigned long size) {
 	return (struct CommandQueue*) _allocate(server, size, SPUGLR_ALLOC_BUFFER);
 }
 	
+static void _freeBuffer(int server, void* buffer, unsigned short command);
+
+void SPUGL_freeCommandQueue(int server, struct CommandQueue* buffer) {
+	_freeBuffer(server, buffer, SPUGLR_FREE_COMMAND_QUEUE);
+}
+
+void SPUGL_freeBuffer(int server, void* buffer) {
+	_freeBuffer(server, buffer, SPUGLR_FREE_COMMAND_QUEUE);
+}
+
+static void _freeBuffer(int server, void* buffer, unsigned short command) {
+	struct SPUGL_Buffer** ptr = &firstBuffer;
+	while (*ptr) {
+		struct SPUGL_Buffer* test = *ptr;
+		if (test->data == buffer) {
+			printf("freeing %x %x %x size %d\n", buffer, test, test->data, test->size);
+
+			// tell the server we've junked the buffer
+			struct SPUGL_request request;
+			struct SPUGL_reply reply;
+			request.command = command;
+			request.free.id = test->id;
+			send(server, &request, sizeof(request), 0);
+
+			// unmap the buffer and close the file
+			munmap(buffer, test->size);
+			close(test->fd);
+
+			// unlink the header
+			*ptr = test->next;
+			free(test);
+			return;
+		}
+		ptr = &(test->next);
+	}
+	printf("Cannot find memory buffer %x in allocation list\n", buffer);
+}
+
 static void* _allocate(int server, unsigned long size, unsigned short command) {
 	struct SPUGL_request request;
 	struct SPUGL_reply reply;
@@ -87,6 +125,7 @@ static void* _allocate(int server, unsigned long size, unsigned short command) {
 					header->id = reply.alloc.id;
 					header->fd = mem_fd;
 					header->size = request.alloc.size;
+					firstBuffer = header;
 					return memory;
 				} else {
 					// no memory for header data

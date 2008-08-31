@@ -44,17 +44,37 @@ void handleDisconnect(struct Connection* connection) {
 		struct Allocation* del = toFree;
 		toFree = toFree->nextAllocation;
 
-		sprintf(buffer, "freeing buffer %d at %x, size %d on fd %d", del->id, del->buffer, del->size, del->fd);
+		sprintf(buffer, "freeing buffer %d on exit at %x, size %d on fd %d conn %d", del->id, del->buffer, del->size, del->fd, del->conn_fd);
 		syslog(LOG_INFO, buffer);
 
 		munmap(del->buffer, del->size);
 		close(del->fd);
 		free(del);
-
-//		sprintf(buffer, "freed buffer %d at %x, size %d on fd %d", del->id, del->buffer, del->size, del->fd);
-//		syslog(LOG_INFO, buffer);
 	}
 	connection->firstAllocation = NULL;
+}
+
+void freeBuffer(struct Connection* connection, struct SPUGL_request* request) {
+	struct Allocation** ptr = &(connection->firstAllocation);
+	while (*ptr) {
+		struct Allocation* del = *ptr;
+		if (del->conn_fd == connection->fd && del->id == request->free.id) {
+			char buffer[512];
+			sprintf(buffer, "freeing buffer %d at %x, size %d on fd %d conn %d", del->id, del->buffer, del->size, del->fd, del->conn_fd);
+			syslog(LOG_INFO, buffer);
+
+			*ptr = del->nextAllocation;
+
+			munmap(del->buffer, del->size);
+			close(del->fd);
+			free(del);
+			return;
+		}
+		ptr = &(del->nextAllocation);
+	}
+	char buffer[512];
+	sprintf(buffer, "request to free buffer %d conn %d but not found", request->free.id, connection->fd);
+	syslog(LOG_INFO, buffer);
 }
 
 static int alloc_id = 0;
@@ -113,6 +133,7 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 		struct Allocation* n = malloc(sizeof(struct Allocation));
 		n->nextAllocation = connection->firstAllocation;
 		n->fd = mem_fd;
+		n->conn_fd = connection->fd;
 		n->buffer = memory;
 		n->size = request->alloc.size;
 		n->id = ++alloc_id;
@@ -188,6 +209,11 @@ int handleConnectionData(struct Connection* connection) {
 			allocateBuffer(connection, &request, &reply, 1);
 			break;
 
+		case SPUGLR_FREE_COMMAND_QUEUE:
+		case SPUGLR_FREE_BUFFER:
+			freeBuffer(connection, &request);
+			break;
+			
 		default: 
 			sprintf(buffer, "invalid request command %d on fd %d", request.command, connection->fd);
 			syslog(LOG_ERR, buffer);

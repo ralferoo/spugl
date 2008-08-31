@@ -16,11 +16,13 @@ int SPUGL_connect();
 // disconnects the client from the server
 void SPUGL_disconnect(int server);
 
-// allocates an OpenGL FIFO
+// allocates/frees an OpenGL FIFO
 struct CommandQueue* SPUGL_allocateCommandQueue(int server, unsigned long size);
+void SPUGL_freeCommandQueue(int server, struct CommandQueue* buffer);
 
-// allocates a general buffer suitable for textures, pixel buffers, etc.
+// allocates/frees a general buffer suitable for textures, pixel buffers, etc.
 void* SPUGL_allocateBuffer(int server, unsigned long size);
+void SPUGL_freeBuffer(int server, void* buffer);
 
 // sends the server an invalid request (for testing - should cause the connection to drop)
 void SPUGL_invalidRequest(int server);

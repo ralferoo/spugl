@@ -11,8 +11,8 @@
 
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 1
-#define VERSION_REVISION 25
-#define VERSION_STRING "0.1.25"
+#define VERSION_REVISION 26
+#define VERSION_STRING "0.1.26"
 
 //////////////////////////////////////////////////////////////////////////
 //
@@ -28,6 +28,10 @@ struct SPUGL_request {
 		struct {
 			unsigned long size;
 		} alloc;
+		struct {
+			unsigned long id;
+		} free;
+			
 	};
 };
 
@@ -36,7 +40,8 @@ struct SPUGL_request {
 #define SPUGLR_ALLOC_COMMAND_QUEUE	3
 #define SPUGLR_ALLOC_BUFFER		4
 #define SPUGLR_MAP_BUFFER		5
-#define SPUGLR_FREE_BUFFER		6
+#define SPUGLR_FREE_COMMAND_QUEUE	6
+#define SPUGLR_FREE_BUFFER		7
 
 struct SPUGL_reply {
 	union {

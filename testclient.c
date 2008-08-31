@@ -22,8 +22,17 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
-	SPUGL_allocateCommandQueue(server, 2047*1024);
-	SPUGL_allocateBuffer(server, 2047*1024*1024);
+	struct CommandQueue* queue = SPUGL_allocateCommandQueue(server, 2047*1024);
+
+	void* buffer2 = SPUGL_allocateBuffer(server, 1024);
+	void* buffer = SPUGL_allocateBuffer(server, 2047*1024*1024);
+	SPUGL_freeBuffer(server, buffer);	
+
+	buffer = SPUGL_allocateBuffer(server, 1024*1024);
+	SPUGL_freeBuffer(server, buffer);	
+
+	SPUGL_freeCommandQueue(server, queue);	
+
 	SPUGL_invalidRequest(server);
 
 	SPUGL_disconnect(server);
