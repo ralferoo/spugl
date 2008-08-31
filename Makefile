@@ -58,7 +58,11 @@ CLIENT_LIB_TARGETS := $(patsubst %.c,%.o,$(CLIENT_LIB_TARGETS_C))
 
 all:	$(TARGETS)
 
-server:	$(DAEMON_TARGETS)
+server:	server.debug
+	cp $< $@
+	strip $@
+
+server.debug:	$(DAEMON_TARGETS)
 	gcc -m$(USERLAND) -o $@ $(DAEMON_TARGETS)
 
 client:	$(CLIENT_TARGETS)
