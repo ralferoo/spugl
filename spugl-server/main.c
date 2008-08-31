@@ -39,6 +39,9 @@ int main(int argc, char* argv[]) {
 	int server = socket(PF_UNIX, SOCK_STREAM, 0);
 
 	openlog("spugl", LOG_NDELAY | LOG_PID, LOG_DAEMON);
+	char buffer[256];
+	sprintf(buffer, "spugl version %s", SPUGL_VERSION);
+	syslog(LOG_INFO, buffer);
 
 	struct sockaddr_un sock_addr = { AF_UNIX, "\0spugl-server" };
 	if (bind(server, (struct sockaddr *) &sock_addr, sizeof sock_addr)<0) {

@@ -24,6 +24,8 @@
 #include "connection.h"
 #include "../spugl-client/daemon.h"
 
+char SPUGL_VERSION[] = VERSION_STRING;
+
 void handleConnect(struct Connection* connection) {
 	connection->firstAllocation = NULL;
 
