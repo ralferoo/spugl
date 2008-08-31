@@ -91,6 +91,12 @@ int main(int argc, char* argv[]) {
 	struct Connection* firstConnection = NULL;
 
 	while (!terminated) {
+		struct Connection* conn = firstConnection;
+		while (conn) {
+			processOutstandingRequests(conn);
+			conn = conn->nextConnection;
+		}
+
 		struct pollfd p[connectionCount+1];
 		sigset_t sigs;
 		struct timespec timeout;

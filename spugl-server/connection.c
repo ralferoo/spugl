@@ -64,10 +64,50 @@ void handleDisconnect(struct Connection* connection) {
 }
 
 void freeBuffer(struct Connection* connection, struct SPUGL_request* request) {
+	struct Allocation* ptr = connection->firstAllocation;
+	while (ptr) {
+		if (ptr->conn_fd == connection->fd && ptr->id == request->free.id) {
+			ptr->flags |= ALLOCATION_FLAGS_FREEDONE; 
+			return;
+		}
+		ptr = ptr->nextAllocation;
+	}
+#ifdef DEBUG
+	char buffer[512];
+	sprintf(buffer, "request to free buffer %d conn %d but not found", request->free.id, connection->fd);
+	syslog(LOG_INFO, buffer);
+#endif
+}
+
+void flushQueue(struct Connection* connection, struct SPUGL_request* request, struct SPUGL_reply* reply) {
+	struct Allocation* ptr = connection->firstAllocation;
+	while (ptr) {
+		if (ptr->conn_fd == connection->fd &&
+		    ptr->id == request->flush.id &&
+		   (ptr->flags&ALLOCATION_FLAGS_ISCOMMANDQUEUE) ) {
+//			ptr->flags |= ALLOCATION_FLAGS_FLUSHWAIT;
+			ptr->flags |= ALLOCATION_FLAGS_FLUSHDONE;
+			return;
+		}
+		ptr = ptr->nextAllocation;
+	}
+	
+	// can't find a matching queue, just acknowledge flush
+	send(connection->fd, reply, sizeof(struct SPUGL_reply), 0);
+}
+
+void processOutstandingRequests(struct Connection* connection) {
 	struct Allocation** ptr = &(connection->firstAllocation);
 	while (*ptr) {
 		struct Allocation* del = *ptr;
-		if (del->conn_fd == connection->fd && del->id == request->free.id) {
+		if (del->flags & ALLOCATION_FLAGS_FLUSHDONE) {
+			del->flags &= ~ALLOCATION_FLAGS_FLUSHDONE;
+ 
+			// acknowledge flush
+			struct SPUGL_reply reply;
+			send(connection->fd, &reply, sizeof(struct SPUGL_reply), 0);
+		}
+		if (del->flags & ALLOCATION_FLAGS_FREEDONE) {
 #ifdef DEBUG
 			char buffer[512];
 			sprintf(buffer, "freeing buffer %d at %x, size %d on fd %d conn %d", del->id, del->buffer, del->size, del->fd, del->conn_fd);
@@ -82,29 +122,6 @@ void freeBuffer(struct Connection* connection, struct SPUGL_request* request) {
 			return;
 		}
 		ptr = &(del->nextAllocation);
-	}
-#ifdef DEBUG
-	char buffer[512];
-	sprintf(buffer, "request to free buffer %d conn %d but not found", request->free.id, connection->fd);
-	syslog(LOG_INFO, buffer);
-#endif
-}
-
-void flushQueue(struct Connection* connection, struct SPUGL_request* request, struct SPUGL_reply* reply) {
-	struct Allocation* ptr = connection->firstAllocation;
-	while (ptr) {
-		if ((ptr->flags&ALLOCATION_FLAGS_ISCOMMANDQUEUE) && 
-		    ptr->conn_fd == connection->fd &&
-		    ptr->id == request->flush.id) {
-
-			// TODO: this is a placeholder...
-			// TODO: mark flag, wait until clear, send sighup, send packet late
-
-			// acknowledge flush
-			send(connection->fd, reply, sizeof(struct SPUGL_reply), 0);
-			return;
-		}
-		ptr = ptr->nextAllocation;
 	}
 }
 
