@@ -67,6 +67,7 @@ void freeBuffer(struct Connection* connection, struct SPUGL_request* request) {
 	struct Allocation* ptr = connection->firstAllocation;
 	while (ptr) {
 		if (ptr->conn_fd == connection->fd && ptr->id == request->free.id) {
+//			ptr->flags |= ALLOCATION_FLAGS_FREEWAIT;
 			ptr->flags |= ALLOCATION_FLAGS_FREEDONE; 
 			return;
 		}
