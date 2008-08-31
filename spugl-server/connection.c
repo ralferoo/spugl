@@ -49,9 +49,8 @@ void handleDisconnect(struct Connection* connection) {
 		close(del->fd);
 		free(del);
 
-		sprintf(buffer, "freed buffer %d at %x, size %d on fd %d", del->id, del->buffer, del->size, del->fd);
-		syslog(LOG_INFO, buffer);
-
+//		sprintf(buffer, "freed buffer %d at %x, size %d on fd %d", del->id, del->buffer, del->size, del->fd);
+//		syslog(LOG_INFO, buffer);
 	}
 	connection->firstAllocation = NULL;
 }
