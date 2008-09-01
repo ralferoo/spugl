@@ -11,28 +11,11 @@
 
 #include "connection.h"
 
-/*
-#define __lwarx(base) __extension__             \
-  ({unsigned int result;                        \
-    typedef  struct {char a[4];} wordsize;      \
-    wordsize *ptrp = (wordsize*)(base);         \
-  __asm__ volatile ("lwarx %0,%y1"              \
-           : "=r" (result)                      \
-           : "Z" (*ptrp));                      \
-  result; })
-
-
-#define __stwcx(base, value) __extension__      \
-  ({unsigned int result;                        \
-    typedef  struct {char a[4];} wordsize;      \
-    wordsize *ptrp = (wordsize*)(base);         \
-  __asm__ volatile ("stwcx. %2,%y1\n"           \
-           "\tmfocrf %0,0x80"                   \
-           : "=r" (result),                     \
-             "=Z" (*ptrp)                       \
-           : "r" (value));                      \
-  ((result & 0x20000000) >> 29); })
-*/
+// this does the custom PPU/SPU locking
+//
+// it differs from standard mutex locking in that the SPU will pretty much always have an
+// active lock, so the PPU signals that it wants the lock and when the SPU notices this,
+// it will relinquish the lock and wait until the PPU has finished
 
 void lock(enum LOCK* lock) {
 	unsigned int result;
@@ -64,9 +47,12 @@ retry:
 			sched_yield();
 			goto retry;
 	}
+	__asm__ volatile ("isync" : : : "memory");
 }
 
 void unlock(enum LOCK* lock) {
+	*lock = LOCK_free;
+/*
 	unsigned int result;
 	typedef  struct {char a[4];} wordsize;
 	wordsize *ptrp = (wordsize*)lock;
@@ -85,5 +71,6 @@ retry:
 			sched_yield();
 			goto retry;
 	}
+*/
 }
 

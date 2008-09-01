@@ -90,6 +90,7 @@ int main(int argc, char* argv[]) {
 	int connectionCount = 0;
 	struct Connection* firstConnection = NULL;
 	struct Connection* firstClosedConnection = NULL;
+	enum LOCK connectionLock;
 
 	while (!terminated) {
 		struct pollfd p[connectionCount+1];
@@ -128,12 +129,14 @@ int main(int argc, char* argv[]) {
 				}
 				if (p[i].revents & (POLLERR|POLLHUP)) {
 disconnected:				handleDisconnect(connection);
+					lock(&connectionLock);
 					// unlink from connection list
 					*curr_ptr = connection->nextConnection;
 					connectionCount--;
 					// hook into close connection list
 					connection->nextConnection = firstClosedConnection;
 					firstClosedConnection = connection;
+					unlock(&connectionLock);
 				} else {
 					// move to next connection
 					curr_ptr = &(connection->nextConnection);
@@ -150,12 +153,14 @@ disconnected:				handleDisconnect(connection);
 				if (client_connection < 0) {
 					syslog(LOG_INFO, "accept on incoming connection failed");
 				} else {
+					lock(&connectionLock);
 					struct Connection* connection = malloc(sizeof(struct Connection));
 					connection->fd = client_connection;
 					connection->nextConnection = firstConnection;
 					firstConnection = connection;
 					connectionCount++;
 					handleConnect(connection);
+					unlock(&connectionLock);
 				}
 			}
 		}
@@ -171,9 +176,11 @@ disconnected:				handleDisconnect(connection);
 			struct Connection* conn = *closed;
 			processOutstandingRequests(conn);
 			if (conn->firstAllocation == NULL) {
+				lock(&connectionLock);
 				*closed = conn->nextConnection;
 				close(conn->fd);
 				free(conn);
+				unlock(&connectionLock);
 			} else {
 				closed = &(conn->nextConnection);
 			}

@@ -78,6 +78,7 @@ void freeBuffer(struct Connection* connection, struct SPUGL_request* request) {
 }
 
 void flushQueue(struct Connection* connection, struct SPUGL_request* request, struct SPUGL_reply* reply) {
+	lock(&connection->lock);
 	struct Allocation* ptr = connection->firstAllocation;
 	while (ptr) {
 		if (ptr->conn_fd == connection->fd && ptr->id == request->flush.id &&
@@ -88,12 +89,14 @@ void flushQueue(struct Connection* connection, struct SPUGL_request* request, st
 		}
 		ptr = ptr->nextAllocation;
 	}
+	unlock(&connection->lock);
 	
 	// can't find a matching queue, just acknowledge flush anyway
 	send(connection->fd, reply, sizeof(struct SPUGL_reply), 0);
 }
 
 void processOutstandingRequests(struct Connection* connection) {
+	lock(&connection->lock);
 	struct Allocation** ptr = &(connection->firstAllocation);
 	while (*ptr) {
 		struct Allocation* del = *ptr;
@@ -122,6 +125,7 @@ void processOutstandingRequests(struct Connection* connection) {
 		}
 		ptr = &(del->nextAllocation);
 	}
+	unlock(&connection->lock);
 }
 
 static int alloc_id = 0;
@@ -183,6 +187,7 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 		syslog(LOG_INFO, buffer);
 #endif
 
+		lock(&connection->lock);
 		struct Allocation* n = malloc(sizeof(struct Allocation));
 		n->nextAllocation = connection->firstAllocation;
 		n->fd = mem_fd;
@@ -192,6 +197,7 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 		n->id = ++alloc_id;
 		n->flags = flags;
 		connection->firstAllocation = n;
+		unlock(&connection->lock);
 
 		reply->alloc.id = n->id;
 

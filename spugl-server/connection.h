@@ -13,6 +13,22 @@ extern char SPUGL_VERSION[];
 
 struct Allocation;
 
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// PPU/SPU locking system
+
+enum LOCK {
+	LOCK_free,
+	LOCK_SPU,
+	LOCK_PPU_wait,
+	LOCK_PPU_may_proceed,
+	LOCK_PPU
+};
+
+void lock(enum LOCK* lock);
+void unlock(enum LOCK* lock);
+
 //////////////////////////////////////////////////////////////////////////////
 //
 // List of client connections in the system
@@ -24,6 +40,7 @@ struct Connection {
 	
 	// populated by connection.c
 	struct Allocation* firstAllocation;
+	enum LOCK lock;
 };
 
 // does any post connection initialisation that might be required
@@ -58,14 +75,3 @@ struct Allocation {
 #define ALLOCATION_FLAGS_FLUSHDONE 4
 #define ALLOCATION_FLAGS_FREEWAIT 8
 #define ALLOCATION_FLAGS_FREEDONE 16
-
-enum LOCK {
-	LOCK_free,
-	LOCK_SPU,
-	LOCK_PPU_wait,
-	LOCK_PPU_may_proceed,
-	LOCK_PPU
-};
-
-void lock(enum LOCK* lock);
-void unlock(enum LOCK* lock);
