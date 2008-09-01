@@ -59,4 +59,13 @@ struct Allocation {
 #define ALLOCATION_FLAGS_FREEWAIT 8
 #define ALLOCATION_FLAGS_FREEDONE 16
 
+enum LOCK {
+	LOCK_free,
+	LOCK_SPU,
+	LOCK_PPU_wait,
+	LOCK_PPU_may_proceed,
+	LOCK_PPU
+};
 
+void lock(enum LOCK* lock);
+void unlock(enum LOCK* lock);

@@ -11,8 +11,8 @@
 
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 1
-#define VERSION_REVISION 38
-#define VERSION_STRING "0.1.38"
+#define VERSION_REVISION 39
+#define VERSION_STRING "0.1.39"
 
 //////////////////////////////////////////////////////////////////////////
 //
