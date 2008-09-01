@@ -52,6 +52,19 @@ typedef struct {
 } __DRIVER_CONTEXT;
 
 #ifdef USE_LIBSPE2
+/* PPE Callback Function */
+int my_callback(void *ls_base_tmp, unsigned int data) {
+	char *ls_base = (char *)ls_base_tmp; 
+//	spe_offset_t params_offset = *((spe_offset_t *)(ls_base + data));
+/*
+	my_strlen_param_t *params = (my_strlen_param_t *)(ls_base + params_offset);
+	char *the_string = ls_base + params->str;
+	params->length = strlen(the_string);
+*/
+	write(1,".",1);
+	return 0;
+}
+
 void *spu_3d_program_thread(void* vctx)
 {
 	__DRIVER_CONTEXT* ctx = (__DRIVER_CONTEXT*) vctx;
@@ -59,8 +72,9 @@ void *spu_3d_program_thread(void* vctx)
 	int retval;
 	unsigned int entry_point = SPE_DEFAULT_ENTRY;
 	do {
-//		printf("restarting at %x\n", entry_point);
+		printf("restarting at %x\n", entry_point);
 		retval = spe_context_run(ctx->spe_ctx, &entry_point, 0, ctx->fifo_buffer, NULL, NULL);
+		printf("exited at %x\n", entry_point);
 	} while (retval > 0);
 	pthread_exit(NULL);
 }
@@ -94,6 +108,7 @@ DriverContext _init_3d_driver(int master)
 		}
 	}
 
+	spe_callback_handler_register(my_callback, 0x10, SPE_CALLBACK_NEW);
 
 #ifdef USE_LIBSPE2
 	context->spe_ctx = spe_context_create(SPE_EVENTS_ENABLE|SPE_MAP_PS, NULL);

@@ -180,11 +180,11 @@ depend: .gen
 clean:
 	rm -f *.o
 #	rm -f *.spe *.o$(USERLAND)
-	rm -f *.0
+	rm -f *.0 *.o32 *.o64
 	rm -rf build dist
 	rm -f .gen test
 	rm -f textures/*.o
-	rm -f server client spugl-*/*.o
+	rm -f server server.debug client spugl-*/*.o spugl.a
 
 # gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h
 

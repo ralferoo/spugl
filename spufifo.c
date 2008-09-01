@@ -124,5 +124,8 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 	while (running) {
 		asm("sync");
 		process_queue(&fifoTriangleGenerator, &blockActivater);
+		asm("sync");
+//		asm("stop 0x2110");
+//		asm(".word 0");
 	}
 }
