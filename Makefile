@@ -11,7 +11,7 @@
 
 BASE_NAME = spugl-client-0.1
 
-TARGETS = test server client
+TARGETS = test spugld testclient
 
 LIBDIRS = -L/usr/lib
 
@@ -46,26 +46,34 @@ PPU_SRCS := $(patsubst %.o,%.c,$(PPU_TEST_OBJS))
 
 SOURCE_DIST_FILES= README $(PPU_SRCS) $(SPU_HNDL) $(SHARED_HEADERS) gen_spu_command_defs.h
 
-DAEMON_TARGETS_C := $(wildcard spugl-server/*.c)
-DAEMON_TARGETS_H := $(wildcard spugl-server/*.h)
+DAEMON_TARGETS_C := $(wildcard server/*.c)
+DAEMON_TARGETS_H := $(wildcard server/*.h)
 DAEMON_TARGETS := $(patsubst %.c,%.o,$(DAEMON_TARGETS_C))
 
 CLIENT_TARGETS = testclient.o spugl.a
 
-CLIENT_LIB_TARGETS_C := $(wildcard spugl-client/*.c)
-CLIENT_LIB_TARGETS_H := $(wildcard spugl-client/*.h)
+CLIENT_LIB_TARGETS_C := $(wildcard client/*.c)
+CLIENT_LIB_TARGETS_H := $(wildcard client/*.h)
 CLIENT_LIB_TARGETS := $(patsubst %.c,%.o,$(CLIENT_LIB_TARGETS_C))
 
 all:	$(TARGETS)
 
-server:	server.debug
+.FORCE:
+
+server:	spugld .FORCE
+	./spugld
+
+client:	testclient .FORCE
+	./testclient
+
+spugld:	spugld.debug
 	cp $< $@
 	strip $@
 
-server.debug:	$(DAEMON_TARGETS)
+spugld.debug:	$(DAEMON_TARGETS)
 	gcc -m$(USERLAND) -o $@ $(DAEMON_TARGETS)
 
-client:	$(CLIENT_TARGETS)
+testclient:	$(CLIENT_TARGETS)
 	gcc -m$(USERLAND) -o $@ $(CLIENT_TARGETS)
 
 spugl.a:	$(CLIENT_LIB_TARGETS)

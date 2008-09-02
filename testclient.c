@@ -12,8 +12,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "spugl-client/daemon.h"
-#include "spugl-client/client.h"
+#include "client/daemon.h"
+#include "client/client.h"
 
 int main(int argc, char* argv[]) {
 	int server = SPUGL_connect();

@@ -25,7 +25,7 @@
 
 #include "connection.h"
 #include "commandqueue.h"
-#include "../spugl-client/daemon.h"
+#include "../client/daemon.h"
 
 char SPUGL_VERSION[] = "spugl version " VERSION_STRING;
 

@@ -9,7 +9,7 @@
  *
  ****************************************************************************/
 
-#include "../spugl-client/queue.h"
+#include "../client/queue.h"
 
 // This contains a list of command queues and a chain to the next list
 // (this is private to server and should move there!)
