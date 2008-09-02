@@ -1,0 +1,74 @@
+			Architecture notes for spugl
+			----------------------------
+
+Overview
+--------
+
+Much like with a modern graphics processor, the primary interaction with
+the graphics "core" is via a FIFO command buffer. The "driver" places
+instructions into the command buffer and, in the case of a graphics
+processor, the GPU reads and executes these instructions independently
+of the CPU. The the same way, spugl is designed such that an SPU thread
+processes and executes the command buffer queue independently of the PPU
+(or even SPU) that created the instruction stream.
+
+Examples of instructions might be to bind a texture to a context, load
+a transform (effectively setting input parameters to a vertex shader),
+drawing a triangle or modifying memory.
+
+The system is designed so that the FIFO is a block of memory "owned" and
+managed by the client which contains instructions and data as well as a
+pointer to the last instruction written. Internally, the processing core
+maintains a pointer to the last instruction processed and each time it
+is scheduled, it fetches and processes instructions until the two pointers
+are equal. Writing to the command queue then becomes a very quick operation:
+
+	// PROLOGUE
+	unsigned int* command_queue;
+	unsigned int* ptr = (unsigned int*) ( ((void*)command_queue) + (*command_queue) );
+
+	// ISSUING INSTRUCTIONS
+	*ptr++ = COMMAND1_ID;		// COMMAND1 takes 1 argument
+	*ptr++ = data;
+
+	*ptr++ = COMMAND2_ID;		// COMMAND2 takes no arguments
+
+	// EPILOGUE
+	__lwsync();
+	*command_queue = ((void*)ptr) - ((void*)command_queue);
+	__lwsync();
+
+Where multiple instructions are to be queued, the prologue and epilogue only
+needs to occur once, surrounding the block of instruction issues.
+
+As the command buffer is finite, the client is responsible for managing the
+buffer itself. To support that, the command queue instruction set includes
+commands such as JMP so that the client can re-use the start of the buffer
+when nearing the end and POKE so that the processing core can signal events
+back to the client.
+
+Managing resources
+------------------
+
+In order to provide resource seperation so that non-root processes can use
+spugl and also to allow for spugl to be upgraded without affecting clients,
+spugl is organised as a client-server model with a daemon process "spugld"
+responsible for managing the SPU processes.
+
+The biggest obstacle then becomes that both client and server need shared
+access to the FIFO buffer and shared access to any texture data or pixel
+buffers that are required - somehow both the server and client processses
+must have access to the same buffers.
+
+In spugl, a custom method of shared memory is implemented, built upon mmap
+and tmpfs, which is fast and guarantees page coherency, and which allows
+processes to share memory with others by passing the file descriptor to
+another process. The actual process used isn't important, but knowing that
+the "spugld" process is responsible for buffer management for all clients
+is important.
+
+It is also important to recognise that the block of memory will be mapped
+at different addresses in both the client and server and all "addresses"
+therefore are actually offsets from the start of the block. As multiple data
+buffers might be required, a block id is often also required, for example
+when binding a texture.
