@@ -75,3 +75,14 @@ struct Allocation {
 #define ALLOCATION_FLAGS_FLUSHDONE 4
 #define ALLOCATION_FLAGS_FREEWAIT 8
 #define ALLOCATION_FLAGS_FREEDONE 16
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// Main list of connections on server
+
+struct ConnectionList {
+	struct Connection* first;
+	struct Connection* firstClosed;
+	enum LOCK lock;
+};
+

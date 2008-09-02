@@ -88,9 +88,7 @@ int main(int argc, char* argv[]) {
 	syslog(LOG_INFO, "accepting connections");
 
 	int connectionCount = 0;
-	struct Connection* firstConnection = NULL;
-	struct Connection* firstClosedConnection = NULL;
-	enum LOCK connectionLock;
+	struct ConnectionList list = {0};
 
 	while (!terminated) {
 		struct pollfd p[connectionCount+1];
@@ -109,7 +107,7 @@ int main(int argc, char* argv[]) {
 		p[0].revents = 0;
 
 		int i;
-		struct Connection* current = firstConnection;
+		struct Connection* current = list.first;
 		for (i=1; i<=connectionCount && current; i++) {
 			p[i].fd = current->fd;
 			p[i].events = POLLIN | POLLERR | POLLHUP;
@@ -120,7 +118,7 @@ int main(int argc, char* argv[]) {
 		timeout.tv_nsec = 0;
 
 		if (ppoll(p, i, &timeout, &sigs) >=0 ) {
-			struct Connection** curr_ptr = &firstConnection;
+			struct Connection** curr_ptr = &list.first;
 			for (i=1; i<=connectionCount && *curr_ptr; i++) {
 				struct Connection* connection = *curr_ptr;
 				if (p[i].revents & POLLIN) {
@@ -129,14 +127,14 @@ int main(int argc, char* argv[]) {
 				}
 				if (p[i].revents & (POLLERR|POLLHUP)) {
 disconnected:				handleDisconnect(connection);
-					lock(&connectionLock);
+					lock(&list.lock);
 					// unlink from connection list
 					*curr_ptr = connection->nextConnection;
 					connectionCount--;
 					// hook into close connection list
-					connection->nextConnection = firstClosedConnection;
-					firstClosedConnection = connection;
-					unlock(&connectionLock);
+					connection->nextConnection = list.firstClosed;
+					list.firstClosed = connection;
+					unlock(&list.lock);
 				} else {
 					// move to next connection
 					curr_ptr = &(connection->nextConnection);
@@ -153,34 +151,34 @@ disconnected:				handleDisconnect(connection);
 				if (client_connection < 0) {
 					syslog(LOG_INFO, "accept on incoming connection failed");
 				} else {
-					lock(&connectionLock);
+					lock(&list.lock);
 					struct Connection* connection = malloc(sizeof(struct Connection));
 					connection->fd = client_connection;
-					connection->nextConnection = firstConnection;
-					firstConnection = connection;
+					connection->nextConnection = list.first;
+					list.first = connection;
 					connectionCount++;
 					handleConnect(connection);
-					unlock(&connectionLock);
+					unlock(&list.lock);
 				}
 			}
 		}
 
 		// process other events
-		struct Connection* conn = firstConnection;
+		struct Connection* conn = list.first;
 		while (conn) {
 			processOutstandingRequests(conn);
 			conn = conn->nextConnection;
 		}
-		struct Connection** closed = &firstClosedConnection;
+		struct Connection** closed = &list.firstClosed;
 		while (*closed) {
 			struct Connection* conn = *closed;
 			processOutstandingRequests(conn);
 			if (conn->firstAllocation == NULL) {
-				lock(&connectionLock);
+				lock(&list.lock);
 				*closed = conn->nextConnection;
 				close(conn->fd);
 				free(conn);
-				unlock(&connectionLock);
+				unlock(&list.lock);
 			} else {
 				closed = &(conn->nextConnection);
 			}
