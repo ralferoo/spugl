@@ -26,8 +26,10 @@
 #include "daemon.h"
 #include "client.h"
 
-struct SPUGL_Buffer {
-	struct SPUGL_Buffer* next;
+typedef struct __SPUGL_Buffer SPUGL_Buffer;
+
+struct __SPUGL_Buffer {
+	SPUGL_Buffer* next;
 	void* data;
 	unsigned long id;
 	unsigned long size;
@@ -35,21 +37,21 @@ struct SPUGL_Buffer {
 	int server_fd;
 };
 
-static struct SPUGL_Buffer* firstBuffer;
+static SPUGL_Buffer* firstBuffer;
 
 static void* _allocate(int server, unsigned long size, unsigned short command);
 
-struct CommandQueue* SPUGL_allocateCommandQueue(int server, unsigned long size) {
+CommandQueue* SPUGL_allocateCommandQueue(int server, unsigned long size) {
 	return _allocate(server, size, SPUGLR_ALLOC_COMMAND_QUEUE);
 }
 	
 void* SPUGL_allocateBuffer(int server, unsigned long size) {
-	return (struct CommandQueue*) _allocate(server, size, SPUGLR_ALLOC_BUFFER);
+	return (CommandQueue*) _allocate(server, size, SPUGLR_ALLOC_BUFFER);
 }
 	
 static void _freeBuffer(void* buffer, unsigned short command);
 
-void SPUGL_freeCommandQueue(struct CommandQueue* buffer) {
+void SPUGL_freeCommandQueue(CommandQueue* buffer) {
 	_freeBuffer(buffer, SPUGLR_FREE_COMMAND_QUEUE);
 }
 
@@ -58,17 +60,17 @@ void SPUGL_freeBuffer(void* buffer) {
 }
 
 static void _freeBuffer(void* buffer, unsigned short command) {
-	struct SPUGL_Buffer** ptr = &firstBuffer;
+	SPUGL_Buffer** ptr = &firstBuffer;
 	while (*ptr) {
-		struct SPUGL_Buffer* test = *ptr;
+		SPUGL_Buffer* test = *ptr;
 		if (test->data == buffer) {
 #ifdef DEBUG
 			printf("freeing %x %x %x size %d\n", buffer, test, test->data, test->size);
 #endif
 
 			// tell the server we've junked the buffer
-			struct SPUGL_request request;
-			struct SPUGL_reply reply;
+			SPUGL_request request;
+			SPUGL_reply reply;
 			request.command = command;
 			request.free.id = test->id;
 			send(test->server_fd, &request, sizeof(request), 0);
@@ -88,8 +90,8 @@ static void _freeBuffer(void* buffer, unsigned short command) {
 }
 
 static void* _allocate(int server, unsigned long size, unsigned short command) {
-	struct SPUGL_request request;
-	struct SPUGL_reply reply;
+	SPUGL_request request;
+	SPUGL_reply reply;
 	request.command = command;
 	request.alloc.size = size;
 	send(server, &request, sizeof(request), 0);
@@ -118,14 +120,14 @@ static void* _allocate(int server, unsigned long size, unsigned short command) {
 			int mem_fd = fds[0];
 			void* memory = mmap(NULL, request.alloc.size, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0);
 			if (memory!=NULL) {
-				struct CommandQueue* queue = (struct CommandQueue*) memory;
+				CommandQueue* queue = (CommandQueue*) memory;
 #ifdef DEBUG
 				printf("fd %d, memory %x, size %d, id %d, write %x, read %x\n",
 					mem_fd, memory, request.alloc.size, reply.alloc.id,
 					queue->write_ptr, queue->read_ptr);
 #endif
 
-				struct SPUGL_Buffer* header = malloc(sizeof(struct SPUGL_Buffer));
+				SPUGL_Buffer* header = malloc(sizeof(SPUGL_Buffer));
 				if (header!=NULL) {
 					header->next = firstBuffer;
 					header->data = memory;
@@ -173,8 +175,8 @@ int SPUGL_connect() {
 		return -2;
 	}
 
-	struct SPUGL_request request;
-	struct SPUGL_reply reply;
+	SPUGL_request request;
+	SPUGL_reply reply;
 	request.command = SPUGLR_GET_VERSION;
 	send(server, &request, sizeof(request), 0);
 	recv(server, &reply, sizeof(reply), 0);
@@ -192,18 +194,18 @@ void SPUGL_disconnect(int server) {
 	close(server);
 }
 
-void SPUGL_flush(struct CommandQueue* buffer) {
-	struct SPUGL_Buffer* ptr = firstBuffer;
+void SPUGL_flush(CommandQueue* buffer) {
+	SPUGL_Buffer* ptr = firstBuffer;
 	while (ptr) {
 		if (ptr->data == buffer) {
 			// send flush message to server
-			struct SPUGL_request request;
+			SPUGL_request request;
 			request.command = SPUGLR_FLUSH;
 			request.flush.id = ptr->id;
 			send(ptr->server_fd, &request, sizeof(request), 0);
 
 			// wait for server to reply - means server has flushed queue
-			struct SPUGL_reply reply;
+			SPUGL_reply reply;
 			recv(ptr->server_fd, &reply, sizeof(reply), 0);
 			return;
 		}
@@ -212,7 +214,7 @@ void SPUGL_flush(struct CommandQueue* buffer) {
 }
 
 void SPUGL_invalidRequest(int server) {
-	struct SPUGL_request request;
+	SPUGL_request request;
 	request.command = 4242;
 	send(server, &request, sizeof(request), 0);
 }

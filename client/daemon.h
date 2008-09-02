@@ -14,12 +14,15 @@
 #define VERSION_REVISION 42
 #define VERSION_STRING "0.1.42"
 
+typedef struct __SPUGL_request SPUGL_request;
+typedef struct __SPUGL_reply SPUGL_reply;
+ 
 //////////////////////////////////////////////////////////////////////////
 //
 // This is the structure of the socket level communcations between client
 // and server
 
-struct SPUGL_request {
+struct __SPUGL_request {
 	unsigned short command;
 	union {
 		struct {
@@ -47,7 +50,7 @@ struct SPUGL_request {
 #define SPUGLR_FREE_BUFFER		7
 #define SPUGLR_FLUSH			8
 
-struct SPUGL_reply {
+struct __SPUGL_reply {
 	union {
 		struct {
 			unsigned short major, minor, revision;

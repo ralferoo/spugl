@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
 	syslog(LOG_INFO, "accepting connections");
 
 	int connectionCount = 0;
-	struct ConnectionList list = {0};
+	ConnectionList list = {0};
 
 	while (!terminated) {
 		struct pollfd p[connectionCount+1];
@@ -107,7 +107,7 @@ int main(int argc, char* argv[]) {
 		p[0].revents = 0;
 
 		int i;
-		struct Connection* current = list.first;
+		Connection* current = list.first;
 		for (i=1; i<=connectionCount && current; i++) {
 			p[i].fd = current->fd;
 			p[i].events = POLLIN | POLLERR | POLLHUP;
@@ -118,9 +118,9 @@ int main(int argc, char* argv[]) {
 		timeout.tv_nsec = 0;
 
 		if (ppoll(p, i, &timeout, &sigs) >=0 ) {
-			struct Connection** curr_ptr = &list.first;
+			Connection** curr_ptr = &list.first;
 			for (i=1; i<=connectionCount && *curr_ptr; i++) {
-				struct Connection* connection = *curr_ptr;
+				Connection* connection = *curr_ptr;
 				if (p[i].revents & POLLIN) {
 					if (handleConnectionData(connection, mountname))
 						goto disconnected;
@@ -152,7 +152,7 @@ disconnected:				handleDisconnect(connection);
 					syslog(LOG_INFO, "accept on incoming connection failed");
 				} else {
 					lock(&list.lock);
-					struct Connection* connection = malloc(sizeof(struct Connection));
+					Connection* connection = malloc(sizeof(Connection));
 					connection->fd = client_connection;
 					connection->nextConnection = list.first;
 					list.first = connection;
@@ -164,14 +164,14 @@ disconnected:				handleDisconnect(connection);
 		}
 
 		// process other events
-		struct Connection* conn = list.first;
+		Connection* conn = list.first;
 		while (conn) {
 			processOutstandingRequests(conn);
 			conn = conn->nextConnection;
 		}
-		struct Connection** closed = &list.firstClosed;
+		Connection** closed = &list.firstClosed;
 		while (*closed) {
-			struct Connection* conn = *closed;
+			Connection* conn = *closed;
 			processOutstandingRequests(conn);
 			if (conn->firstAllocation == NULL) {
 				lock(&list.lock);

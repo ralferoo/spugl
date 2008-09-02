@@ -11,14 +11,16 @@
 
 extern char SPUGL_VERSION[];
 
-struct Allocation;
-
+typedef struct __Allocation Allocation;
+typedef struct __Connection Connection;
+typedef struct __ConnectionList ConnectionList;
+typedef enum __LOCK LOCK;
 
 //////////////////////////////////////////////////////////////////////////////
 //
 // PPU/SPU locking system
 
-enum LOCK {
+enum __LOCK {
 	LOCK_free,
 	LOCK_SPU,
 	LOCK_PPU_wait,
@@ -26,42 +28,42 @@ enum LOCK {
 	LOCK_PPU
 };
 
-void lock(enum LOCK* lock);
-void unlock(enum LOCK* lock);
+void lock(LOCK* lock);
+void unlock(LOCK* lock);
 
 //////////////////////////////////////////////////////////////////////////////
 //
 // List of client connections in the system
 
-struct Connection {
+struct __Connection {
 	// populated by main.c
-	struct Connection* nextConnection;
+	Connection* nextConnection;
 	int fd;
 	
 	// populated by connection.c
-	struct Allocation* firstAllocation;
-	enum LOCK lock;
+	Allocation* firstAllocation;
+	LOCK lock;
 };
 
 // does any post connection initialisation that might be required
-void handleConnect(struct Connection* connection);
+void handleConnect(Connection* connection);
 
 // does any post disconnection tear down that might be required
-void handleDisconnect(struct Connection* connection);
+void handleDisconnect(Connection* connection);
 
 // handle a request from client
 // return non-zero if we should disconnect the client
-int handleConnectionData(struct Connection* connection, char* mountname);
+int handleConnectionData(Connection* connection, char* mountname);
 
 // send any outstanding messages
-void processOutstandingRequests(struct Connection* connection);
+void processOutstandingRequests(Connection* connection);
 
 //////////////////////////////////////////////////////////////////////////////
 //
 // List of client's allocations
 
-struct Allocation {
-	struct Allocation* nextAllocation;
+struct __Allocation {
+	Allocation* nextAllocation;
 	void* buffer;
 	unsigned long size;
 	unsigned long id;
@@ -80,9 +82,9 @@ struct Allocation {
 //
 // Main list of connections on server
 
-struct ConnectionList {
-	struct Connection* first;
-	struct Connection* firstClosed;
-	enum LOCK lock;
+struct __ConnectionList {
+	Connection* first;
+	Connection* firstClosed;
+	LOCK lock;
 };
 

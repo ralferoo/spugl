@@ -24,12 +24,12 @@
 #include <sys/socket.h>
 
 #include "connection.h"
-#include "commandqueue.h"
+#include "../client/queue.h"
 #include "../client/daemon.h"
 
 char SPUGL_VERSION[] = "spugl version " VERSION_STRING;
 
-void handleConnect(struct Connection* connection) {
+void handleConnect(Connection* connection) {
 	connection->firstAllocation = NULL;
 
 #ifdef DEBUG
@@ -41,7 +41,7 @@ void handleConnect(struct Connection* connection) {
 #endif
 }
 
-void handleDisconnect(struct Connection* connection) {
+void handleDisconnect(Connection* connection) {
 #ifdef DEBUG
 	char buffer[512];
 	sprintf(buffer, "lost connection on fd %d, address %x\n", connection->fd, connection);
@@ -50,7 +50,7 @@ void handleDisconnect(struct Connection* connection) {
 //	syslog(LOG_INFO, "connection died");
 #endif
 
-	struct Allocation* ptr = connection->firstAllocation;
+	Allocation* ptr = connection->firstAllocation;
 	while (ptr) {
 //		ptr->flags |= ALLOCATION_FLAGS_FREEWAIT;
 		ptr->flags |= ALLOCATION_FLAGS_FREEDONE; 
@@ -60,8 +60,8 @@ void handleDisconnect(struct Connection* connection) {
 	connection->fd = -1;
 }
 
-void freeBuffer(struct Connection* connection, struct SPUGL_request* request) {
-	struct Allocation* ptr = connection->firstAllocation;
+void freeBuffer(Connection* connection, SPUGL_request* request) {
+	Allocation* ptr = connection->firstAllocation;
 	while (ptr) {
 		if (ptr->id == request->free.id) {
 //			ptr->flags |= ALLOCATION_FLAGS_FREEWAIT;
@@ -77,9 +77,9 @@ void freeBuffer(struct Connection* connection, struct SPUGL_request* request) {
 #endif
 }
 
-void flushQueue(struct Connection* connection, struct SPUGL_request* request, struct SPUGL_reply* reply) {
+void flushQueue(Connection* connection, SPUGL_request* request, SPUGL_reply* reply) {
 	lock(&connection->lock);
-	struct Allocation* ptr = connection->firstAllocation;
+	Allocation* ptr = connection->firstAllocation;
 	while (ptr) {
 		if (ptr->id == request->flush.id &&
 		   		(ptr->flags&ALLOCATION_FLAGS_ISCOMMANDQUEUE) ) {
@@ -92,21 +92,21 @@ void flushQueue(struct Connection* connection, struct SPUGL_request* request, st
 	unlock(&connection->lock);
 	
 	// can't find a matching queue, just acknowledge flush anyway
-	send(connection->fd, reply, sizeof(struct SPUGL_reply), 0);
+	send(connection->fd, reply, sizeof(SPUGL_reply), 0);
 }
 
-void processOutstandingRequests(struct Connection* connection) {
+void processOutstandingRequests(Connection* connection) {
 	lock(&connection->lock);
-	struct Allocation** ptr = &(connection->firstAllocation);
+	Allocation** ptr = &(connection->firstAllocation);
 	while (*ptr) {
-		struct Allocation* del = *ptr;
+		Allocation* del = *ptr;
 		if (del->flags & ALLOCATION_FLAGS_FLUSHDONE) {
 			del->flags &= ~ALLOCATION_FLAGS_FLUSHDONE;
  
 			// acknowledge flush
 			if (connection->fd >=0) {
-				struct SPUGL_reply reply;
-				send(connection->fd, &reply, sizeof(struct SPUGL_reply), 0);
+				SPUGL_reply reply;
+				send(connection->fd, &reply, sizeof(SPUGL_reply), 0);
 			}
 		}
 		if (del->flags & ALLOCATION_FLAGS_FREEDONE) {
@@ -131,7 +131,7 @@ void processOutstandingRequests(struct Connection* connection) {
 static int alloc_id = 0;
 static int name_id = 0;
 
-void allocateBuffer(struct Connection* connection, struct SPUGL_request* request, struct SPUGL_reply* reply, int commandQueue, char* mountname) {
+void allocateBuffer(Connection* connection, SPUGL_request* request, SPUGL_reply* reply, int commandQueue, char* mountname) {
 	char buffer[512];
 
 	char filename[256];
@@ -143,7 +143,7 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 		syslog(LOG_INFO, buffer);
 #endif
 		reply->alloc.id = 0;
-		send(connection->fd, reply, sizeof(struct SPUGL_reply), 0);
+		send(connection->fd, reply, sizeof(SPUGL_reply), 0);
 		return;
 	}
 	unlink(filename);
@@ -158,7 +158,7 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 #endif
 
 		reply->alloc.id = 0;
-		send(connection->fd, reply, sizeof(struct SPUGL_reply), 0);
+		send(connection->fd, reply, sizeof(SPUGL_reply), 0);
 		return;
 	}
 
@@ -171,12 +171,12 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 #endif
 
 		reply->alloc.id = 0;
-		send(connection->fd, reply, sizeof(struct SPUGL_reply), 0);
+		send(connection->fd, reply, sizeof(SPUGL_reply), 0);
 	} else {
 		int flags = 0;
 		if (commandQueue) {
 			// initialise queue pointers to first bit of free buffer
-			struct CommandQueue* queue = (struct CommandQueue*) memory;
+			CommandQueue* queue = (CommandQueue*) memory;
 			queue->write_ptr = queue->read_ptr =
 				((void*)(&queue->data[0])) - ((void*)&queue->write_ptr);
 			flags |= ALLOCATION_FLAGS_ISCOMMANDQUEUE;
@@ -188,7 +188,7 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 #endif
 
 		lock(&connection->lock);
-		struct Allocation* n = malloc(sizeof(struct Allocation));
+		Allocation* n = malloc(sizeof(Allocation));
 		n->nextAllocation = connection->firstAllocation;
 		n->fd = mem_fd;
 		n->buffer = memory;
@@ -219,7 +219,7 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 
 		struct iovec reply_vec = {
   			.iov_base = reply,
-  			.iov_len = sizeof(struct SPUGL_reply)
+  			.iov_len = sizeof(SPUGL_reply)
 		};
 
 		message.msg_iov = &reply_vec,
@@ -229,9 +229,9 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 	}
 }
 
-int handleConnectionData(struct Connection* connection, char* mountname) {
-	struct SPUGL_request request;
-	struct SPUGL_reply reply;
+int handleConnectionData(Connection* connection, char* mountname) {
+	SPUGL_request request;
+	SPUGL_reply reply;
 	char buffer[512];
 
 	int len = recv(connection->fd, &request, sizeof(request), 0/*MSG_DONTWAIT*/);

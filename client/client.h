@@ -23,11 +23,11 @@ int SPUGL_connect();
 void SPUGL_disconnect(int server);
 
 // waits until command queue has finished processing
-void SPUGL_flush(struct CommandQueue* buffer);
+void SPUGL_flush(CommandQueue* buffer);
 
 // allocates/frees an OpenGL FIFO
-struct CommandQueue* SPUGL_allocateCommandQueue(int server, unsigned long size);
-void SPUGL_freeCommandQueue(struct CommandQueue* buffer);
+CommandQueue* SPUGL_allocateCommandQueue(int server, unsigned long size);
+void SPUGL_freeCommandQueue(CommandQueue* buffer);
 
 // allocates/frees a general buffer suitable for textures, pixel buffers, etc.
 void* SPUGL_allocateBuffer(int server, unsigned long size);

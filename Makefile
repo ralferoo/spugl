@@ -192,7 +192,8 @@ clean:
 	rm -rf build dist
 	rm -f .gen test
 	rm -f textures/*.o
-	rm -f server server.debug client spugl-*/*.o spugl.a
+	rm -f spugld spugld.debug testclient spugl-*/*.o spugl.a
+	rm -f server/*.o client/*.o
 
 # gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h
 
@@ -360,138 +361,118 @@ test.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
 test.o: ./GL/gl.h ./GL/glext.h /usr/include/inttypes.h /usr/include/stdint.h
 test.o: ./GL/glspu.h joystick.h
 
-spugl-client/client.o: /usr/include/stdio.h /usr/include/features.h
-spugl-client/client.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
-spugl-client/client.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
-spugl-client/client.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h
-spugl-client/client.o: /usr/include/bits/types.h
-spugl-client/client.o: /usr/include/bits/typesizes.h /usr/include/libio.h
-spugl-client/client.o: /usr/include/_G_config.h /usr/include/wchar.h
-spugl-client/client.o: /usr/include/bits/wchar.h /usr/include/gconv.h
-spugl-client/client.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
-spugl-client/client.o: /usr/include/bits/libio-ldbl.h
-spugl-client/client.o: /usr/include/bits/stdio_lim.h
-spugl-client/client.o: /usr/include/bits/sys_errlist.h
-spugl-client/client.o: /usr/include/bits/stdio-ldbl.h /usr/include/stdlib.h
-spugl-client/client.o: /usr/include/sys/types.h /usr/include/time.h
-spugl-client/client.o: /usr/include/endian.h /usr/include/bits/endian.h
-spugl-client/client.o: /usr/include/sys/select.h /usr/include/bits/select.h
-spugl-client/client.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
-spugl-client/client.o: /usr/include/sys/sysmacros.h
-spugl-client/client.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
-spugl-client/client.o: /usr/include/bits/stdlib-ldbl.h /usr/include/unistd.h
-spugl-client/client.o: /usr/include/bits/posix_opt.h
-spugl-client/client.o: /usr/include/bits/confname.h /usr/include/getopt.h
-spugl-client/client.o: /usr/include/sys/socket.h /usr/include/sys/uio.h
-spugl-client/client.o: /usr/include/bits/uio.h /usr/include/bits/socket.h
-spugl-client/client.o: /usr/lib/gcc/spu/4.0.2/include/limits.h
-spugl-client/client.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
-spugl-client/client.o: /usr/include/asm/sockios.h /usr/include/sys/un.h
-spugl-client/client.o: /usr/include/string.h /usr/include/sys/mman.h
-spugl-client/client.o: /usr/include/bits/mman.h /usr/include/sys/stat.h
-spugl-client/client.o: /usr/include/bits/stat.h /usr/include/fcntl.h
-spugl-client/client.o: /usr/include/bits/fcntl.h spugl-client/daemon.h
-spugl-client/client.o: spugl-client/client.h queue.h types.h
-spugl-client/client.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
-spugl-client/client.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
-spugl-server/connection.o: /usr/include/syslog.h /usr/include/sys/syslog.h
-spugl-server/connection.o: /usr/include/features.h /usr/include/sys/cdefs.h
-spugl-server/connection.o: /usr/include/bits/wordsize.h
-spugl-server/connection.o: /usr/include/gnu/stubs.h
-spugl-server/connection.o: /usr/include/gnu/stubs-32.h
-spugl-server/connection.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
-spugl-server/connection.o: /usr/include/bits/syslog-path.h
-spugl-server/connection.o: /usr/include/bits/syslog-ldbl.h
-spugl-server/connection.o: /usr/include/stdio.h
-spugl-server/connection.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h
-spugl-server/connection.o: /usr/include/bits/types.h
-spugl-server/connection.o: /usr/include/bits/typesizes.h /usr/include/libio.h
-spugl-server/connection.o: /usr/include/_G_config.h /usr/include/wchar.h
-spugl-server/connection.o: /usr/include/bits/wchar.h /usr/include/gconv.h
-spugl-server/connection.o: /usr/include/bits/libio-ldbl.h
-spugl-server/connection.o: /usr/include/bits/stdio_lim.h
-spugl-server/connection.o: /usr/include/bits/sys_errlist.h
-spugl-server/connection.o: /usr/include/bits/stdio-ldbl.h
-spugl-server/connection.o: /usr/include/errno.h /usr/include/bits/errno.h
-spugl-server/connection.o: /usr/include/linux/errno.h
-spugl-server/connection.o: /usr/include/asm/errno.h
-spugl-server/connection.o: /usr/include/asm-generic/errno.h
-spugl-server/connection.o: /usr/include/asm-generic/errno-base.h
-spugl-server/connection.o: /usr/include/unistd.h
-spugl-server/connection.o: /usr/include/bits/posix_opt.h
-spugl-server/connection.o: /usr/include/bits/confname.h /usr/include/getopt.h
-spugl-server/connection.o: /usr/include/stdlib.h /usr/include/sys/types.h
-spugl-server/connection.o: /usr/include/time.h /usr/include/endian.h
-spugl-server/connection.o: /usr/include/bits/endian.h
-spugl-server/connection.o: /usr/include/sys/select.h
-spugl-server/connection.o: /usr/include/bits/select.h
-spugl-server/connection.o: /usr/include/bits/sigset.h
-spugl-server/connection.o: /usr/include/bits/time.h
-spugl-server/connection.o: /usr/include/sys/sysmacros.h
-spugl-server/connection.o: /usr/include/bits/pthreadtypes.h
-spugl-server/connection.o: /usr/include/alloca.h
-spugl-server/connection.o: /usr/include/bits/stdlib-ldbl.h
-spugl-server/connection.o: /usr/include/string.h /usr/include/fcntl.h
-spugl-server/connection.o: /usr/include/bits/fcntl.h /usr/include/sys/mman.h
-spugl-server/connection.o: /usr/include/bits/mman.h /usr/include/sys/socket.h
-spugl-server/connection.o: /usr/include/sys/uio.h /usr/include/bits/uio.h
-spugl-server/connection.o: /usr/include/bits/socket.h
-spugl-server/connection.o: /usr/lib/gcc/spu/4.0.2/include/limits.h
-spugl-server/connection.o: /usr/include/bits/sockaddr.h
-spugl-server/connection.o: /usr/include/asm/socket.h
-spugl-server/connection.o: /usr/include/asm/sockios.h
-spugl-server/connection.o: spugl-server/connection.h
-spugl-server/connection.o: spugl-server/commandqueue.h spugl-client/queue.h
-spugl-server/connection.o: spugl-client/daemon.h
-spugl-server/main.o: /usr/include/stdio.h /usr/include/features.h
-spugl-server/main.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
-spugl-server/main.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
-spugl-server/main.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h
-spugl-server/main.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
-spugl-server/main.o: /usr/include/libio.h /usr/include/_G_config.h
-spugl-server/main.o: /usr/include/wchar.h /usr/include/bits/wchar.h
-spugl-server/main.o: /usr/include/gconv.h
-spugl-server/main.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
-spugl-server/main.o: /usr/include/bits/libio-ldbl.h
-spugl-server/main.o: /usr/include/bits/stdio_lim.h
-spugl-server/main.o: /usr/include/bits/sys_errlist.h
-spugl-server/main.o: /usr/include/bits/stdio-ldbl.h /usr/include/stdlib.h
-spugl-server/main.o: /usr/include/sys/types.h /usr/include/time.h
-spugl-server/main.o: /usr/include/endian.h /usr/include/bits/endian.h
-spugl-server/main.o: /usr/include/sys/select.h /usr/include/bits/select.h
-spugl-server/main.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
-spugl-server/main.o: /usr/include/sys/sysmacros.h
-spugl-server/main.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
-spugl-server/main.o: /usr/include/bits/stdlib-ldbl.h /usr/include/unistd.h
-spugl-server/main.o: /usr/include/bits/posix_opt.h
-spugl-server/main.o: /usr/include/bits/confname.h /usr/include/getopt.h
-spugl-server/main.o: /usr/include/syslog.h /usr/include/sys/syslog.h
-spugl-server/main.o: /usr/include/bits/syslog-path.h
-spugl-server/main.o: /usr/include/bits/syslog-ldbl.h /usr/include/signal.h
-spugl-server/main.o: /usr/include/bits/signum.h /usr/include/bits/siginfo.h
-spugl-server/main.o: /usr/include/bits/sigaction.h
-spugl-server/main.o: /usr/include/bits/sigcontext.h
-spugl-server/main.o: /usr/include/asm/sigcontext.h /usr/include/asm/ptrace.h
-spugl-server/main.o: /usr/include/bits/sigstack.h
-spugl-server/main.o: /usr/include/bits/sigthread.h /usr/include/poll.h
-spugl-server/main.o: /usr/include/sys/poll.h /usr/include/bits/poll.h
-spugl-server/main.o: /usr/include/fcntl.h /usr/include/bits/fcntl.h
-spugl-server/main.o: /usr/include/sys/mount.h /usr/include/sys/ioctl.h
-spugl-server/main.o: /usr/include/bits/ioctls.h /usr/include/asm/ioctls.h
-spugl-server/main.o: /usr/include/asm/ioctl.h /usr/include/bits/ioctl-types.h
-spugl-server/main.o: /usr/include/termios.h /usr/include/bits/termios.h
-spugl-server/main.o: /usr/include/sys/ttydefaults.h /usr/include/sys/socket.h
-spugl-server/main.o: /usr/include/sys/uio.h /usr/include/bits/uio.h
-spugl-server/main.o: /usr/include/bits/socket.h
-spugl-server/main.o: /usr/lib/gcc/spu/4.0.2/include/limits.h
-spugl-server/main.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
-spugl-server/main.o: /usr/include/asm/sockios.h /usr/include/sys/un.h
-spugl-server/main.o: /usr/include/string.h /usr/include/sys/mman.h
-spugl-server/main.o: /usr/include/bits/mman.h /usr/include/sys/wait.h
-spugl-server/main.o: /usr/include/sys/resource.h /usr/include/bits/resource.h
-spugl-server/main.o: /usr/include/bits/waitflags.h
-spugl-server/main.o: /usr/include/bits/waitstatus.h /usr/include/sys/stat.h
-spugl-server/main.o: /usr/include/bits/stat.h spugl-server/connection.h
+client/client.o: /usr/include/stdio.h /usr/include/features.h
+client/client.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+client/client.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+client/client.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+client/client.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+client/client.o: /usr/include/libio.h /usr/include/_G_config.h
+client/client.o: /usr/include/wchar.h /usr/include/bits/wchar.h
+client/client.o: /usr/include/gconv.h /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+client/client.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
+client/client.o: /usr/include/bits/sys_errlist.h
+client/client.o: /usr/include/bits/stdio-ldbl.h /usr/include/stdlib.h
+client/client.o: /usr/include/sys/types.h /usr/include/time.h
+client/client.o: /usr/include/endian.h /usr/include/bits/endian.h
+client/client.o: /usr/include/sys/select.h /usr/include/bits/select.h
+client/client.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
+client/client.o: /usr/include/sys/sysmacros.h
+client/client.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+client/client.o: /usr/include/bits/stdlib-ldbl.h /usr/include/unistd.h
+client/client.o: /usr/include/bits/posix_opt.h /usr/include/bits/confname.h
+client/client.o: /usr/include/getopt.h /usr/include/sys/socket.h
+client/client.o: /usr/include/sys/uio.h /usr/include/bits/uio.h
+client/client.o: /usr/include/bits/socket.h
+client/client.o: /usr/lib/gcc/spu/4.0.2/include/limits.h
+client/client.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
+client/client.o: /usr/include/asm/sockios.h /usr/include/sys/un.h
+client/client.o: /usr/include/string.h /usr/include/sys/mman.h
+client/client.o: /usr/include/bits/mman.h /usr/include/sys/stat.h
+client/client.o: /usr/include/bits/stat.h /usr/include/fcntl.h
+client/client.o: /usr/include/bits/fcntl.h client/daemon.h client/client.h
+client/client.o: queue.h types.h
+client/client.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+client/client.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
+server/connection.o: /usr/include/syslog.h /usr/include/sys/syslog.h
+server/connection.o: /usr/include/features.h /usr/include/sys/cdefs.h
+server/connection.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
+server/connection.o: /usr/include/gnu/stubs-32.h
+server/connection.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+server/connection.o: /usr/include/bits/syslog-path.h
+server/connection.o: /usr/include/bits/syslog-ldbl.h /usr/include/stdio.h
+server/connection.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+server/connection.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+server/connection.o: /usr/include/libio.h /usr/include/_G_config.h
+server/connection.o: /usr/include/wchar.h /usr/include/bits/wchar.h
+server/connection.o: /usr/include/gconv.h /usr/include/bits/libio-ldbl.h
+server/connection.o: /usr/include/bits/stdio_lim.h
+server/connection.o: /usr/include/bits/sys_errlist.h
+server/connection.o: /usr/include/bits/stdio-ldbl.h /usr/include/errno.h
+server/connection.o: /usr/include/bits/errno.h /usr/include/linux/errno.h
+server/connection.o: /usr/include/asm/errno.h
+server/connection.o: /usr/include/asm-generic/errno.h
+server/connection.o: /usr/include/asm-generic/errno-base.h
+server/connection.o: /usr/include/unistd.h /usr/include/bits/posix_opt.h
+server/connection.o: /usr/include/bits/confname.h /usr/include/getopt.h
+server/connection.o: /usr/include/stdlib.h /usr/include/sys/types.h
+server/connection.o: /usr/include/time.h /usr/include/endian.h
+server/connection.o: /usr/include/bits/endian.h /usr/include/sys/select.h
+server/connection.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
+server/connection.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
+server/connection.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+server/connection.o: /usr/include/bits/stdlib-ldbl.h /usr/include/string.h
+server/connection.o: /usr/include/fcntl.h /usr/include/bits/fcntl.h
+server/connection.o: /usr/include/sys/mman.h /usr/include/bits/mman.h
+server/connection.o: /usr/include/sys/socket.h /usr/include/sys/uio.h
+server/connection.o: /usr/include/bits/uio.h /usr/include/bits/socket.h
+server/connection.o: /usr/lib/gcc/spu/4.0.2/include/limits.h
+server/connection.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
+server/connection.o: /usr/include/asm/sockios.h server/connection.h
+server/connection.o: client/queue.h client/daemon.h
+server/lock.o: server/connection.h
+server/main.o: /usr/include/stdio.h /usr/include/features.h
+server/main.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+server/main.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+server/main.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+server/main.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+server/main.o: /usr/include/libio.h /usr/include/_G_config.h
+server/main.o: /usr/include/wchar.h /usr/include/bits/wchar.h
+server/main.o: /usr/include/gconv.h /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+server/main.o: /usr/include/bits/libio-ldbl.h /usr/include/bits/stdio_lim.h
+server/main.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
+server/main.o: /usr/include/stdlib.h /usr/include/sys/types.h
+server/main.o: /usr/include/time.h /usr/include/endian.h
+server/main.o: /usr/include/bits/endian.h /usr/include/sys/select.h
+server/main.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
+server/main.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
+server/main.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+server/main.o: /usr/include/bits/stdlib-ldbl.h /usr/include/unistd.h
+server/main.o: /usr/include/bits/posix_opt.h /usr/include/bits/confname.h
+server/main.o: /usr/include/getopt.h /usr/include/syslog.h
+server/main.o: /usr/include/sys/syslog.h /usr/include/bits/syslog-path.h
+server/main.o: /usr/include/bits/syslog-ldbl.h /usr/include/signal.h
+server/main.o: /usr/include/bits/signum.h /usr/include/bits/siginfo.h
+server/main.o: /usr/include/bits/sigaction.h /usr/include/bits/sigcontext.h
+server/main.o: /usr/include/asm/sigcontext.h /usr/include/asm/ptrace.h
+server/main.o: /usr/include/bits/sigstack.h /usr/include/bits/sigthread.h
+server/main.o: /usr/include/poll.h /usr/include/sys/poll.h
+server/main.o: /usr/include/bits/poll.h /usr/include/fcntl.h
+server/main.o: /usr/include/bits/fcntl.h /usr/include/sys/mount.h
+server/main.o: /usr/include/sys/ioctl.h /usr/include/bits/ioctls.h
+server/main.o: /usr/include/asm/ioctls.h /usr/include/asm/ioctl.h
+server/main.o: /usr/include/bits/ioctl-types.h /usr/include/termios.h
+server/main.o: /usr/include/bits/termios.h /usr/include/sys/ttydefaults.h
+server/main.o: /usr/include/sys/socket.h /usr/include/sys/uio.h
+server/main.o: /usr/include/bits/uio.h /usr/include/bits/socket.h
+server/main.o: /usr/lib/gcc/spu/4.0.2/include/limits.h
+server/main.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
+server/main.o: /usr/include/asm/sockios.h /usr/include/sys/un.h
+server/main.o: /usr/include/string.h /usr/include/sys/mman.h
+server/main.o: /usr/include/bits/mman.h /usr/include/sys/wait.h
+server/main.o: /usr/include/sys/resource.h /usr/include/bits/resource.h
+server/main.o: /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h
+server/main.o: /usr/include/sys/stat.h /usr/include/bits/stat.h
+server/main.o: server/connection.h
 
 spufifo.0: spuregs.h struct.h types.h
 spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h

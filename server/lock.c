@@ -17,7 +17,7 @@
 // active lock, so the PPU signals that it wants the lock and when the SPU notices this,
 // it will relinquish the lock and wait until the PPU has finished
 
-void lock(enum LOCK* lock) {
+void lock(LOCK* lock) {
 	unsigned int result;
 	typedef  struct {char a[4];} wordsize;
 	wordsize *ptrp = (wordsize*)lock;
@@ -50,7 +50,7 @@ retry:
 	__asm__ volatile ("isync" : : : "memory");
 }
 
-void unlock(enum LOCK* lock) {
+void unlock(LOCK* lock) {
 	*lock = LOCK_free;
 /*
 	unsigned int result;

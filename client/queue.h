@@ -13,7 +13,9 @@
 //
 // This is the simple structure of a command queue
 
-struct CommandQueue {
+typedef struct __CommandQueue CommandQueue;
+
+struct __CommandQueue {
 	unsigned long write_ptr;	// relative to &write_ptr
 	unsigned long read_ptr;		// relative to &write_ptr
 	unsigned long data[0];
