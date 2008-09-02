@@ -63,7 +63,7 @@ void handleDisconnect(struct Connection* connection) {
 void freeBuffer(struct Connection* connection, struct SPUGL_request* request) {
 	struct Allocation* ptr = connection->firstAllocation;
 	while (ptr) {
-		if (ptr->conn_fd == connection->fd && ptr->id == request->free.id) {
+		if (ptr->id == request->free.id) {
 //			ptr->flags |= ALLOCATION_FLAGS_FREEWAIT;
 			ptr->flags |= ALLOCATION_FLAGS_FREEDONE; 
 			return;
@@ -81,7 +81,7 @@ void flushQueue(struct Connection* connection, struct SPUGL_request* request, st
 	lock(&connection->lock);
 	struct Allocation* ptr = connection->firstAllocation;
 	while (ptr) {
-		if (ptr->conn_fd == connection->fd && ptr->id == request->flush.id &&
+		if (ptr->id == request->flush.id &&
 		   		(ptr->flags&ALLOCATION_FLAGS_ISCOMMANDQUEUE) ) {
 //			ptr->flags |= ALLOCATION_FLAGS_FLUSHWAIT;
 			ptr->flags |= ALLOCATION_FLAGS_FLUSHDONE;
@@ -112,7 +112,7 @@ void processOutstandingRequests(struct Connection* connection) {
 		if (del->flags & ALLOCATION_FLAGS_FREEDONE) {
 #ifdef DEBUG
 			char buffer[512];
-			sprintf(buffer, "freeing buffer %d at %x, size %d on fd %d conn %d", del->id, del->buffer, del->size, del->fd, del->conn_fd);
+			sprintf(buffer, "freeing buffer %d at %x, size %d on fd %d", del->id, del->buffer, del->size, del->fd);
 			syslog(LOG_INFO, buffer);
 #endif
 
@@ -191,11 +191,11 @@ void allocateBuffer(struct Connection* connection, struct SPUGL_request* request
 		struct Allocation* n = malloc(sizeof(struct Allocation));
 		n->nextAllocation = connection->firstAllocation;
 		n->fd = mem_fd;
-		n->conn_fd = connection->fd;
 		n->buffer = memory;
 		n->size = request->alloc.size;
 		n->id = ++alloc_id;
 		n->flags = flags;
+		n->locks = 1;
 		connection->firstAllocation = n;
 		unlock(&connection->lock);
 

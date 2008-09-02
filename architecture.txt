@@ -72,3 +72,28 @@ at different addresses in both the client and server and all "addresses"
 therefore are actually offsets from the start of the block. As multiple data
 buffers might be required, a block id is often also required, for example
 when binding a texture.
+
+The methods defined in client.h wrap the client-server communication code
+and provide:
+
+	int SPUGL_connect();
+	void SPUGL_disconnect(int server);
+	void SPUGL_flush(struct CommandQueue* buffer);
+
+	struct CommandQueue* SPUGL_allocateCommandQueue(int server, unsigned long size);
+	void SPUGL_freeCommandQueue(struct CommandQueue* buffer);
+
+	void* SPUGL_allocateBuffer(int server, unsigned long size);
+	void SPUGL_freeBuffer(void* buffer);
+
+Freeing a command queue or buffer happens immediately from the point of view
+of the client and that region is no longer mapped in its address space. The
+server, however, will retain that buffer in its address space until it is
+no longer required (e.g. a buffer used for a texture is retained until any
+render operations involving that texture have completed).
+
+The flush operation waits until all pending operations on that queue have
+completed; note that it might be removed as the POKE command can be used
+for signalling instead.
+
+

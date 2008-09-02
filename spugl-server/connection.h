@@ -66,8 +66,8 @@ struct Allocation {
 	unsigned long size;
 	unsigned long id;
 	int fd;
-	int conn_fd;
 	int flags;
+	int locks;
 };
 
 #define ALLOCATION_FLAGS_ISCOMMANDQUEUE 1
