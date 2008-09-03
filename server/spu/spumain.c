@@ -16,9 +16,16 @@
 #include <stdio.h>
 
 int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned long long env) {
-	printf("Hello\n");
-	printf("started SPU with ea %llx\n", program_data_ea);
-	__asm("stop 0x2110\n\t.word 0");
+	// printf("started SPU with ea %llx\n", program_data_ea);
+	
+	for(;;) {
+		while (spu_stat_in_mbox()) {
+			unsigned int mbox = spu_read_in_mbox();
+			// don't bother checkign actual mailbox value, just quit
+			return;
+		}
+		__asm("stop 0x2110\n\t.word 0");
+	}
 	return 0;
 }
 
