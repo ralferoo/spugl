@@ -199,7 +199,7 @@ disconnected:				handleDisconnect(connection);
 	sigaction(SIGHUP, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
 
-//	_exit_spu_thread(thread);
+	_exit_spu_thread(thread);
 
 	umount2(mountname, MNT_FORCE | MNT_DETACH);
 	rmdir(mountname);

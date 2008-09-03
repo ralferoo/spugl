@@ -158,9 +158,13 @@ gen_spu_command_table.h: .gen
 	perl importdefs.pl $(GENSOURCES)
 	@touch .gen
 
-%.handle.spe: $(SPU_OBJS) Makefile
-	$(SPUCC) $(SPU_OBJS) -o $*.handle.spe
-	spu-strip $*.handle.spe
+spu_3d.handle.spe: $(SPU_OBJS) Makefile
+	$(SPUCC) $(SPU_OBJS) -o spu_main.handle.spe
+	spu-strip spu_main.handle.spe
+
+server/spu_main.handle.spe: $(SPU_DRIVER_TARGETS) Makefile
+	$(SPUCC) $(SPU_DRIVER_TARGETS) -o server/spu_main.handle.spe
+	spu-strip server/spu_main.handle.spe
 
 depend: .gen
 	@echo checking dependencies
