@@ -15,6 +15,7 @@ typedef struct __Allocation Allocation;
 typedef struct __Connection Connection;
 typedef struct __ConnectionList ConnectionList;
 typedef enum __LOCK LOCK;
+typedef struct __SPU_HANDLE* SPU_HANDLE;
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -88,3 +89,9 @@ struct __ConnectionList {
 	LOCK lock;
 };
 
+//////////////////////////////////////////////////////////////////////////////
+//
+// SPU setup functions
+
+SPU_HANDLE _init_spu_thread(ConnectionList* list, int master);
+int _exit_spu_thread(SPU_HANDLE context);

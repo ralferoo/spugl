@@ -41,6 +41,11 @@ static void sig_hup(int sig)
 	// no-op, but will cause the ppoll to exit early
 }
 
+static void sig_hup_onexit(int sig)
+{
+	signal(getpid(), SIGKILL);
+}
+
 static void sig_term(int sig)
 {
 	// gracefully handle the exit signal
@@ -89,6 +94,8 @@ int main(int argc, char* argv[]) {
 
 	int connectionCount = 0;
 	ConnectionList list = {0};
+
+	SPU_HANDLE thread = _init_spu_thread(&list, 1);
 
 	while (!terminated) {
 		struct pollfd p[connectionCount+1];
@@ -187,6 +194,12 @@ disconnected:				handleDisconnect(connection);
 
 	close(server);
 	syslog(LOG_INFO, "exiting");
+
+	sa.sa_handler = sig_hup_onexit;
+	sigaction(SIGHUP, &sa, NULL);
+	sigaction(SIGINT, &sa, NULL);
+
+//	_exit_spu_thread(thread);
 
 	umount2(mountname, MNT_FORCE | MNT_DETACH);
 	rmdir(mountname);
