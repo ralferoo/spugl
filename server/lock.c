@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include "connection.h"
+#include "ppufuncs.h"
 
 // this does the custom PPU/SPU locking
 //

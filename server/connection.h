@@ -9,6 +9,9 @@
  *
  ****************************************************************************/
 
+#ifndef __SERVER_CONNECTION_H
+#define __SERVER_CONNECTION_H
+
 extern char SPUGL_VERSION[];
 
 typedef struct __Allocation Allocation;
@@ -29,9 +32,6 @@ enum __LOCK {
 	LOCK_PPU
 };
 
-void lock(LOCK* lock);
-void unlock(LOCK* lock);
-
 //////////////////////////////////////////////////////////////////////////////
 //
 // List of client connections in the system
@@ -45,19 +45,6 @@ struct __Connection {
 	Allocation* firstAllocation;
 	LOCK lock;
 };
-
-// does any post connection initialisation that might be required
-void handleConnect(Connection* connection);
-
-// does any post disconnection tear down that might be required
-void handleDisconnect(Connection* connection);
-
-// handle a request from client
-// return non-zero if we should disconnect the client
-int handleConnectionData(Connection* connection, char* mountname);
-
-// send any outstanding messages
-void processOutstandingRequests(Connection* connection);
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -89,9 +76,4 @@ struct __ConnectionList {
 	LOCK lock;
 };
 
-//////////////////////////////////////////////////////////////////////////////
-//
-// SPU setup functions
-
-SPU_HANDLE _init_spu_thread(ConnectionList* list, int master);
-int _exit_spu_thread(SPU_HANDLE context);
+#endif // __SERVER_CONNECTION_H

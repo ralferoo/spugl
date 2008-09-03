@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 
 #include "connection.h"
+#include "ppufuncs.h"
 
 #ifndef MNT_DETACH
 // not defined on my system for some reason :(

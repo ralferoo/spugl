@@ -24,6 +24,7 @@
 #include <sys/socket.h>
 
 #include "connection.h"
+#include "ppufuncs.h"
 #include "../client/queue.h"
 #include "../client/daemon.h"
 
