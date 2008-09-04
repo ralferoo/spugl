@@ -15,6 +15,8 @@ void lock(LOCK* lock);
 void unlock(LOCK* lock);
 
 //////////////////////////////////////////////////////////////////////////////
+//
+// CONNECTION ROUTINES
 
 // does any post connection initialisation that might be required
 void handleConnect(Connection* connection);
@@ -28,6 +30,26 @@ int handleConnectionData(Connection* connection, char* mountname);
 
 // send any outstanding messages
 void processOutstandingRequests(Connection* connection);
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// BLOCK MANAGEMENT SYSTEM
+
+// initialises the block management system
+void		blockManagementInit();
+
+// frees any memory used by the block management system, returns non-zero on success
+int 		blockManagementDestroy();
+
+// allocates a block from the system, storing the EA alongside it, returns block ID
+// the initial usage count is set to 0
+unsigned int	blockManagementAllocateBlock(long long ea);
+
+// decrement the usage count of the block
+void		blockManagementBlockCountDispose(unsigned int id);
+
+// checks to see if a particular block ID can now be freed
+int		blockManagementTryFree(unsigned int id);
 
 //////////////////////////////////////////////////////////////////////////////
 

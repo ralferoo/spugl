@@ -69,16 +69,22 @@ void unlock(unsigned long long ea) {
 int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned long long env) {
 	// printf("started SPU with ea %llx\n", program_data_ea);
 	
+	int i = 0;
 	for(;;) {
+/*
 		if (lock(program_data_ea)) {
 			printf("got lock\n");
 			unlock(program_data_ea);
 		}
+*/
+		// look for termination command
 		while (spu_stat_in_mbox()) {
 			unsigned int mbox = spu_read_in_mbox();
 			// don't bother checkign actual mailbox value, just quit
 			return;
 		}
+
+		// just call the callback routine (debug)
 		__asm("stop 0x2110\n\t.word 0");
 	}
 	return 0;

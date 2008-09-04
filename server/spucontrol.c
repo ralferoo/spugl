@@ -53,13 +53,13 @@ int my_callback(void *ls_base_tmp, unsigned int data) {
 	return 0;
 }
 
-void *spu_main_program_thread(SPU_HANDLE ctx)
+void *spu_main_program_thread(SPU_HANDLE context)
 {
 	int retval;
 	unsigned int entry_point = SPE_DEFAULT_ENTRY;
 	do {
 //		printf("restarting at %x\n", entry_point);
-		retval = spe_context_run(ctx->spe_ctx, &entry_point, 0, ctx->list, NULL, NULL);
+		retval = spe_context_run(context->spe_ctx, &entry_point, 0, context->list, NULL, NULL);
 //		printf("exited at %x\n", entry_point);
 	} while (retval > 0);
 	pthread_exit(NULL);

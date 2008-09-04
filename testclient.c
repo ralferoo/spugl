@@ -29,6 +29,9 @@ int main(int argc, char* argv[]) {
 	SPUGL_freeBuffer(buffer);	
 
 	buffer = SPUGL_allocateBuffer(server, 1024*1024);
+
+sleep(2);
+
 	SPUGL_freeBuffer(buffer);	
 
 	SPUGL_flush(queue);

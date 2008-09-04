@@ -1,0 +1,41 @@
+Server implementation details
+-----------------------------
+
+If max number of blocks is 8192 (for example), the remaining bits are filled
+with random data to make the secure key for that block. This *may* be checked
+by the SPU (probably not) to ensure other clients are messing around with
+other people's data.
+
+We have a usage count per buffer (signed byte).		 4k
+We have a buffer pointer per buffer (long long).	32k
+We have a block ID word per buffer (int).		16k
+
+Buffer usage count
+------------------
+
+Each buffer is marked by a simple byte count
+
+-1 = free
+ 0 = unused, ready to free
+ 1 = client connected
+ 2 = client connected, SPU processing this block
+ 3 = client connected, SPU processing this block and pulling data from it
+ 4... etc
+
+General locking process
+-----------------------
+
+NOTE: The lock is to signal usage, so that the server doesn't free memory
+that the SPU might still be using.
+
+Client allocates buffer that's currently set to -1.
+Stores 1 in the usage byte to signal that it is nominally in use.
+When the client quits, the usage byte is decremented.
+The client looks at all the usage bytes, any that are 0 can be freed.
+
+From the SPU side, to lock a block, we increment the usage byte. If the
+usage byte was previously -1, then we have stale data and something has gone
+seriously wrong... If the usage byte was previously 0, then the client wants
+to free that buffer and so the best action is probably to abort the operation.
+
+To free a lock on the SPU, we decrement the usage byte.

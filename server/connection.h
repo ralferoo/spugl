@@ -12,6 +12,19 @@
 #ifndef __SERVER_CONNECTION_H
 #define __SERVER_CONNECTION_H
 
+//////////////////////////////////////////////////////////////////////////////
+// Defines the maximum number of PPU/SPU buffers on the system.
+//
+// This is also used get the offset of the EA addresses for each buffer
+// relative to the EA of the lock buffers, which is what is initially
+// passed into the SPU function.
+//
+// This also must be a multiple of 128, and probably a multiple of 2.
+
+#define MAX_DATA_BUFFERS	1024
+
+//////////////////////////////////////////////////////////////////////////////
+
 extern char SPUGL_VERSION[];
 
 typedef struct __Allocation Allocation;
