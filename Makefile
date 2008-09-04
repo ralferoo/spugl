@@ -159,8 +159,8 @@ gen_spu_command_table.h: .gen
 	@touch .gen
 
 spu_3d.handle.spe: $(SPU_OBJS) Makefile
-	$(SPUCC) $(SPU_OBJS) -o spu_main.handle.spe
-	spu-strip spu_main.handle.spe
+	$(SPUCC) $(SPU_OBJS) -o spu_3d.handle.spe
+	spu-strip spu_3d.handle.spe
 
 server/spu_main.handle.spe: $(SPU_DRIVER_TARGETS) Makefile
 	$(SPUCC) $(SPU_DRIVER_TARGETS) -o server/spu_main.handle.spe
