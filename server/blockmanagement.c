@@ -13,20 +13,44 @@
 #include <stdlib.h>
 #include <sched.h>
 
-static void*		_block_mgr_buffer;
-static signed char*	_block_mgr_lock_table;
-static long long*	_block_mgr_ea_table;
+static void*		_block_mgr_buffer	= NULL;
+static signed char*	_block_mgr_lock_table	= NULL;
+static long long*	_block_mgr_ea_table	= NULL;
+
+void blockManagementDebug()
+{
+	char buffer[MAX_DATA_BUFFERS+2];
+	char *last=&buffer, *next=&buffer;
+	*next = '!';
+	for (int i=0; i<MAX_DATA_BUFFERS; i++) {
+		signed char v = _block_mgr_lock_table[i];
+		char c = v+'0';
+		if (v<0) {
+			c='-';
+		} else {
+			if (v>9) c='+';
+			last = next;
+		}
+		*next++ = c;
+	}
+	*++last = 0;
+	printf("DEBUG: %s\n", buffer);
+}
 
 // initialises the block management system
-void		blockManagementInit() 
+void blockManagementInit() 
 {
 	_block_mgr_buffer = malloc(127+MAX_DATA_BUFFERS*(sizeof(signed char)+sizeof(long long)));
 	_block_mgr_lock_table = (signed char*) ((((unsigned int)_block_mgr_buffer)+127)&~127);
 	_block_mgr_ea_table = (long long*) (_block_mgr_lock_table+MAX_DATA_BUFFERS);
+
+	memset(_block_mgr_lock_table, -1, MAX_DATA_BUFFERS);
+	memset(_block_mgr_ea_table, 0, MAX_DATA_BUFFERS*sizeof(long long));
+	blockManagementDebug();
 }
 
 // frees any memory used by the block management system, returns non-zero on success
-int 		blockManagementDestroy()
+int blockManagementDestroy()
 {
 	free(_block_mgr_buffer);
 	_block_mgr_buffer = NULL;
@@ -36,7 +60,7 @@ int 		blockManagementDestroy()
 
 // allocates a block from the system, storing the EA alongside it, returns block ID
 // the initial usage count is set to 0
-unsigned int	blockManagementAllocateBlock(long long ea)
+unsigned int blockManagementAllocateBlock(long long ea)
 {
 	signed char* lock_ptr = _block_mgr_lock_table;
 
@@ -60,6 +84,7 @@ unsigned int	blockManagementAllocateBlock(long long ea)
 					__asm__ volatile ("stwcx. %2,%y1\n"
 							"\tmfocrf %0,0x80" : "=r" (result), "=Z" (*ptrp) : "r" (value));
 					if (result & 0x20000000) {
+						blockManagementDebug();
 						return (i+j);
 					}
 					sched_yield();
@@ -68,12 +93,13 @@ unsigned int	blockManagementAllocateBlock(long long ea)
 			}
 		}
 	}
+	blockManagementDebug();
 	return 0xffffffff;
 }
 
 
 // decrement the usage count of the block
-void		blockManagementBlockCountDispose(unsigned int id)
+void blockManagementBlockCountDispose(unsigned int id)
 {
 	signed char* lock_ptr = _block_mgr_lock_table + (id&~3);
 
@@ -97,10 +123,11 @@ retry:
 		sched_yield();
 		goto retry;
 	}
+	blockManagementDebug();
 }
 
 // checks to see if a particular block ID can now be freed
-int		blockManagementTryFree(unsigned int id)
+int blockManagementTryFree(unsigned int id)
 {
 	signed char* lock_ptr = _block_mgr_lock_table + (id&~3);
 
@@ -112,8 +139,10 @@ retry:
 
 	union { signed char a[4]; unsigned int b; } conv;
 	conv.b = result;
-	if (conv.a[id&3])
+	if (conv.a[id&3]) {
+		blockManagementDebug();
 		return 0;
+	}
 	conv.a[id&3]=-1;
 	unsigned int value = conv.b;
 
@@ -123,5 +152,6 @@ retry:
 		sched_yield();
 		goto retry;
 	}
+	blockManagementDebug();
 	return 1;
 }

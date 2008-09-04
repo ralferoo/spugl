@@ -91,6 +91,7 @@ int main(int argc, char* argv[]) {
 	sigaction(SIGCHLD, &sa, NULL);
 	sigaction(SIGPIPE, &sa, NULL);
 
+	blockManagementInit();
 	syslog(LOG_INFO, "accepting connections");
 
 	int connectionCount = 0;
@@ -193,6 +194,7 @@ disconnected:				handleDisconnect(connection);
 		}
 	}
 
+	blockManagementDestroy();
 	close(server);
 	syslog(LOG_INFO, "exiting");
 
