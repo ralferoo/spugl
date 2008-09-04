@@ -54,7 +54,7 @@ void handleDisconnect(Connection* connection) {
 	Allocation* ptr = connection->firstAllocation;
 	while (ptr) {
 //		ptr->flags |= ALLOCATION_FLAGS_FREEWAIT;
-		ptr->flags |= ALLOCATION_FLAGS_FREEDONE; 
+//		ptr->flags |= ALLOCATION_FLAGS_FREEDONE; 
 		blockManagementBlockCountDispose(ptr->id);
 		ptr = ptr->nextAllocation;
 	}
@@ -67,7 +67,7 @@ void freeBuffer(Connection* connection, SPUGL_request* request) {
 	while (ptr) {
 		if (ptr->id == request->free.id) {
 //			ptr->flags |= ALLOCATION_FLAGS_FREEWAIT;
-			ptr->flags |= ALLOCATION_FLAGS_FREEDONE; 
+//			ptr->flags |= ALLOCATION_FLAGS_FREEDONE; 
 			blockManagementBlockCountDispose(ptr->id);
 			return;
 		}
@@ -112,7 +112,8 @@ void processOutstandingRequests(Connection* connection) {
 				send(connection->fd, &reply, sizeof(SPUGL_reply), 0);
 			}
 		}
-		if (del->flags & ALLOCATION_FLAGS_FREEDONE) {
+		//if (del->flags & ALLOCATION_FLAGS_FREEDONE) {
+		if (blockManagementTryFree(del->id)) {
 #ifdef DEBUG
 			char buffer[512];
 			sprintf(buffer, "freeing buffer %d at %x, size %d on fd %d", del->id, del->buffer, del->size, del->fd);
