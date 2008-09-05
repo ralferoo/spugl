@@ -52,7 +52,7 @@ void blockManagementDebug()
 }
 
 // initialises the block management system
-void blockManagementInit() 
+void *blockManagementInit() 
 {
 	_block_mgr_buffer = malloc(127+MAX_DATA_BUFFERS*(sizeof(signed char)+sizeof(long long)));
 	_block_mgr_lock_table = (signed char*) ((((unsigned int)_block_mgr_buffer)+127)&~127);
@@ -61,6 +61,8 @@ void blockManagementInit()
 	memset(_block_mgr_lock_table, -1, MAX_DATA_BUFFERS);
 	memset(_block_mgr_ea_table, 0, MAX_DATA_BUFFERS*sizeof(long long));
 	blockManagementDebug();
+
+	return _block_mgr_lock_table;
 }
 
 // frees any memory used by the block management system, returns non-zero on success

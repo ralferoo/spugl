@@ -91,13 +91,12 @@ int main(int argc, char* argv[]) {
 	sigaction(SIGCHLD, &sa, NULL);
 	sigaction(SIGPIPE, &sa, NULL);
 
-	blockManagementInit();
 	syslog(LOG_INFO, "accepting connections");
 
 	int connectionCount = 0;
 	ConnectionList list = {0};
 
-	SPU_HANDLE thread = _init_spu_thread(&list, 1);
+	SPU_HANDLE thread = _init_spu_thread(blockManagementInit(), 1);
 
 	while (!terminated) {
 		struct pollfd p[connectionCount+1];

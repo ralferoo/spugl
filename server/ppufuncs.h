@@ -35,8 +35,8 @@ void processOutstandingRequests(Connection* connection);
 //
 // BLOCK MANAGEMENT SYSTEM
 
-// initialises the block management system
-void		blockManagementInit();
+// initialises the block management system, returns the data to pass to the SPU
+void *		blockManagementInit();
 
 // frees any memory used by the block management system, returns non-zero on success
 int 		blockManagementDestroy();
@@ -53,5 +53,5 @@ int		blockManagementTryFree(unsigned int id);
 
 //////////////////////////////////////////////////////////////////////////////
 
-SPU_HANDLE _init_spu_thread(ConnectionList* list, int master);
+SPU_HANDLE _init_spu_thread(void* list, int master);
 int _exit_spu_thread(SPU_HANDLE context);

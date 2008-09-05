@@ -35,7 +35,7 @@ struct __SPU_HANDLE {
 	int master;
 #endif
 	void* local_store;
-	ConnectionList* list;
+	void* list;
 };
 
 #ifdef USE_LIBSPE2
@@ -67,7 +67,7 @@ void *spu_main_program_thread(SPU_HANDLE context)
 #endif
 
 // initialise
-SPU_HANDLE _init_spu_thread(ConnectionList* list, int master)
+SPU_HANDLE _init_spu_thread(void* list, int master)
 {
 	SPU_HANDLE context = (SPU_HANDLE) malloc(sizeof(struct __SPU_HANDLE));
 	if (context == NULL)
