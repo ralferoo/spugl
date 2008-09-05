@@ -30,22 +30,7 @@ extern char SPUGL_VERSION[];
 typedef struct __Allocation Allocation;
 typedef struct __Connection Connection;
 typedef struct __ConnectionList ConnectionList;
-//typedef enum __LOCK LOCK;
 typedef struct __SPU_HANDLE* SPU_HANDLE;
-
-//////////////////////////////////////////////////////////////////////////////
-//
-// PPU/SPU locking system
-
-/*
-enum __LOCK {
-	LOCK_free,
-	LOCK_SPU,
-	LOCK_PPU_wait,
-	LOCK_PPU_may_proceed,
-	LOCK_PPU
-};
-*/
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -58,7 +43,6 @@ struct __Connection {
 	
 	// populated by connection.c
 	Allocation* firstAllocation;
-//	LOCK lock;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -88,7 +72,6 @@ struct __Allocation {
 struct __ConnectionList {
 	Connection* first;
 	Connection* firstClosed;
-//	LOCK lock;
 };
 
 #endif // __SERVER_CONNECTION_H

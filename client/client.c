@@ -65,7 +65,7 @@ static void _freeBuffer(void* buffer, unsigned short command) {
 		SPUGL_Buffer* test = *ptr;
 		if (test->data == buffer) {
 #ifdef DEBUG
-			printf("freeing %x %x %x size %d\n", buffer, test, test->data, test->size);
+			printf("freeing id %x %x %x %x size %d\n", test->id, buffer, test, test->data, test->size);
 #endif
 
 			// tell the server we've junked the buffer
@@ -122,7 +122,7 @@ static void* _allocate(int server, unsigned long size, unsigned short command) {
 			if (memory!=NULL) {
 				CommandQueue* queue = (CommandQueue*) memory;
 #ifdef DEBUG
-				printf("fd %d, memory %x, size %d, id %d, write %x, read %x\n",
+				printf("fd %d, memory %x, size %d, id %x, write %x, read %x\n",
 					mem_fd, memory, request.alloc.size, reply.alloc.id,
 					queue->write_ptr, queue->read_ptr);
 #endif

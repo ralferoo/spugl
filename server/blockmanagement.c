@@ -9,7 +9,7 @@
  *
  ****************************************************************************/
 
-#define DEBUG
+// #define DEBUG
 
 #include "connection.h"
 #include <stdlib.h>
@@ -20,6 +20,8 @@
 static void*		_block_mgr_buffer	= NULL;
 static signed char*	_block_mgr_lock_table	= NULL;
 static long long*	_block_mgr_ea_table	= NULL;
+
+#define BLOCK_ID_MASK (MAX_DATA_BUFFERS-1)
 
 void blockManagementDebug()
 {
@@ -69,9 +71,7 @@ int blockManagementDestroy()
 unsigned int blockManagementAllocateBlock(void* ptr)
 {
 	long long ea = (long) ptr;
-
 	signed char* lock_ptr = _block_mgr_lock_table;
-
 	for (int i=0; i<MAX_DATA_BUFFERS; i+=4, lock_ptr+=4) {
 		typedef  struct {char a[4];} wordsize;
 		wordsize *ptrp = (wordsize*)lock_ptr;
@@ -83,17 +83,15 @@ unsigned int blockManagementAllocateBlock(void* ptr)
 			conv.b = result;
 			for (int j=0; j<4; j++) {
 				signed char v = conv.a[j];
-		//		signed char v = (signed char) (result>>(8*j)&255);
 				if (v < 0) {
 					_block_mgr_ea_table[i+j] = ea;
 					conv.a[j] = 1;
 					unsigned int value = conv.b;
-		//			result = (result &~ (0xff<<(8*j))) | (1<<(8*j));
 					__asm__ volatile ("stwcx. %2,%y1\n"
 							"\tmfocrf %0,0x80" : "=r" (result), "=Z" (*ptrp) : "r" (value));
 					if (result & 0x20000000) {
 						blockManagementDebug();
-						return (i+j);
+						return (i+j) | (rand()<<16);
 					}
 					sched_yield();
 					goto retry;
@@ -109,12 +107,10 @@ unsigned int blockManagementAllocateBlock(void* ptr)
 // decrement the usage count of the block
 void blockManagementBlockCountDispose(unsigned int id)
 {
-	signed char* lock_ptr = _block_mgr_lock_table + (id&~3);
-
+	signed char* lock_ptr = _block_mgr_lock_table + (id&~3&BLOCK_ID_MASK);
 	typedef  struct {char a[4];} wordsize;
 	wordsize *ptrp = (wordsize*)lock_ptr;
 	unsigned int result;
-//	unsigned int mask = 0xff<<(4*(id&3));
 retry:
 	__asm__ volatile ("lwarx %0,%y1" : "=r" (result) : "Z" (*ptrp));     
 
@@ -122,8 +118,6 @@ retry:
 	conv.b = result;
 	conv.a[id&3]--;
 	unsigned int value = conv.b;
-
-//	result = ((result+mask)&mask) | (result&~mask);		// subtract 1 from a byte
 
 	__asm__ volatile ("stwcx. %2,%y1\n"
 			"\tmfocrf %0,0x80" : "=r" (result), "=Z" (*ptrp) : "r" (value));
@@ -137,8 +131,7 @@ retry:
 // checks to see if a particular block ID can now be freed
 int blockManagementTryFree(unsigned int id)
 {
-	signed char* lock_ptr = _block_mgr_lock_table + (id&~3);
-
+	signed char* lock_ptr = _block_mgr_lock_table + (id&~3&BLOCK_ID_MASK);
 	typedef  struct {char a[4];} wordsize;
 	wordsize *ptrp = (wordsize*)lock_ptr;
 	unsigned int result;

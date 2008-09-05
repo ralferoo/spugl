@@ -73,12 +73,6 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 	
 	int i = 0;
 	for(;;) {
-/*
-		if (lock(program_data_ea)) {
-			printf("got lock\n");
-			unlock(program_data_ea);
-		}
-*/
 		// look for termination command
 		while (spu_stat_in_mbox()) {
 			unsigned int mbox = spu_read_in_mbox();
