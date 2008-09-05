@@ -16,6 +16,7 @@
 
 #include "../connection.h"
 
+/*
 int lock(unsigned long long ea) {
 	// based on CBEA page 582
 	volatile char buf[256];
@@ -65,6 +66,7 @@ void unlock(unsigned long long ea) {
 	} while (status);
 	return 1;
 }
+*/
 
 int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned long long env) {
 	// printf("started SPU with ea %llx\n", program_data_ea);

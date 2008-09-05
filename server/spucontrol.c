@@ -82,7 +82,7 @@ SPU_HANDLE _init_spu_thread(ConnectionList* list, int master)
 	context->spe_ctx = spe_context_create(SPE_EVENTS_ENABLE|SPE_MAP_PS, NULL);
 	spe_program_load(context->spe_ctx, spu_main_program);
 
-	int retval = pthread_create(&context->thread, NULL, &spu_main_program_thread, context);
+	int retval = pthread_create(&context->thread, NULL, (void*)&spu_main_program_thread, context);
 	if (retval) {
 #else
 	context->spe_id = spe_create_thread(0, spu_main_program, context->list, NULL, -1, 0);

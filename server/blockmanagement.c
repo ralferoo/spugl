@@ -9,9 +9,13 @@
  *
  ****************************************************************************/
 
+#define DEBUG
+
 #include "connection.h"
 #include <stdlib.h>
 #include <sched.h>
+#include <stdio.h>
+#include <string.h>
 
 static void*		_block_mgr_buffer	= NULL;
 static signed char*	_block_mgr_lock_table	= NULL;
@@ -19,8 +23,9 @@ static long long*	_block_mgr_ea_table	= NULL;
 
 void blockManagementDebug()
 {
+#ifdef DEBUG
 	char buffer[MAX_DATA_BUFFERS+2];
-	char *last=&buffer, *next=&buffer;
+	char *last=buffer, *next=buffer;
 	*next = '!';
 	for (int i=0; i<MAX_DATA_BUFFERS; i++) {
 		signed char v = _block_mgr_lock_table[i];
@@ -35,6 +40,7 @@ void blockManagementDebug()
 	}
 	*++last = 0;
 	printf("DEBUG: %s\n", buffer);
+#endif
 }
 
 // initialises the block management system
@@ -60,8 +66,10 @@ int blockManagementDestroy()
 
 // allocates a block from the system, storing the EA alongside it, returns block ID
 // the initial usage count is set to 0
-unsigned int blockManagementAllocateBlock(long long ea)
+unsigned int blockManagementAllocateBlock(void* ptr)
 {
+	long long ea = (long) ptr;
+
 	signed char* lock_ptr = _block_mgr_lock_table;
 
 	for (int i=0; i<MAX_DATA_BUFFERS; i+=4, lock_ptr+=4) {

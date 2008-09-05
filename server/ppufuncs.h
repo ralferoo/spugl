@@ -11,8 +11,8 @@
 
 #include "connection.h"
 
-void lock(LOCK* lock);
-void unlock(LOCK* lock);
+//void lock(LOCK* lock);
+//void unlock(LOCK* lock);
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -43,7 +43,7 @@ int 		blockManagementDestroy();
 
 // allocates a block from the system, storing the EA alongside it, returns block ID
 // the initial usage count is set to 0
-unsigned int	blockManagementAllocateBlock(long long ea);
+unsigned int	blockManagementAllocateBlock(void* ptr);
 
 // decrement the usage count of the block
 void		blockManagementBlockCountDispose(unsigned int id);

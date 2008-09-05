@@ -44,7 +44,7 @@ static void sig_hup(int sig)
 
 static void sig_hup_onexit(int sig)
 {
-	signal(getpid(), SIGKILL);
+	signal(getpid(), (void*) SIGKILL);
 }
 
 static void sig_term(int sig)
@@ -136,14 +136,14 @@ int main(int argc, char* argv[]) {
 				}
 				if (p[i].revents & (POLLERR|POLLHUP)) {
 disconnected:				handleDisconnect(connection);
-					lock(&list.lock);
+				//	lock(&list.lock);
 					// unlink from connection list
 					*curr_ptr = connection->nextConnection;
 					connectionCount--;
 					// hook into close connection list
 					connection->nextConnection = list.firstClosed;
 					list.firstClosed = connection;
-					unlock(&list.lock);
+				//	unlock(&list.lock);
 				} else {
 					// move to next connection
 					curr_ptr = &(connection->nextConnection);
@@ -160,14 +160,14 @@ disconnected:				handleDisconnect(connection);
 				if (client_connection < 0) {
 					syslog(LOG_INFO, "accept on incoming connection failed");
 				} else {
-					lock(&list.lock);
+				//	lock(&list.lock);
 					Connection* connection = malloc(sizeof(Connection));
 					connection->fd = client_connection;
 					connection->nextConnection = list.first;
 					list.first = connection;
 					connectionCount++;
 					handleConnect(connection);
-					unlock(&list.lock);
+				//	unlock(&list.lock);
 				}
 			}
 		}
@@ -183,11 +183,11 @@ disconnected:				handleDisconnect(connection);
 			Connection* conn = *closed;
 			processOutstandingRequests(conn);
 			if (conn->firstAllocation == NULL) {
-				lock(&list.lock);
+			//	lock(&list.lock);
 				*closed = conn->nextConnection;
 				close(conn->fd);
 				free(conn);
-				unlock(&list.lock);
+			//	unlock(&list.lock);
 			} else {
 				closed = &(conn->nextConnection);
 			}
