@@ -26,12 +26,18 @@ static long long*	_block_mgr_ea_table	= NULL;
 void blockManagementDebug()
 {
 #ifdef DEBUG
-	char buffer[MAX_DATA_BUFFERS+2];
+	char buffer[MAX_DATA_BUFFERS+4];
 	char *last=buffer, *next=buffer;
 	*next = '!';
 	for (int i=0; i<MAX_DATA_BUFFERS; i++) {
 		signed char v = _block_mgr_lock_table[i];
 		char c = v+'0';
+		if (i==MAX_COMMAND_BUFFERS) {
+			*last++='.';
+			*last++='.';
+			*last++='.';
+			next = last;
+		}
 		if (v<0) {
 			c='-';
 		} else {
@@ -68,11 +74,21 @@ int blockManagementDestroy()
 
 // allocates a block from the system, storing the EA alongside it, returns block ID
 // the initial usage count is set to 0
-unsigned int blockManagementAllocateBlock(void* ptr)
+unsigned int blockManagementAllocateBlock(void* ptr, int commandQueue)
 {
 	long long ea = (long) ptr;
-	signed char* lock_ptr = _block_mgr_lock_table;
-	for (int i=0; i<MAX_DATA_BUFFERS; i+=4, lock_ptr+=4) {
+
+	int start,end;
+	if (commandQueue) {
+		start = 0;
+		end = MAX_COMMAND_BUFFERS;
+	} else {
+		start = MAX_COMMAND_BUFFERS;
+		end = MAX_DATA_BUFFERS;
+	}
+	signed char* lock_ptr = _block_mgr_lock_table + start;
+
+	for (int i=start; i<end; i+=4, lock_ptr+=4) {
 		typedef  struct {char a[4];} wordsize;
 		wordsize *ptrp = (wordsize*)lock_ptr;
 		unsigned int result;

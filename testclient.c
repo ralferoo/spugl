@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
 
 	buffer = SPUGL_allocateBuffer(server, 1024*1024);
 
-sleep(1);
+sleep(5);
 
 	SPUGL_freeBuffer(buffer);	
 

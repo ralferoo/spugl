@@ -19,9 +19,10 @@
 // relative to the EA of the lock buffers, which is what is initially
 // passed into the SPU function.
 //
-// This also must be a multiple of 128, and probably a multiple of 2.
+// This also must be a multiple of 128, and probably a power of 2.
 
 #define MAX_DATA_BUFFERS	1024
+#define MAX_COMMAND_BUFFERS	128
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -62,8 +63,6 @@ struct __Allocation {
 #define ALLOCATION_FLAGS_ISCOMMANDQUEUE 1
 #define ALLOCATION_FLAGS_FLUSHWAIT 2
 #define ALLOCATION_FLAGS_FLUSHDONE 4
-#define ALLOCATION_FLAGS_FREEWAIT 8
-#define ALLOCATION_FLAGS_FREEDONE 16
 
 //////////////////////////////////////////////////////////////////////////////
 //

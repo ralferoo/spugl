@@ -43,7 +43,7 @@ int 		blockManagementDestroy();
 
 // allocates a block from the system, storing the EA alongside it, returns block ID
 // the initial usage count is set to 0
-unsigned int	blockManagementAllocateBlock(void* ptr);
+unsigned int	blockManagementAllocateBlock(void* ptr, int commandQueue);
 
 // decrement the usage count of the block
 void		blockManagementBlockCountDispose(unsigned int id);

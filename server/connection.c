@@ -53,8 +53,6 @@ void handleDisconnect(Connection* connection) {
 
 	Allocation* ptr = connection->firstAllocation;
 	while (ptr) {
-//		ptr->flags |= ALLOCATION_FLAGS_FREEWAIT;
-//		ptr->flags |= ALLOCATION_FLAGS_FREEDONE; 
 		blockManagementBlockCountDispose(ptr->id);
 		ptr = ptr->nextAllocation;
 	}
@@ -66,8 +64,6 @@ void freeBuffer(Connection* connection, SPUGL_request* request) {
 	Allocation* ptr = connection->firstAllocation;
 	while (ptr) {
 		if (ptr->id == request->free.id) {
-//			ptr->flags |= ALLOCATION_FLAGS_FREEWAIT;
-//			ptr->flags |= ALLOCATION_FLAGS_FREEDONE; 
 			blockManagementBlockCountDispose(ptr->id);
 			return;
 		}
@@ -109,7 +105,6 @@ void processOutstandingRequests(Connection* connection) {
 				send(connection->fd, &reply, sizeof(SPUGL_reply), 0);
 			}
 		}
-		//if (del->flags & ALLOCATION_FLAGS_FREEDONE) {
 		if (blockManagementTryFree(del->id)) {
 #ifdef DEBUG
 			char buffer[512];
@@ -128,7 +123,6 @@ void processOutstandingRequests(Connection* connection) {
 	}
 }
 
-//static int alloc_id = 0;
 static int name_id = 0;
 
 void allocateBuffer(Connection* connection, SPUGL_request* request, SPUGL_reply* reply, int commandQueue, char* mountname) {
@@ -192,7 +186,7 @@ void allocateBuffer(Connection* connection, SPUGL_request* request, SPUGL_reply*
 		n->fd = mem_fd;
 		n->buffer = memory;
 		n->size = request->alloc.size;
-		n->id = blockManagementAllocateBlock(memory); //++alloc_id;
+		n->id = blockManagementAllocateBlock(memory, commandQueue);
 		n->flags = flags;
 		n->locks = 1;
 		connection->firstAllocation = n;
