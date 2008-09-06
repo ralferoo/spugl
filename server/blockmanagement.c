@@ -9,7 +9,7 @@
  *
  ****************************************************************************/
 
-// #define DEBUG
+#define DEBUG
 
 #include "connection.h"
 #include <stdlib.h>
@@ -39,7 +39,10 @@ void blockManagementDebug()
 			next = last;
 		}
 		if (v<0) {
-			c='-';
+			if (v==-1) c='-';
+			else if (v==-2) c='²';
+			else if (v==-3) c='³';
+			else c='*';
 		} else {
 			if (v>9) c='+';
 			last = next;

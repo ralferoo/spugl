@@ -39,6 +39,7 @@ sleep(5);
 
 	SPUGL_invalidRequest(server);
 
+//	SPUGL_freeBuffer(buffer2);	
 	SPUGL_disconnect(server);
 
 	exit(0);

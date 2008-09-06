@@ -93,6 +93,11 @@ void flushQueue(Connection* connection, SPUGL_request* request, SPUGL_reply* rep
 }
 
 void processOutstandingRequests(Connection* connection) {
+#ifdef DEBUG
+	char buffer[512];
+	sprintf(buffer, "processOutstanding on FD %d (%x)", connection->fd, connection);
+	syslog(LOG_INFO, buffer);
+#endif
 	Allocation** ptr = &(connection->firstAllocation);
 	while (*ptr) {
 		Allocation* del = *ptr;
@@ -108,7 +113,7 @@ void processOutstandingRequests(Connection* connection) {
 		if (blockManagementTryFree(del->id)) {
 #ifdef DEBUG
 			char buffer[512];
-			sprintf(buffer, "freeing buffer id %x at %x, size %d on fd %d", del->id, del->buffer, del->size, del->fd);
+			sprintf(buffer, "freeing buffer id %x [%x] at %x, size %d on fd %d", del->id, del, del->buffer, del->size, del->fd);
 			syslog(LOG_INFO, buffer);
 #endif
 
@@ -187,8 +192,8 @@ void allocateBuffer(Connection* connection, SPUGL_request* request, SPUGL_reply*
 		connection->firstAllocation = n;
 
 #ifdef DEBUG
-		sprintf(buffer, "Allocated buffer %x on fd %d at address %x, size %d, file %s\n", 
-			n->id, mem_fd, memory, request->alloc.size, filename);
+		sprintf(buffer, "Allocated buffer %x [%x] on fd %d at address %x, size %d, file %s\n", 
+			n->id, n, mem_fd, memory, request->alloc.size, filename);
 		syslog(LOG_INFO, buffer);
 #endif
 
