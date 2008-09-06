@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
 	CommandQueue* queue = SPUGL_allocateCommandQueue(server, 2047*1024);
 	if (queue==NULL) { printf("Out of memory\n"); exit(1); }
 
-	for (int q=0; q<62; q++) {
+	for (int q=0; q<6; q++) {
 		CommandQueue* queue = SPUGL_allocateCommandQueue(server, 2047*1024);
 		if (queue==NULL) { printf("Out of memory on extra queue %d\n", q); exit(1); }
 		unsigned int* ptr = (unsigned int*) ( ((void*)queue) + queue->write_ptr );

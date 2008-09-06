@@ -99,8 +99,8 @@ retry:
 				goto retry;		// failed to lock the command queue
 
 			// lock succeeded, now process block
-			next_queue = current+1;
 			process_queue(current, buf_ptr);
+			next_queue = (current+1) & (MAX_COMMAND_BUFFERS-1);
 retry_unlock:
 			// attempt to acquire lock
 			spu_mfcdma64(buf_ptr, eah, eal, 128, 0, MFC_GETLLAR_CMD);
@@ -134,6 +134,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 			return 0;
 		}
 
+//		write(1,"_",1);
 		// just call the callback routine (debug)
 		__asm("stop 0x2110\n\t.word 0");
 	}
