@@ -218,3 +218,18 @@ void SPUGL_invalidRequest(int server) {
 	request.command = 4242;
 	send(server, &request, sizeof(request), 0);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// This is a reference to the "current context". In reality, this is nothing
+// more than a pointer to the appropriate FIFO buffer, although this may yet
+// change.
+
+CommandQueue* _SPUGL_fifo = NULL;
+
+CommandQueue* SPUGL_currentContext(CommandQueue* newContext) {
+	CommandQueue* old = _SPUGL_fifo;
+	_SPUGL_fifo = newContext;
+	return old;
+}
+

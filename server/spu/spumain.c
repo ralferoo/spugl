@@ -38,9 +38,6 @@ void process_queue(unsigned int id, volatile char* buf_ptr) {
 	unsigned int eah = long_ptr[0];
 	unsigned int eal = long_ptr[1];
 
-	printf("\rcould process queue %d at %x:%x, buffer %x:%x\n", 
-		id, eah_buffer_tables, eal_memptr, eah, eal);
-
 	// now, read/lock the command queue initial data structure
 	spu_mfcdma64(buf_ptr, eah, eal, 128, 0, MFC_GETLLAR_CMD);
 	spu_readch(MFC_RdAtomicStat);
@@ -48,8 +45,31 @@ void process_queue(unsigned int id, volatile char* buf_ptr) {
 
 	// now, queue holds the queue data structure :)
 	
-	printf("could process queue %x at %x:%x, buffer %x:%x, write %x, read %x\n", 
-		id, eah_buffer_tables, eal_memptr, eah, eal, queue->write_ptr, queue->read_ptr);
+	unsigned int wptr = queue->write_ptr;
+	unsigned int rptr = queue->read_ptr;
+
+	while (wptr != rptr) {
+		printf("could process queue %x at %x:%x, buffer %x:%x, write %x, read %x\n", 
+			id, eah_buffer_tables, eal_memptr, eah, eal, queue->write_ptr, queue->read_ptr);
+
+		// process here
+		rptr = wptr;
+retry_update:
+		queue->read_ptr = rptr;
+
+		// now, flush the data back to the buffer
+		spu_mfcdma64(buf_ptr, eah, eal, 128, 0, MFC_PUTLLC_CMD);
+		unsigned int status = spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS;
+		if (status) {
+			// data is dirty, reload it and attempt the write again
+			spu_mfcdma64(buf_ptr, eah, eal, 128, 0, MFC_GETLLAR_CMD);
+			spu_readch(MFC_RdAtomicStat);
+			goto retry_update;
+		}
+
+		// check to see if any new data arrived
+		wptr = queue->write_ptr;
+	}
 
 }
 
@@ -98,14 +118,13 @@ retry_unlock:
 }
 
 int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned long long env) {
-	printf("started SPU with ea %llx\n", program_data_ea);
-	
 	eah_buffer_tables = (unsigned int)(program_data_ea >> 32);
 	eal_buffer_lock_table = (unsigned int)(program_data_ea & ~127);
 	eal_buffer_memory_table = eal_buffer_lock_table + MAX_DATA_BUFFERS;
 
 	int i = 0;
 	for(;;) {
+		// process all the client FIFOs
 		process_queues(program_data_ea);
 
 		// look for termination command

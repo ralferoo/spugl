@@ -30,7 +30,23 @@ int main(int argc, char* argv[]) {
 
 	buffer = SPUGL_allocateBuffer(server, 1024*1024);
 
-sleep(5);
+	SPUGL_currentContext(queue);
+
+	unsigned int* ptr = (unsigned int*) ( ((void*)queue) + queue->write_ptr );
+	*ptr++ = 0;
+	__asm__("lwsync");
+	queue->write_ptr = ((void*)ptr) - ((void*)queue);
+	__asm__("lwsync");
+
+	for (int i=0; i<4; i++) {
+		usleep(500000);
+		*ptr++ = 0;
+		__asm__("lwsync");
+		queue->write_ptr = ((void*)ptr) - ((void*)queue);
+		__asm__("lwsync");
+	}
+
+	sleep(3);
 
 	SPUGL_freeBuffer(buffer);	
 

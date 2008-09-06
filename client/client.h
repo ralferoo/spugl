@@ -35,3 +35,6 @@ void SPUGL_freeBuffer(void* buffer);
 
 // sends the server an invalid request (for testing - should cause the connection to drop)
 void SPUGL_invalidRequest(int server);
+
+// changes the current OpenGL context
+CommandQueue* SPUGL_currentContext(CommandQueue* newContext);

@@ -48,8 +48,9 @@ int my_callback(void *ls_base_tmp, unsigned int data) {
 	char *the_string = ls_base + params->str;
 	params->length = strlen(the_string);
 */
-	write(1,".",1);
-	sleep(1);
+
+	// allow other jobs to run, but start up almost immediately
+	// sched_yield();
 	return 0;
 }
 
