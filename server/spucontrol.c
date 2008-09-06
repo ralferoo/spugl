@@ -9,6 +9,8 @@
  *
  ****************************************************************************/
 
+// #define DOTS
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -49,8 +51,10 @@ int my_callback(void *ls_base_tmp, unsigned int data) {
 	params->length = strlen(the_string);
 */
 
+#ifdef DOTS
 	write(1,".",1);
-	usleep(250000);
+#endif
+	usleep(125000);
 
 	// allow other jobs to run, but start up almost immediately
 	// sched_yield();

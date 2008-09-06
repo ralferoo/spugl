@@ -38,7 +38,7 @@ void handleConnect(Connection* connection) {
 	sprintf(buffer, "got new connection on fd %d, address %x\n", connection->fd, connection);
 	syslog(LOG_INFO, buffer);
 #else
-	syslog(LOG_INFO, "client connected");
+	syslog(LOG_INFO, "new client connected");
 #endif
 }
 
