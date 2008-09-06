@@ -220,6 +220,8 @@ void allocateBuffer(Connection* connection, SPUGL_request* request, SPUGL_reply*
 #endif
 			reply->alloc.id = 0;
 			send(connection->fd, reply, sizeof(SPUGL_reply), 0);
+			munmap(memory, request->alloc.size);
+			close(mem_fd);
 		} else {
 
 			connection->firstAllocation = n;
