@@ -130,7 +130,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 		// look for termination command
 		while (spu_stat_in_mbox()) {
 			unsigned int mbox = spu_read_in_mbox();
-			// don't bother checkign actual mailbox value, just quit
+			// don't bother checking actual mailbox value, just quit
 			return 0;
 		}
 

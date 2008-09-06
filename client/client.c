@@ -9,7 +9,8 @@
  *
  ****************************************************************************/
 
-// #define DEBUG
+#define DEBUG
+// #define INFO
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,7 +87,9 @@ static void _freeBuffer(void* buffer, unsigned short command) {
 		}
 		ptr = &(test->next);
 	}
+#ifdef INFO
 	printf("Cannot find memory buffer %x in allocation list\n", buffer);
+#endif
 }
 
 static void* _allocate(int server, unsigned long size, unsigned short command) {
@@ -139,25 +142,33 @@ static void* _allocate(int server, unsigned long size, unsigned short command) {
 					return memory;
 				} else {
 					// no memory for header data
+#ifdef INFO
 					printf("Couldn't allocate memory header\n");
+#endif
 					munmap(memory, request.alloc.size);
 					close(mem_fd);
 					return NULL;
 				}
 			} else {
 				// couldn't mmap file
+#ifdef INFO
 				printf("Couldn't mmap memory\n");
+#endif
 				close(mem_fd);
 				return NULL;
 			}
 		} else {
 			// nothing returned from server
+#ifdef INFO
 			printf("Couldn't allocate memory on server\n");
+#endif
 			return NULL;
 		}
 	} else {
 		// short data returned from server
+#ifdef INFO
 		printf("Couldn't allocate memory - no response from server\n");
+#endif
 		return NULL;
 	}
 }
@@ -180,7 +191,9 @@ int SPUGL_connect() {
 	request.command = SPUGLR_GET_VERSION;
 	send(server, &request, sizeof(request), 0);
 	recv(server, &reply, sizeof(reply), 0);
+#ifdef INFO
 	printf("Server version is %d.%d.%d\n", reply.version.major, reply.version.minor, reply.version.revision);
+#endif
 
 	request.command = SPUGLR_NEGOTIATE_VERSION;
 	request.version.major = VERSION_MAJOR;

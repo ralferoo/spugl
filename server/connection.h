@@ -22,8 +22,9 @@
 // The first MAX_COMMAND_BUFFERS are used only for command queues, the rest
 // are suitable for general purpose data.
 
-#define MAX_DATA_BUFFERS	1024	// power of two, must be >=128
-#define MAX_COMMAND_BUFFERS	128	// power of two, must be <=128
+#define MAX_DATA_BUFFERS	(1024)		// power of two, must be >=128
+#define MAX_COMMAND_BUFFERS	(128)		// power of two, must be <=128
+#define OUT_OF_BUFFERS		(0xffffffff)
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -64,6 +65,7 @@ struct __Allocation {
 #define ALLOCATION_FLAGS_ISCOMMANDQUEUE 1
 #define ALLOCATION_FLAGS_FLUSHWAIT 2
 #define ALLOCATION_FLAGS_FLUSHDONE 4
+#define ALLOCATION_FLAGS_COUNT_DISPOSED 8
 
 //////////////////////////////////////////////////////////////////////////////
 //

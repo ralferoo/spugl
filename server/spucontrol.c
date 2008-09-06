@@ -49,6 +49,9 @@ int my_callback(void *ls_base_tmp, unsigned int data) {
 	params->length = strlen(the_string);
 */
 
+	write(1,".",1);
+	usleep(250000);
+
 	// allow other jobs to run, but start up almost immediately
 	// sched_yield();
 	return 0;
@@ -63,6 +66,7 @@ void *spu_main_program_thread(SPU_HANDLE context)
 		retval = spe_context_run(context->spe_ctx, &entry_point, 0, context->list, NULL, NULL);
 //		printf("exited at %x\n", entry_point);
 	} while (retval > 0);
+	printf("retval = %d\n", retval);
 	pthread_exit(NULL);
 }
 #endif

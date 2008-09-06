@@ -122,7 +122,7 @@ int main(int argc, char* argv[]) {
 			p[i].revents = 0;
 			current = current->nextConnection;
 		}
-		timeout.tv_sec = 10;
+		timeout.tv_sec = 1;
 		timeout.tv_nsec = 0;
 
 		if (ppoll(p, i, &timeout, &sigs) >=0 ) {

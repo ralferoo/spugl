@@ -117,21 +117,20 @@ unsigned int blockManagementAllocateBlock(void* ptr, int commandQueue)
 						return (i+j) | (rand()<<16);
 					}
 					sched_yield();
-					printf("failed\n");
 					goto retry;
 				}
 			}
 		}
 	}
 	blockManagementDebug();
-	return 0xffffffff;
+	return OUT_OF_BUFFERS;
 }
 
 
 // decrement the usage count of the block
 void blockManagementBlockCountDispose(unsigned int id)
 {
-	signed char* lock_ptr = _block_mgr_lock_table + (id&~3&BLOCK_ID_MASK);
+	signed char* lock_ptr = _block_mgr_lock_table + (id & BLOCK_ID_MASK & ~3);
 	typedef  struct {char a[4];} wordsize;
 	wordsize *ptrp = (wordsize*)lock_ptr;
 	unsigned int result;
@@ -157,7 +156,7 @@ retry:
 // checks to see if a particular block ID can now be freed
 int blockManagementTryFree(unsigned int id)
 {
-	signed char* lock_ptr = _block_mgr_lock_table + (id&(~3)&BLOCK_ID_MASK);
+	signed char* lock_ptr = _block_mgr_lock_table + (id & BLOCK_ID_MASK & ~3);
 	typedef  struct {char a[4];} wordsize;
 	wordsize *ptrp = (wordsize*)lock_ptr;
 	unsigned int result;

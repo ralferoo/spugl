@@ -53,7 +53,13 @@ void handleDisconnect(Connection* connection) {
 
 	Allocation* ptr = connection->firstAllocation;
 	while (ptr) {
-		blockManagementBlockCountDispose(ptr->id);
+		if (! (ptr->flags & ALLOCATION_FLAGS_COUNT_DISPOSED) ) {
+			ptr->flags |= ALLOCATION_FLAGS_COUNT_DISPOSED; 
+#ifdef DEBUG
+			printf("Disconnect disposing of %08x\n", ptr->id);
+#endif
+			blockManagementBlockCountDispose(ptr->id);
+		}
 		ptr = ptr->nextAllocation;
 	}
 	// signal closed
@@ -64,8 +70,14 @@ void freeBuffer(Connection* connection, SPUGL_request* request) {
 	Allocation* ptr = connection->firstAllocation;
 	while (ptr) {
 		if (ptr->id == request->free.id) {
-			blockManagementBlockCountDispose(ptr->id);
-			return;
+			if (! (ptr->flags & ALLOCATION_FLAGS_COUNT_DISPOSED) ) {
+				ptr->flags |= ALLOCATION_FLAGS_COUNT_DISPOSED; 
+#ifdef DEBUG
+				printf("Free disposing of %08x\n", ptr->id);
+#endif
+				blockManagementBlockCountDispose(ptr->id);
+				return;
+			}
 		}
 		ptr = ptr->nextAllocation;
 	}
@@ -94,17 +106,17 @@ void flushQueue(Connection* connection, SPUGL_request* request, SPUGL_reply* rep
 
 void processOutstandingRequests(Connection* connection) {
 #ifdef DEBUG
-//	char buffer[512];
-//	sprintf(buffer, "processOutstanding on FD %d (%x) first=%x", connection->fd, connection, connection->firstAllocation);
-//	syslog(LOG_INFO, buffer);
+	char buffer[512];
+	sprintf(buffer, "processOutstanding on FD %d (%x) first=%x", connection->fd, connection, connection->firstAllocation);
+	syslog(LOG_INFO, buffer);
 #endif
 	Allocation** ptr = &(connection->firstAllocation);
 	while (*ptr) {
 		Allocation* del = *ptr;
 #ifdef DEBUG
-//		sprintf(buffer, "processOutstanding on FD %d (%x) looking at %x [%x]", 
-//			connection->fd, connection, del->id, del);
-//		syslog(LOG_INFO, buffer);
+		sprintf(buffer, "processOutstanding on FD %d (%x) looking at %x [%x]", 
+			connection->fd, connection, del->id, del);
+		syslog(LOG_INFO, buffer);
 #endif
 		if (del->flags & ALLOCATION_FLAGS_FLUSHDONE) {
 			del->flags &= ~ALLOCATION_FLAGS_FLUSHDONE;
@@ -127,15 +139,15 @@ void processOutstandingRequests(Connection* connection) {
 			munmap(del->buffer, del->size);
 			close(del->fd);
 			free(del);
-			return;
+//			return;
 		} else {
 #ifdef DEBUG
-//			char buffer[512];
-//			sprintf(buffer, "still in use: buffer id %x [%x] at %x, size %d on fd %d", del->id, del, del->buffer, del->size, del->fd);
-//			syslog(LOG_INFO, buffer);
+			char buffer[512];
+			sprintf(buffer, "still in use: buffer id %x [%x] at %x, size %d on fd %d", del->id, del, del->buffer, del->size, del->fd);
+			syslog(LOG_INFO, buffer);
 #endif
+			ptr = &(del->nextAllocation);
 		}
-		ptr = &(del->nextAllocation);
 	}
 }
 
@@ -179,7 +191,6 @@ void allocateBuffer(Connection* connection, SPUGL_request* request, SPUGL_reply*
 		sprintf(buffer, "cannot mmap temporary file %s", filename);
 		syslog(LOG_INFO, buffer);
 #endif
-
 		reply->alloc.id = 0;
 		send(connection->fd, reply, sizeof(SPUGL_reply), 0);
 	} else {
@@ -200,41 +211,53 @@ void allocateBuffer(Connection* connection, SPUGL_request* request, SPUGL_reply*
 		n->id = blockManagementAllocateBlock(memory, commandQueue);
 		n->flags = flags;
 		n->locks = 1;
-		connection->firstAllocation = n;
+
+		if (n->id == OUT_OF_BUFFERS) {
+			free(n);
+#ifdef DEBUG
+			sprintf(buffer, "out of block buffers!");
+			syslog(LOG_INFO, buffer);
+#endif
+			reply->alloc.id = 0;
+			send(connection->fd, reply, sizeof(SPUGL_reply), 0);
+		} else {
+
+			connection->firstAllocation = n;
 
 #ifdef DEBUG
-		sprintf(buffer, "Allocated buffer %x [%x] on fd %d at address %x, size %d, file %s\n", 
-			n->id, n, mem_fd, memory, request->alloc.size, filename);
-		syslog(LOG_INFO, buffer);
+			sprintf(buffer, "Allocated buffer %x [%x] on fd %d at address %x, size %d, file %s\n", 
+				n->id, n, mem_fd, memory, request->alloc.size, filename);
+			syslog(LOG_INFO, buffer);
 #endif
 
-		reply->alloc.id = n->id;
+			reply->alloc.id = n->id;
 
-		int fds[1] = { mem_fd };
-		char buffer[CMSG_SPACE(sizeof(fds))];
+			int fds[1] = { mem_fd };
+			char buffer[CMSG_SPACE(sizeof(fds))];
 
-		struct msghdr message = {
-  			.msg_control = buffer,
-  			.msg_controllen = sizeof(buffer),
-		};
+			struct msghdr message = {
+  				.msg_control = buffer,
+  				.msg_controllen = sizeof(buffer),
+			};
 	
-		struct cmsghdr *cmessage = CMSG_FIRSTHDR(&message);
-		cmessage->cmsg_level = SOL_SOCKET;
-		cmessage->cmsg_type = SCM_RIGHTS;
-		cmessage->cmsg_len = CMSG_LEN(sizeof(fds));
-		message.msg_controllen = cmessage->cmsg_len;
+			struct cmsghdr *cmessage = CMSG_FIRSTHDR(&message);
+			cmessage->cmsg_level = SOL_SOCKET;
+			cmessage->cmsg_type = SCM_RIGHTS;
+			cmessage->cmsg_len = CMSG_LEN(sizeof(fds));
+			message.msg_controllen = cmessage->cmsg_len;
 
-		memcpy(CMSG_DATA(cmessage), fds, sizeof(fds));
+			memcpy(CMSG_DATA(cmessage), fds, sizeof(fds));
 
-		struct iovec reply_vec = {
-  			.iov_base = reply,
-  			.iov_len = sizeof(SPUGL_reply)
-		};
+			struct iovec reply_vec = {
+  				.iov_base = reply,
+  				.iov_len = sizeof(SPUGL_reply)
+			};
 
-		message.msg_iov = &reply_vec,
-		message.msg_iovlen = 1,
-
-		sendmsg(connection->fd, &message, 0);
+			message.msg_iov = &reply_vec,
+			message.msg_iovlen = 1,
+	
+			sendmsg(connection->fd, &message, 0);
+		}
 	}
 }
 
