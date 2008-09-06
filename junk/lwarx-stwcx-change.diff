@@ -1,0 +1,101 @@
+diff --git a/server/blockmanagement.c b/server/blockmanagement.c
+index 0e1330c..c45440e 100644
+--- a/server/blockmanagement.c
++++ b/server/blockmanagement.c
+@@ -92,10 +92,9 @@ unsigned int blockManagementAllocateBlock(void* ptr, int commandQueue)
+ 
+ 	for (int i=start; i<end; i+=4, lock_ptr+=4) {
+ 		typedef  struct {char a[4];} wordsize;
+-		wordsize *ptrp = (wordsize*)lock_ptr;
+ 		unsigned int result;
+-	retry:
+-		__asm__ volatile ("lwarx %0,%y1" : "=r" (result) : "Z" (*ptrp));     
++
++	__asm__ volatile ("\n.retryAlloc:\n\tlwarx %0,%y1" : "=r" (result) : "Z" (*lock_ptr));     
+ 		if (result & 0x80808080) {
+ 			union { signed char a[4]; unsigned int b; } conv;
+ 			conv.b = result;
+@@ -106,15 +105,11 @@ unsigned int blockManagementAllocateBlock(void* ptr, int commandQueue)
+ 					__asm__ volatile ("lwsync");
+ 					conv.a[j] = 1;
+ 					unsigned int value = conv.b;
+-					__asm__ volatile ("stwcx. %2,%y1\n"
+-							"\tmfocrf %0,0x80" : "=r" (result), "=Z" (*ptrp) : "r" (value));
+-					if (result & 0x20000000) {
+-						blockManagementDebug();
+-						return (i+j) | (rand()<<16);
+-					}
+-					sched_yield();
+-					printf("failed\n");
+-					goto retry;
++
++					__asm__ volatile ("stwcx. %0,%y1\n\tbne- .retryAlloc" : : "r" (result) , "Z" (*lock_ptr));
++
++					blockManagementDebug();
++					return (i+j) | (rand()<<16);
+ 				}
+ 			}
+ 		}
+@@ -128,25 +123,17 @@ unsigned int blockManagementAllocateBlock(void* ptr, int commandQueue)
+ void blockManagementBlockCountDispose(unsigned int id)
+ {
+ 	signed char* lock_ptr = _block_mgr_lock_table + (id&~3&BLOCK_ID_MASK);
+-	typedef  struct {char a[4];} wordsize;
+-	wordsize *ptrp = (wordsize*)lock_ptr;
+ 	unsigned int result;
+-retry:
+-	__asm__ volatile ("lwarx %0,%y1" : "=r" (result) : "Z" (*ptrp));     
+-//	__asm__ volatile ("\n.retryDispose:\n\tlwarx %0,%y1" : "=r" (result) : "Z" (*ptrp));     
++
++	__asm__ volatile ("\n.retryCountDispose:\n\tlwarx %0,%y1" : "=r" (result) : "Z" (*lock_ptr));     
+ 
+ 	union { signed char a[4]; unsigned int b; } conv;
+ 	conv.b = result;
+ 	conv.a[id&3]--;
+ 	unsigned int value = conv.b;
+ 
+-	__asm__ volatile ("stwcx. %2,%y1\n"
+-			"\tmfocrf %0,0x80" : "=r" (result), "=Z" (*ptrp) : "r" (value));
+-	if (!(result & 0x20000000)) {
+-		sched_yield();
+-		goto retry;
+-	}
+-//	__asm__ volatile ("stwcx. %1,%y0\n\tbne- retryDispose" : "=Z" (*ptrp) : "r" (value));
++	__asm__ volatile ("stwcx. %0,%y1\n\tbne- .retryCountDispose" : : "r" (result) , "Z" (*lock_ptr));
++
+ 	blockManagementDebug();
+ }
+ 
+@@ -154,27 +141,21 @@ retry:
+ int blockManagementTryFree(unsigned int id)
+ {
+ 	signed char* lock_ptr = _block_mgr_lock_table + (id&~3&BLOCK_ID_MASK);
+-	typedef  struct {char a[4];} wordsize;
+-	wordsize *ptrp = (wordsize*)lock_ptr;
+ 	unsigned int result;
+-retry:
+-	__asm__ volatile ("lwarx %0,%y1" : "=r" (result) : "Z" (*ptrp));     
++
++	__asm__ volatile ("\n.retryTryFree:\n\tlwarx %0,%y1" : "=r" (result) : "Z" (*lock_ptr));     
+ 
+ 	union { signed char a[4]; unsigned int b; } conv;
+ 	conv.b = result;
+-	if (conv.a[id&3]) {
++	if (conv.a[id&3] == 0) {
+ 		blockManagementDebug();
+ 		return 0;
+ 	}
+ 	conv.a[id&3]=-1;
+ 	unsigned int value = conv.b;
+ 
+-	__asm__ volatile ("stwcx. %2,%y1\n"
+-			"\tmfocrf %0,0x80" : "=r" (result), "=Z" (*ptrp) : "r" (value));
+-	if (!(result & 0x20000000)) {
+-		sched_yield();
+-		goto retry;
+-	}
++	__asm__ volatile ("stwcx. %0,%y1\n\tbne- .retryTryFree" : : "r" (result) , "Z" (*lock_ptr));
++
+ 	blockManagementDebug();
+ 	return 1;
+ }
