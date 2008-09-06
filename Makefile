@@ -403,6 +403,32 @@ client/client.o: /usr/include/bits/fcntl.h client/daemon.h client/client.h
 client/client.o: queue.h types.h
 client/client.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 client/client.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
+server/blockmanagement.o: server/connection.h /usr/include/stdlib.h
+server/blockmanagement.o: /usr/include/features.h /usr/include/sys/cdefs.h
+server/blockmanagement.o: /usr/include/bits/wordsize.h
+server/blockmanagement.o: /usr/include/gnu/stubs.h
+server/blockmanagement.o: /usr/include/gnu/stubs-32.h
+server/blockmanagement.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+server/blockmanagement.o: /usr/include/sys/types.h /usr/include/bits/types.h
+server/blockmanagement.o: /usr/include/bits/typesizes.h /usr/include/time.h
+server/blockmanagement.o: /usr/include/endian.h /usr/include/bits/endian.h
+server/blockmanagement.o: /usr/include/sys/select.h
+server/blockmanagement.o: /usr/include/bits/select.h
+server/blockmanagement.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
+server/blockmanagement.o: /usr/include/sys/sysmacros.h
+server/blockmanagement.o: /usr/include/bits/pthreadtypes.h
+server/blockmanagement.o: /usr/include/alloca.h
+server/blockmanagement.o: /usr/include/bits/stdlib-ldbl.h
+server/blockmanagement.o: /usr/include/sched.h /usr/include/bits/sched.h
+server/blockmanagement.o: /usr/include/stdio.h /usr/include/libio.h
+server/blockmanagement.o: /usr/include/_G_config.h /usr/include/wchar.h
+server/blockmanagement.o: /usr/include/bits/wchar.h /usr/include/gconv.h
+server/blockmanagement.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+server/blockmanagement.o: /usr/include/bits/libio-ldbl.h
+server/blockmanagement.o: /usr/include/bits/stdio_lim.h
+server/blockmanagement.o: /usr/include/bits/sys_errlist.h
+server/blockmanagement.o: /usr/include/bits/stdio-ldbl.h
+server/blockmanagement.o: /usr/include/string.h
 server/connection.o: /usr/include/syslog.h /usr/include/sys/syslog.h
 server/connection.o: /usr/include/features.h /usr/include/sys/cdefs.h
 server/connection.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
@@ -439,7 +465,6 @@ server/connection.o: /usr/lib/gcc/spu/4.0.2/include/limits.h
 server/connection.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
 server/connection.o: /usr/include/asm/sockios.h server/connection.h
 server/connection.o: server/ppufuncs.h client/queue.h client/daemon.h
-server/lock.o: server/connection.h
 server/main.o: /usr/include/stdio.h /usr/include/features.h
 server/main.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 server/main.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -622,4 +647,5 @@ server/spu/spumain.0: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 server/spu/spumain.0: /usr/include/bits/libio-ldbl.h
 server/spu/spumain.0: /usr/include/bits/stdio_lim.h
 server/spu/spumain.0: /usr/include/bits/sys_errlist.h
-server/spu/spumain.0: /usr/include/bits/stdio-ldbl.h
+server/spu/spumain.0: /usr/include/bits/stdio-ldbl.h server/connection.h
+server/spu/spumain.0: client/queue.h
