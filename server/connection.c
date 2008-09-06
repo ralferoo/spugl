@@ -176,11 +176,6 @@ void allocateBuffer(Connection* connection, SPUGL_request* request, SPUGL_reply*
 			flags |= ALLOCATION_FLAGS_ISCOMMANDQUEUE;
 		}
 
-#ifdef DEBUG
-		sprintf(buffer, "Allocated buffer on fd %d at address %x, size %d, file %s\n", mem_fd, memory, request->alloc.size, filename);
-		syslog(LOG_INFO, buffer);
-#endif
-
 		Allocation* n = malloc(sizeof(Allocation));
 		n->nextAllocation = connection->firstAllocation;
 		n->fd = mem_fd;
@@ -190,6 +185,12 @@ void allocateBuffer(Connection* connection, SPUGL_request* request, SPUGL_reply*
 		n->flags = flags;
 		n->locks = 1;
 		connection->firstAllocation = n;
+
+#ifdef DEBUG
+		sprintf(buffer, "Allocated buffer %x on fd %d at address %x, size %d, file %s\n", 
+			n->id, mem_fd, memory, request->alloc.size, filename);
+		syslog(LOG_INFO, buffer);
+#endif
 
 		reply->alloc.id = n->id;
 

@@ -17,9 +17,9 @@
 #include <stdio.h>
 #include <string.h>
 
-static void*		_block_mgr_buffer	= NULL;
-static signed char*	_block_mgr_lock_table	= NULL;
-static long long*	_block_mgr_ea_table	= NULL;
+static void*			_block_mgr_buffer	= NULL;
+static signed char*		_block_mgr_lock_table	= NULL;
+static unsigned long long*	_block_mgr_ea_table	= NULL;
 
 #define BLOCK_ID_MASK (MAX_DATA_BUFFERS-1)
 
@@ -56,7 +56,7 @@ void *blockManagementInit()
 {
 	_block_mgr_buffer = malloc(127+MAX_DATA_BUFFERS*(sizeof(signed char)+sizeof(long long)));
 	_block_mgr_lock_table = (signed char*) ((((unsigned int)_block_mgr_buffer)+127)&~127);
-	_block_mgr_ea_table = (long long*) (_block_mgr_lock_table+MAX_DATA_BUFFERS);
+	_block_mgr_ea_table = (unsigned long long*) (_block_mgr_lock_table+MAX_DATA_BUFFERS);
 
 	memset(_block_mgr_lock_table, -1, MAX_DATA_BUFFERS);
 	memset(_block_mgr_ea_table, 0, MAX_DATA_BUFFERS*sizeof(long long));
@@ -78,7 +78,7 @@ int blockManagementDestroy()
 // the initial usage count is set to 0
 unsigned int blockManagementAllocateBlock(void* ptr, int commandQueue)
 {
-	long long ea = (long) ptr;
+	unsigned long long ea = (unsigned long) ptr;
 
 	int start,end;
 	if (commandQueue) {
