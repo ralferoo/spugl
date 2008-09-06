@@ -9,7 +9,7 @@
  *
  ****************************************************************************/
 
-#define DEBUG
+// #define DEBUG
 
 #include "connection.h"
 #include <stdlib.h>
@@ -50,6 +50,7 @@ void blockManagementDebug()
 		*next++ = c;
 	}
 	*++last = 0;
+//	*next = 0;
 	printf("DEBUG: %s\n", buffer);
 #endif
 }
@@ -156,7 +157,7 @@ retry:
 // checks to see if a particular block ID can now be freed
 int blockManagementTryFree(unsigned int id)
 {
-	signed char* lock_ptr = _block_mgr_lock_table + (id&~3&BLOCK_ID_MASK);
+	signed char* lock_ptr = _block_mgr_lock_table + (id&(~3)&BLOCK_ID_MASK);
 	typedef  struct {char a[4];} wordsize;
 	wordsize *ptrp = (wordsize*)lock_ptr;
 	unsigned int result;
@@ -165,7 +166,7 @@ retry:
 
 	union { signed char a[4]; unsigned int b; } conv;
 	conv.b = result;
-	if (conv.a[id&3]) {
+	if (conv.a[id&3] > 0) {
 		blockManagementDebug();
 		return 0;
 	}

@@ -9,7 +9,7 @@
  *
  ****************************************************************************/
 
-#define DEBUG
+// #define DEBUG
 
 #include <syslog.h>
 #include <stdio.h>
@@ -94,13 +94,18 @@ void flushQueue(Connection* connection, SPUGL_request* request, SPUGL_reply* rep
 
 void processOutstandingRequests(Connection* connection) {
 #ifdef DEBUG
-	char buffer[512];
-	sprintf(buffer, "processOutstanding on FD %d (%x)", connection->fd, connection);
-	syslog(LOG_INFO, buffer);
+//	char buffer[512];
+//	sprintf(buffer, "processOutstanding on FD %d (%x) first=%x", connection->fd, connection, connection->firstAllocation);
+//	syslog(LOG_INFO, buffer);
 #endif
 	Allocation** ptr = &(connection->firstAllocation);
 	while (*ptr) {
 		Allocation* del = *ptr;
+#ifdef DEBUG
+//		sprintf(buffer, "processOutstanding on FD %d (%x) looking at %x [%x]", 
+//			connection->fd, connection, del->id, del);
+//		syslog(LOG_INFO, buffer);
+#endif
 		if (del->flags & ALLOCATION_FLAGS_FLUSHDONE) {
 			del->flags &= ~ALLOCATION_FLAGS_FLUSHDONE;
  
@@ -123,6 +128,12 @@ void processOutstandingRequests(Connection* connection) {
 			close(del->fd);
 			free(del);
 			return;
+		} else {
+#ifdef DEBUG
+//			char buffer[512];
+//			sprintf(buffer, "still in use: buffer id %x [%x] at %x, size %d on fd %d", del->id, del, del->buffer, del->size, del->fd);
+//			syslog(LOG_INFO, buffer);
+#endif
 		}
 		ptr = &(del->nextAllocation);
 	}

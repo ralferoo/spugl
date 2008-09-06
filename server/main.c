@@ -141,7 +141,6 @@ disconnected:				handleDisconnect(connection);
 					// hook into close connection list
 					connection->nextConnection = list.firstClosed;
 					list.firstClosed = connection;
-					syslog(LOG_INFO, "moved connection to closed queue");
 				} else {
 					// move to next connection
 					curr_ptr = &(connection->nextConnection);
@@ -179,13 +178,13 @@ disconnected:				handleDisconnect(connection);
 			Connection* conn = *closed;
 			processOutstandingRequests(conn);
 			if (conn->firstAllocation == NULL) {
-				syslog(LOG_INFO, "clearing stuff");
 				*closed = conn->nextConnection;
 				close(conn->fd);
 				free(conn);
 			} else {
-				printf("connection %x still has allocation %x address %x\n", 
-					conn, conn->firstAllocation, conn->firstAllocation->buffer);
+				//printf("connection %x still has allocation %x [%x] address %x\n", 
+				//	conn, conn->firstAllocation->id, 
+				//	conn->firstAllocation, conn->firstAllocation->buffer);
 				closed = &(conn->nextConnection);
 			}
 		}
