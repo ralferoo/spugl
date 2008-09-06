@@ -198,8 +198,10 @@ void allocateBuffer(Connection* connection, SPUGL_request* request, SPUGL_reply*
 		if (commandQueue) {
 			// initialise queue pointers to first bit of free buffer
 			CommandQueue* queue = (CommandQueue*) memory;
-			queue->write_ptr = queue->read_ptr =
+			unsigned int buf_start =
 				((void*)(&queue->data[0])) - ((void*)&queue->write_ptr);
+			memset(queue, 0, buf_start);
+			queue->write_ptr = queue->read_ptr = buf_start;
 			flags |= ALLOCATION_FLAGS_ISCOMMANDQUEUE;
 		}
 

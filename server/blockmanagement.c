@@ -169,6 +169,10 @@ retry:
 		blockManagementDebug();
 		return 0;
 	}
+#ifdef DEBUG
+	if (conv.a[id&3] < 0)
+		printf("try free already -ve for %x\n", id);
+#endif
 	conv.a[id&3]=-1;
 	unsigned int value = conv.b;
 

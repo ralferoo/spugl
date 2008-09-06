@@ -22,8 +22,8 @@
 // The first MAX_COMMAND_BUFFERS are used only for command queues, the rest
 // are suitable for general purpose data.
 
-#define MAX_DATA_BUFFERS	(1024)		// power of two, must be >=128
-#define MAX_COMMAND_BUFFERS	(128)		// power of two, must be <=128
+#define MAX_DATA_BUFFERS	(256)		// power of two, must be >=128
+#define MAX_COMMAND_BUFFERS	(16)		// power of two, must be <=128
 #define OUT_OF_BUFFERS		(0xffffffff)
 
 //////////////////////////////////////////////////////////////////////////////

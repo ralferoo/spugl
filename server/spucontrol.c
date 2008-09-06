@@ -70,7 +70,7 @@ void *spu_main_program_thread(SPU_HANDLE context)
 		retval = spe_context_run(context->spe_ctx, &entry_point, 0, context->list, NULL, NULL);
 //		printf("exited at %x\n", entry_point);
 	} while (retval > 0);
-	printf("retval = %d\n", retval);
+//	printf("retval = %d\n", retval);
 	pthread_exit(NULL);
 }
 #endif

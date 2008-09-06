@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
 	CommandQueue* queue = SPUGL_allocateCommandQueue(server, 2047*1024);
 	if (queue==NULL) { printf("Out of memory\n"); exit(1); }
 
-	for (int q=0; q<60; q++) {
+	for (int q=0; q<4; q++) {
 		CommandQueue* queue = SPUGL_allocateCommandQueue(server, 2047*1024);
 		if (queue==NULL) { printf("Out of memory on extra queue %d\n", q); exit(1); }
 		unsigned int* ptr = (unsigned int*) ( ((void*)queue) + queue->write_ptr );
@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
 		__asm__("lwsync");
 	}
 
-	sleep(3);
+	sleep(1);
 
 	SPUGL_freeBuffer(buffer);	
 

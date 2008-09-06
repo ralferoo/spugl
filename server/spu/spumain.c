@@ -9,6 +9,8 @@
  *
  ****************************************************************************/
 
+#define FIFO_SIZE 1024
+
 //#include "spuregs.h" // all SPU files must include spuregs.h
 #include <spu_mfcio.h>
 #include <spu_intrinsics.h>
@@ -26,6 +28,12 @@ unsigned int eal_buffer_memory_table;
 
 ////////////////////////////////////////////////////////////////////////////////
 
+static unsigned char fifo_area[FIFO_SIZE] __attribute__((aligned(128)));
+static unsigned int fifo_eah = 0;
+static unsigned int fifo_eal = 0;
+static unsigned int fifo_len = 0;
+
+////////////////////////////////////////////////////////////////////////////////
 void process_queue(unsigned int id, volatile char* buf_ptr) {
 	unsigned int eal_memptr = eal_buffer_memory_table + id*sizeof(long long);
 
