@@ -96,7 +96,7 @@ texmap.sqf:	test
 	echo 'Texture Mapping Demo':`date '+%s'` >/tmp/texmap-build/.version
 	mksquashfs /tmp/texmap-build $@ -noappend
 	
-spugl-client/daemon.h: .git
+client/daemon.h: .git
 	./version.sh
 
 test.static:	$(PPU_TEST_OBJS) $(SPU_HNDL)
