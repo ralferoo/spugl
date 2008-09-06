@@ -103,6 +103,7 @@ unsigned int blockManagementAllocateBlock(void* ptr, int commandQueue)
 				signed char v = conv.a[j];
 				if (v < 0) {
 					_block_mgr_ea_table[i+j] = ea;
+					__asm__ volatile ("lwsync");
 					conv.a[j] = 1;
 					unsigned int value = conv.b;
 					__asm__ volatile ("stwcx. %2,%y1\n"
@@ -112,6 +113,7 @@ unsigned int blockManagementAllocateBlock(void* ptr, int commandQueue)
 						return (i+j) | (rand()<<16);
 					}
 					sched_yield();
+					printf("failed\n");
 					goto retry;
 				}
 			}
@@ -131,6 +133,7 @@ void blockManagementBlockCountDispose(unsigned int id)
 	unsigned int result;
 retry:
 	__asm__ volatile ("lwarx %0,%y1" : "=r" (result) : "Z" (*ptrp));     
+//	__asm__ volatile ("\n.retryDispose:\n\tlwarx %0,%y1" : "=r" (result) : "Z" (*ptrp));     
 
 	union { signed char a[4]; unsigned int b; } conv;
 	conv.b = result;
@@ -143,6 +146,7 @@ retry:
 		sched_yield();
 		goto retry;
 	}
+//	__asm__ volatile ("stwcx. %1,%y0\n\tbne- retryDispose" : "=Z" (*ptrp) : "r" (value));
 	blockManagementDebug();
 }
 

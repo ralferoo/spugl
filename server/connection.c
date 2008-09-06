@@ -9,7 +9,7 @@
  *
  ****************************************************************************/
 
-// #define DEBUG
+#define DEBUG
 
 #include <syslog.h>
 #include <stdio.h>
@@ -108,7 +108,7 @@ void processOutstandingRequests(Connection* connection) {
 		if (blockManagementTryFree(del->id)) {
 #ifdef DEBUG
 			char buffer[512];
-			sprintf(buffer, "freeing buffer %d at %x, size %d on fd %d", del->id, del->buffer, del->size, del->fd);
+			sprintf(buffer, "freeing buffer id %x at %x, size %d on fd %d", del->id, del->buffer, del->size, del->fd);
 			syslog(LOG_INFO, buffer);
 #endif
 
@@ -157,7 +157,7 @@ void allocateBuffer(Connection* connection, SPUGL_request* request, SPUGL_reply*
 	}
 
 	void* memory = mmap(NULL, request->alloc.size, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0);
-	if (memory==NULL) {
+	if (memory==NULL || memory==MAP_FAILED) {
 		close(mem_fd);
 #ifdef DEBUG
 		sprintf(buffer, "cannot mmap temporary file %s", filename);

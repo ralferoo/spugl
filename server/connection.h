@@ -19,10 +19,11 @@
 // relative to the EA of the lock buffers, which is what is initially
 // passed into the SPU function.
 //
-// This also must be a multiple of 128, and probably a power of 2.
+// The first MAX_COMMAND_BUFFERS are used only for command queues, the rest
+// are suitable for general purpose data.
 
-#define MAX_DATA_BUFFERS	1024
-#define MAX_COMMAND_BUFFERS	128
+#define MAX_DATA_BUFFERS	1024	// power of two, must be >=128
+#define MAX_COMMAND_BUFFERS	128	// power of two, must be <=128
 
 //////////////////////////////////////////////////////////////////////////////
 
