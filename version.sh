@@ -1,5 +1,5 @@
 #!/bin/sh
-TAG=`git tag`
+TAG=`git tag|tail -1`
 MAJOR=`echo $TAG|cut -d. -f1`
 MINOR=`echo $TAG|cut -d. -f2`
 CREVISION=`git rev-list $TAG..HEAD | wc -l`
