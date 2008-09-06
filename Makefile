@@ -96,8 +96,8 @@ texmap.sqf:	test
 	echo 'Texture Mapping Demo':`date '+%s'` >/tmp/texmap-build/.version
 	mksquashfs /tmp/texmap-build $@ -noappend
 	
-client/daemon.h: .git
-	./version.sh
+#client/daemon.h: .git
+#	./version.sh
 
 test.static:	$(PPU_TEST_OBJS) $(SPU_HNDL)
 	gcc -m$(USERLAND) -o test.static $(PPU_TEST_OBJS) $(SPU_HNDL) $(LIBS) -static
@@ -649,6 +649,7 @@ server/spu/spumain.0: /usr/include/bits/stdio_lim.h
 server/spu/spumain.0: /usr/include/bits/sys_errlist.h
 server/spu/spumain.0: /usr/include/bits/stdio-ldbl.h server/connection.h
 server/spu/spumain.0: client/queue.h
+
 
 
 
