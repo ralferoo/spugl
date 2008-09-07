@@ -19,5 +19,9 @@ struct __CommandQueue {
 	unsigned long write_ptr;	// relative to &write_ptr
 	unsigned long read_ptr;		// relative to &write_ptr
 
+	unsigned long buffer_start;
+	unsigned long buffer_end;
+	unsigned long pad[128/4 - 4];	// doesn't really need to be reserved, but might as well be
+
 	unsigned long data[0];
 };

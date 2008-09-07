@@ -14,6 +14,7 @@
 
 #include "client/daemon.h"
 #include "client/client.h"
+#include "client/fifo.h"
 
 int main(int argc, char* argv[]) {
 	int server = SPUGL_connect();
@@ -46,27 +47,27 @@ int main(int argc, char* argv[]) {
 
 	SPUGL_currentContext(queue);
 
-	unsigned int* ptr = (unsigned int*) ( ((void*)queue) + queue->write_ptr );
-	*ptr++ = 0;
-	__asm__("lwsync");
-	queue->write_ptr = ((void*)ptr) - ((void*)queue);
-	__asm__("lwsync");
+	unsigned int start = queue->write_ptr;
+{
+	FIFO_PROLOGUE(queue,10);
+	BEGIN_RING(FIFO_COMMAND_NOP,0);
+	FIFO_EPILOGUE();
+}
 
 	for (int i=0; i<4; i++) {
 		usleep(500000);
-		*ptr++ = 0;
-		__asm__("lwsync");
-		queue->write_ptr = ((void*)ptr) - ((void*)queue);
-		__asm__("lwsync");
+		FIFO_PROLOGUE(queue,10);
+		BEGIN_RING(FIFO_COMMAND_NOP,0);
+		FIFO_EPILOGUE();
 	}
 
 	sleep(1);
-
-		*ptr++ = 1 | (1<<24);
-		*ptr++ = 8;
-		__asm__("lwsync");
-		queue->write_ptr = ((void*)ptr) - ((void*)queue);
-		__asm__("lwsync");
+{
+	FIFO_PROLOGUE(queue,10);
+	BEGIN_RING(FIFO_COMMAND_JUMP,1);
+	OUT_RING(start);
+	FIFO_EPILOGUE();
+}
 	sleep(2);
 
 	SPUGL_freeBuffer(buffer);	

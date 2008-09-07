@@ -196,12 +196,13 @@ void allocateBuffer(Connection* connection, SPUGL_request* request, SPUGL_reply*
 	} else {
 		int flags = 0;
 		if (commandQueue) {
-			// initialise queue pointers to first bit of free buffer
+			// initialise queue pointers to first bit of free buffer (done before allocateBlock)
 			CommandQueue* queue = (CommandQueue*) memory;
 			unsigned int buf_start =
 				((void*)(&queue->data[0])) - ((void*)&queue->write_ptr);
 			memset(queue, 0, buf_start);
-			queue->write_ptr = queue->read_ptr = buf_start;
+			queue->buffer_start = queue->write_ptr = queue->read_ptr = buf_start;
+			queue->buffer_end = request->alloc.size;
 			flags |= ALLOCATION_FLAGS_ISCOMMANDQUEUE;
 		}
 
@@ -210,7 +211,7 @@ void allocateBuffer(Connection* connection, SPUGL_request* request, SPUGL_reply*
 		n->fd = mem_fd;
 		n->buffer = memory;
 		n->size = request->alloc.size;
-		n->id = blockManagementAllocateBlock(memory, commandQueue);
+		n->id = blockManagementAllocateBlock(memory, commandQueue);	// triggers SPU... ;)
 		n->flags = flags;
 		n->locks = 1;
 
