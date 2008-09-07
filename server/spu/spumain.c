@@ -38,12 +38,12 @@ static unsigned int fifo_len = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef int SPU_COMMAND(unsigned int *data, unsigned int queue_id);
+typedef int FIFO_COMMAND(unsigned int *data, unsigned int queue_id);
 
 #include "../../client/gen_command_defs.h"	// numeric definitions
 #include "gen_command_exts.h"			// extern definitions
 
-SPU_COMMAND* spu_commands[] = {
+FIFO_COMMAND* fifo_commands[] = {
 	#include "gen_command_table.h"		// table entries
 };
 
@@ -90,15 +90,14 @@ retry_loop:		;
 				unsigned int command = cmd & ((1<<24)-1);
 				if (upto >= (rptr+4 + 4*size)) {
 					// process function from cmd_buf
-					SPU_COMMAND *func = command < sizeof(spu_commands)
-								? spu_commands[command] : 0;
+					FIFO_COMMAND *func = command < sizeof(fifo_commands) ? fifo_commands[command] : 0;
 					if (func) {
 #ifdef DEBUG
 						printf("[%02x:%08x] command %x, data length %d\n",
 								id, rptr, command, size);
 #endif
 						if ( (*func)(cmd_buf, id) ) {
-							if (command != SPU_COMMAND_JUMP) {
+							if (command != FIFO_COMMAND_JUMP) {
 								// cannot process at the moment, try another queue
 								return;
 							}

@@ -14,9 +14,9 @@ while (<>) {
 #		$name=~s/_//g;
 		$name=~tr/[a-z]/[A-Z]/;
 
-		print DEF "#define SPU_COMMAND$name $ord\n";
-		print EXT "extern SPU_COMMAND imp$real;\n";
-		print TBL "[SPU_COMMAND$name] = (SPU_COMMAND*) &imp$real,\n";
+		print DEF "#define FIFO_COMMAND$name $ord\n";
+		print EXT "extern FIFO_COMMAND imp$real;\n";
+		print TBL "[FIFO_COMMAND$name] = (FIFO_COMMAND*) &imp$real,\n";
 
 		if (defined($x{$ord})) {
 			die "Ordinal $ord redefined on 'imp$real', previous definition was 'imp$x{$ord}'\n";

@@ -11,8 +11,8 @@
 
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 2
-#define VERSION_REVISION 8
-#define VERSION_STRING "0.2.8"
+#define VERSION_REVISION 9
+#define VERSION_STRING "0.2.9"
 
 typedef struct __SPUGL_request SPUGL_request;
 typedef struct __SPUGL_reply SPUGL_reply;

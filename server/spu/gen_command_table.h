@@ -1,2 +1,2 @@
-[SPU_COMMAND_NOP] = (SPU_COMMAND*) &imp_nop,
-[SPU_COMMAND_JUMP] = (SPU_COMMAND*) &imp_jump,
+[FIFO_COMMAND_NOP] = (FIFO_COMMAND*) &imp_nop,
+[FIFO_COMMAND_JUMP] = (FIFO_COMMAND*) &imp_jump,
