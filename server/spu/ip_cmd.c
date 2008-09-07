@@ -9,12 +9,13 @@
  *
  ****************************************************************************/
 
-/*0*/void* imp_nop(void* p) {
+/*0*/int imp_nop(void* p) {
 	printf("NOP\n");
 	return 0;
 }
 
-/*1*/void* imp_jump(unsigned int *from, unsigned int id, unsigned int *ip) {
+/*1*/int imp_jump(unsigned int *from, unsigned int id, unsigned int *ip) {
+	printf("JMP %x\n", *from);
 	*ip = *from;
 	return 1;
 }

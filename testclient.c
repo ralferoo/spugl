@@ -62,6 +62,13 @@ int main(int argc, char* argv[]) {
 
 	sleep(1);
 
+		*ptr++ = 1 | (1<<24);
+		*ptr++ = 8;
+		__asm__("lwsync");
+		queue->write_ptr = ((void*)ptr) - ((void*)queue);
+		__asm__("lwsync");
+	sleep(2);
+
 	SPUGL_freeBuffer(buffer);	
 
 	SPUGL_flush(queue);

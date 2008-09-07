@@ -70,8 +70,9 @@ void process_queue(unsigned int id, volatile char* buf_ptr) {
 	
 	unsigned int wptr = queue->write_ptr;
 	unsigned int rptr = queue->read_ptr;
+	unsigned int cont = 1;
 
-	while (wptr != rptr) {
+	while (cont && wptr != rptr) {
 //		printf("could process queue %x at %x:%x, buffer %x:%x, write %x, read %x\n",
 //			id, eah_buffer_tables, eal_memptr, eah, eal, queue->write_ptr, queue->read_ptr);
 
@@ -96,7 +97,9 @@ retry_loop:		;
 						if ( (*func)(cmd_buf, id, &rptr) ) {
 							// positive return from func indicates error or
 							// that it has modified rptr
-							return;
+							cont = 0;
+							goto retry_update;
+							// return;
 						}
 					} else {
 						printf("[%02x:%08x] INVALID COMMAND %x, data length %d\n",

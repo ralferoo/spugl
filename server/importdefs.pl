@@ -7,7 +7,7 @@ open(TBL, ">server/spu/gen_command_table.h") || die "Can't open table file\n";
 @x=();
 
 while (<>) {
-	if (/^\s*\/\*\s*(\d+)\s*\*\/void\s*\*\s*imp([^\s(]*)\s*\(\s*\w*\s*\*\s*/) {
+	if (/^\s*\/\*\s*(\d+)\s*\*\/int\s*imp([^\s(]*)\s*\(\s*\w*\s*(\w*\s*)\*\s*/) {
 		($ord,$name,$real)=($1,$2,$2);
 
 		while ($name=~s/([A-Z])/sprintf("_%c",ord($1)+32)/seg) {}
