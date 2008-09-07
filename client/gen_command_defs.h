@@ -1,0 +1,1 @@
+#define SPU_COMMAND_NOP 0

@@ -28,8 +28,8 @@ PPUCC = gcc
 PPUCCFLAGS = -c -ggdb -m$(USERLAND) $(LIBSPE2) -DUSERLAND_$(USERLAND)_BITS -I. -Wno-trigraphs -std=gnu99
 
 NEWSPUCC = cellgcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -I/usr/include
-SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -fpic
-SPUCCFLAGS = -O6 -I. -DSPU_REGS
+SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -fpic -I.
+SPUCCFLAGS = -O6 -DSPU_REGS
 
 TEXTURES_C := $(wildcard textures/*.c)
 TEXTURES := $(patsubst %.c,%.o,$(TEXTURES_C))
@@ -150,6 +150,14 @@ ppufifo.o: Makefile
 shader.s: queue.h
 #ppufifo.o: Makefile .gen
 spufifo.0: Makefile $(GENPRODUCTS)
+
+NEW_GEN_SOURCES := $(wildcard server/spu/*_cmd.c)
+client/gen_command_defs.h: .gennew
+server/spu/gen_command_exts.h: .gennew
+server/spu/gen_command_table.h: .gennew
+.gennew: server/importdefs.pl $(NEW_GEN_SOURCES)
+	perl server/importdefs.pl $(NEW_GEN_SOURCES)
+	@touch .gennew
 
 gen_spu_command_defs.h: .gen
 gen_spu_command_exts.h: .gen
@@ -648,4 +656,6 @@ server/spu/spumain.0: /usr/include/bits/libio-ldbl.h
 server/spu/spumain.0: /usr/include/bits/stdio_lim.h
 server/spu/spumain.0: /usr/include/bits/sys_errlist.h
 server/spu/spumain.0: /usr/include/bits/stdio-ldbl.h server/connection.h
-server/spu/spumain.0: client/queue.h
+server/spu/spumain.0: client/queue.h client/gen_command_defs.h
+server/spu/spumain.0: server/spu/gen_command_exts.h
+server/spu/spumain.0: server/spu/gen_command_table.h

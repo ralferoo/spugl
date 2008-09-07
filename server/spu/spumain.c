@@ -35,6 +35,19 @@ static unsigned int fifo_ofs = 0;
 static unsigned int fifo_len = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
+
+typedef int SPU_COMMAND(unsigned int *data, unsigned int queue_id, unsigned int *instruction_ptr);
+
+#include "../../client/gen_command_defs.h"	// numeric definitions
+#include "gen_command_exts.h"			// extern definitions
+
+SPU_COMMAND* spu_commands[] = {
+	#include "gen_command_table.h"		// table entries
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
+
 void process_queue(unsigned int id, volatile char* buf_ptr) {
 	unsigned int eal_memptr = eal_buffer_memory_table + id*sizeof(long long);
 
@@ -43,7 +56,7 @@ void process_queue(unsigned int id, volatile char* buf_ptr) {
 	mfc_write_tag_mask(1<<0);							// tag 0
 	mfc_read_tag_status_all();							// wait for read
 
-	volatile long long* long_ptr = (volatile long*) (buf_ptr + (eal_memptr&8) );
+	volatile long long* long_ptr = (volatile long long*) (buf_ptr + (eal_memptr&8) );
 	long long ea = *long_ptr;
 	unsigned int eah = ea>>32;
 	unsigned int eal = ea&0xffffffff;
@@ -75,7 +88,20 @@ retry_loop:		;
 				unsigned int command = cmd & ((1<<24)-1);
 				if (upto >= (rptr+4 + 4*size)) {
 					// process function from cmd_buf
-					printf("[%02x:%08x] command %x, data length %d\n", id, rptr, command, size);
+					SPU_COMMAND *func = command < sizeof(spu_commands)
+								? spu_commands[command] : 0;
+					if (func) {
+						printf("[%02x:%08x] command %x, data length %d\n",
+								id, rptr, command, size);
+						if ( (*func)(cmd_buf, id, &rptr) ) {
+							// positive return from func indicates error or
+							// that it has modified rptr
+							return;
+						}
+					} else {
+						printf("[%02x:%08x] INVALID COMMAND %x, data length %d\n",
+								id, rptr, command, size);
+					}
 
 					// update read ptr
 					rptr += 4 + 4*size;

@@ -6,6 +6,17 @@
 # embeddable SPU executable
 *.spe
 .gen
+.gennew
 test
 #source dist
 *.tar.gz
+#outputs
+spugld
+spugld.debug
+spugl.a
+testclient
+version.txt
+#symlink to spu includes
+z
+#junk
+Makefile.bak

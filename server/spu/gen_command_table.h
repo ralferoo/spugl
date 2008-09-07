@@ -1,0 +1,1 @@
+[SPU_COMMAND_NOP] = (SPU_COMMAND*) &imp_nop,
