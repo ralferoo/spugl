@@ -50,7 +50,6 @@ void blockManagementDebug()
 		*next++ = c;
 	}
 	*++last = 0;
-//	*next = 0;
 	printf("DEBUG: %s\n", buffer);
 #endif
 }
