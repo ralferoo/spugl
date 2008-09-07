@@ -17,6 +17,27 @@
 
 //////////////////////////////////////////////////////////////////////////////
 
+struct __CommandQueue {
+	unsigned long write_ptr;	// relative to &write_ptr
+	unsigned long read_ptr;		// relative to &write_ptr
+
+	unsigned long buffer_start;
+	unsigned long buffer_end;
+	unsigned long pad[128/4 - 4];	// doesn't really need to be reserved, but might as well be
+
+	unsigned long data[0];
+};
+
+//////////////////////////////////////////////////////////////////////////////
+
+union __f2i
+{
+  float f;
+  unsigned int i;
+};
+
+#ifdef __PPC__
+
 #define FIFO_PROLOGUE(fifo,minsize) \
 CommandQueue* __fifo = (fifo); \
 unsigned int* __fifo_ptr = _begin_fifo(__fifo, (minsize)*4);
@@ -27,12 +48,6 @@ __fifo_ptr = 0UL;
 #define OUT_RING(v) { *(__fifo_ptr)++ = (unsigned int)v; }
 #define OUT_RINGf(v) { union __f2i temp; temp.f = v;  *(__fifo_ptr)++ = temp.i; }
 #define BEGIN_RING(c,s) OUT_RING(c | (s<<24))
-
-union __f2i
-{
-  float f;
-  unsigned int i;
-};
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -46,5 +61,7 @@ inline void _end_fifo(CommandQueue* queue, unsigned int* ptr) {
 	queue->write_ptr = ((void*)ptr) - ((void*)queue);
 	__asm__("lwsync");
 }
+
+#endif // __PPC__
 
 #endif //  __client_fifo_h

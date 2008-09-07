@@ -19,7 +19,7 @@
 #include <stdio.h>
 
 #include "../connection.h"
-#include "../../client/queue.h"
+#include "../../client/fifo.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 //

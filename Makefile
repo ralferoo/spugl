@@ -472,7 +472,10 @@ server/connection.o: /usr/include/bits/uio.h /usr/include/bits/socket.h
 server/connection.o: /usr/lib/gcc/spu/4.0.2/include/limits.h
 server/connection.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
 server/connection.o: /usr/include/asm/sockios.h server/connection.h
-server/connection.o: server/ppufuncs.h client/queue.h client/daemon.h
+server/connection.o: server/ppufuncs.h client/fifo.h queue.h types.h
+server/connection.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+server/connection.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
+server/connection.o: client/gen_command_defs.h client/daemon.h
 server/main.o: /usr/include/stdio.h /usr/include/features.h
 server/main.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 server/main.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -656,6 +659,6 @@ server/spu/spumain.0: /usr/include/bits/libio-ldbl.h
 server/spu/spumain.0: /usr/include/bits/stdio_lim.h
 server/spu/spumain.0: /usr/include/bits/sys_errlist.h
 server/spu/spumain.0: /usr/include/bits/stdio-ldbl.h server/connection.h
-server/spu/spumain.0: client/queue.h client/gen_command_defs.h
-server/spu/spumain.0: server/spu/gen_command_exts.h
+server/spu/spumain.0: client/fifo.h queue.h types.h client/gen_command_defs.h
+server/spu/spumain.0: client/gen_command_defs.h server/spu/gen_command_exts.h
 server/spu/spumain.0: server/spu/gen_command_table.h
