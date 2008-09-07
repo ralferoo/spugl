@@ -9,6 +9,8 @@
  *
  ****************************************************************************/
 
+// #define DEBUG
+
 #define FIFO_SIZE 1024
 
 //#include "spuregs.h" // all SPU files must include spuregs.h
@@ -36,7 +38,7 @@ static unsigned int fifo_len = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef int SPU_COMMAND(unsigned int *data, unsigned int queue_id, unsigned int *instruction_ptr);
+typedef int SPU_COMMAND(unsigned int *data, unsigned int queue_id);
 
 #include "../../client/gen_command_defs.h"	// numeric definitions
 #include "gen_command_exts.h"			// extern definitions
@@ -70,9 +72,8 @@ void process_queue(unsigned int id, volatile char* buf_ptr) {
 	
 	unsigned int wptr = queue->write_ptr;
 	unsigned int rptr = queue->read_ptr;
-	unsigned int cont = 1;
 
-	while (cont && wptr != rptr) {
+	while (wptr != rptr) {
 //		printf("could process queue %x at %x:%x, buffer %x:%x, write %x, read %x\n",
 //			id, eah_buffer_tables, eal_memptr, eah, eal, queue->write_ptr, queue->read_ptr);
 
@@ -92,18 +93,39 @@ retry_loop:		;
 					SPU_COMMAND *func = command < sizeof(spu_commands)
 								? spu_commands[command] : 0;
 					if (func) {
+#ifdef DEBUG
 						printf("[%02x:%08x] command %x, data length %d\n",
 								id, rptr, command, size);
-						if ( (*func)(cmd_buf, id, &rptr) ) {
-							// positive return from func indicates error or
-							// that it has modified rptr
-							cont = 0;
-							goto retry_update;
-							// return;
+#endif
+						if ( (*func)(cmd_buf, id) ) {
+							if (command != SPU_COMMAND_JUMP) {
+								// cannot process at the moment, try another queue
+								return;
+							}
+							// otherwise we're processing a JUMP, update pointer
+							rptr = *cmd_buf;
+
+							// invalidate FIFO
+							fifo_eah = fifo_eal = 0;
+
+							// write the JUMP target address back
+retry_jump:
+							queue->read_ptr = rptr;
+							spu_mfcdma64(buf_ptr, eah, eal, 128, 0, MFC_PUTLLC_CMD);
+							unsigned int status = spu_readch(MFC_RdAtomicStat);
+							if (status & MFC_PUTLLC_STATUS) {
+								// data is dirty, reload it and attempt the write again
+								spu_mfcdma64(buf_ptr, eah, eal, 128, 0, MFC_GETLLAR_CMD);
+								spu_readch(MFC_RdAtomicStat);
+								goto retry_jump;
+							}
+							return;
 						}
 					} else {
+#ifdef DEBUG
 						printf("[%02x:%08x] INVALID COMMAND %x, data length %d\n",
 								id, rptr, command, size);
+#endif
 					}
 
 					// update read ptr
@@ -136,6 +158,9 @@ retry_update:
 			fifo_len = FIFO_SIZE;			// if fifo_len>FIFO_SIZE, cap at FIFO_SIZE
 
 		long long fifo_ea = ea + fifo_ofs;
+#ifdef DEBUG
+		printf("DMA %llx len %d\n", fifo_ea, fifo_len);
+#endif
 		spu_mfcdma64(&fifo_area[0], mfc_ea2h(fifo_ea), mfc_ea2l(fifo_ea),
 				(fifo_len+127) & ~127, 0, MFC_GET_CMD);		// tag 0
 		fifo_eah = eah;

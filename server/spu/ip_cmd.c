@@ -14,8 +14,7 @@
 	return 0;
 }
 
-/*1*/int imp_jump(unsigned int *from, unsigned int id, unsigned int *ip) {
-	printf("JMP %x\n", *from);
-	*ip = *from;
+/*1*/int imp_jump(unsigned int *from, unsigned int id) {
+	printf("JUMP %x\n", *from);
 	return 1;
 }
