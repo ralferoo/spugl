@@ -14,7 +14,7 @@
 
 #include "client/daemon.h"
 #include "client/client.h"
-#include "client/fifo.h"
+// #include "client/fifo.h"
 
 int main(int argc, char* argv[]) {
 	int server = SPUGL_connect();
