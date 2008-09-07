@@ -31,6 +31,7 @@ unsigned int eal_buffer_memory_table;
 static unsigned char fifo_area[FIFO_SIZE] __attribute__((aligned(128)));
 static unsigned int fifo_eah = 0;
 static unsigned int fifo_eal = 0;
+static unsigned int fifo_ofs = 0;
 static unsigned int fifo_len = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -42,9 +43,10 @@ void process_queue(unsigned int id, volatile char* buf_ptr) {
 	mfc_write_tag_mask(1<<0);							// tag 0
 	mfc_read_tag_status_all();							// wait for read
 
-	volatile long* long_ptr = (volatile long*) (buf_ptr + (eal_memptr&8) );
-	unsigned int eah = long_ptr[0];
-	unsigned int eal = long_ptr[1];
+	volatile long long* long_ptr = (volatile long*) (buf_ptr + (eal_memptr&8) );
+	long long ea = *long_ptr;
+	unsigned int eah = ea>>32;
+	unsigned int eal = ea&0xffffffff;
 
 	// now, read/lock the command queue initial data structure
 	spu_mfcdma64(buf_ptr, eah, eal, 128, 0, MFC_GETLLAR_CMD);
@@ -57,27 +59,64 @@ void process_queue(unsigned int id, volatile char* buf_ptr) {
 	unsigned int rptr = queue->read_ptr;
 
 	while (wptr != rptr) {
-		printf("could process queue %x at %x:%x, buffer %x:%x, write %x, read %x\n", 
-			id, eah_buffer_tables, eal_memptr, eah, eal, queue->write_ptr, queue->read_ptr);
+//		printf("could process queue %x at %x:%x, buffer %x:%x, write %x, read %x\n",
+//			id, eah_buffer_tables, eal_memptr, eah, eal, queue->write_ptr, queue->read_ptr);
 
 		// process here
-		rptr = wptr;
+		if (eah == fifo_eah && eal == fifo_eal) {
+retry_loop:		;
+			unsigned int upto = fifo_ofs + fifo_len;
+			if (fifo_ofs <= rptr && upto >= (rptr+4) ) {
+				// we have at least one word in the buffer, can read the command
+				void *start_cmd = &fifo_area[rptr-fifo_ofs];
+				unsigned int *cmd_buf = (unsigned int*) start_cmd;
+				unsigned int cmd = *cmd_buf++;
+				int size = cmd>>24;
+				unsigned int command = cmd & ((1<<24)-1);
+				if (upto >= (rptr+4 + 4*size)) {
+					// process function from cmd_buf
+					printf("[%02x:%08x] command %x, data length %d\n", id, rptr, command, size);
+
+					// update read ptr
+					rptr += 4 + 4*size;
 retry_update:
-		queue->read_ptr = rptr;
+					// attempt to store the current read pointer
+					queue->read_ptr = rptr;
+					spu_mfcdma64(buf_ptr, eah, eal, 128, 0, MFC_PUTLLC_CMD);
+					unsigned int status = spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS;
+					if (status) {
+						// data is dirty, reload it and attempt the write again
+						spu_mfcdma64(buf_ptr, eah, eal, 128, 0, MFC_GETLLAR_CMD);
+						spu_readch(MFC_RdAtomicStat);
+						goto retry_update;
+					}
 
-		// now, flush the data back to the buffer
-		spu_mfcdma64(buf_ptr, eah, eal, 128, 0, MFC_PUTLLC_CMD);
-		unsigned int status = spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS;
-		if (status) {
-			// data is dirty, reload it and attempt the write again
-			spu_mfcdma64(buf_ptr, eah, eal, 128, 0, MFC_GETLLAR_CMD);
-			spu_readch(MFC_RdAtomicStat);
-			goto retry_update;
-		}
+					// check to see if any new data arrived and attempt to process it
+					wptr = queue->write_ptr;
+					continue;		// drop back to while loop
+				} // fifo contains command word, but not data
+			} // fifo doesn't contain single command word
 
-		// check to see if any new data arrived
-		wptr = queue->write_ptr;
-	}
+		} // fifo_eah, fifo_eal
+
+
+		// cache isn't sufficient, re-read cache
+		fifo_ofs = rptr & ~127;
+		fifo_len = wptr - fifo_ofs;
+		if (wptr < rptr || fifo_len>FIFO_SIZE)		// if wptr<rptr we have no idea how big buffer is
+			fifo_len = FIFO_SIZE;			// if fifo_len>FIFO_SIZE, cap at FIFO_SIZE
+
+		long long fifo_ea = ea + fifo_ofs;
+		spu_mfcdma64(&fifo_area[0], mfc_ea2h(fifo_ea), mfc_ea2l(fifo_ea),
+				(fifo_len+127) & ~127, 0, MFC_GET_CMD);		// tag 0
+		fifo_eah = eah;
+		fifo_eal = eal;
+		mfc_write_tag_mask(1<<0);					// tag 0
+		mfc_read_tag_status_all();					// wait for read
+
+		// rejoin while loop and reprocess now we have the data
+		goto retry_loop;					// could just fall through, but skip the if
+	} // while
 
 }
 

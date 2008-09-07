@@ -47,6 +47,24 @@ commands such as JMP so that the client can re-use the start of the buffer
 when nearing the end and POKE so that the processing core can signal events
 back to the client.
 
+Syncronisation and caching
+--------------------------
+
+From the PPU side, it is sufficient just to write to the address to update
+the pointer. You should, however, output a "lwsync" instruction before
+updating the write pointer so that the queue is definitely flushed to main
+memory before the write pointer. The final "lwsync" ensures that the pointer
+is definitely flushed to main memory. This is actually less important as
+it will be flushed eventually.
+
+If you are populating the FIFO buffer with an SPU, it is important that
+the pointer block (128 bytes) are written only using MFC commands GETLLAR
+and PUTLLC, as the rendering SPU also stores its read pointer in this block
+and failure to lock whilst updating could cause the read pointer to be
+overwritten with out-of-date data. The rendering SPU also uses these
+primitives to synchronise this block, however the PPU doesn't need to as
+simply writing to the write ptr is sufficient to invalidate the SPU lock.
+
 Managing resources
 ------------------
 
