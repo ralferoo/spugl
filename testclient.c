@@ -29,11 +29,9 @@ int main(int argc, char* argv[]) {
 	for (int q=0; q<4; q++) {
 		CommandQueue* queue = SPUGL_allocateCommandQueue(server, 2047*1024);
 		if (queue==NULL) { printf("Out of memory on extra queue %d\n", q); exit(1); }
-		unsigned int* ptr = (unsigned int*) ( ((void*)queue) + queue->write_ptr );
-		*ptr++ = 0;
-		__asm__("lwsync");
-		queue->write_ptr = ((void*)ptr) - ((void*)queue);
-		__asm__("lwsync");
+		FIFO_PROLOGUE(queue,10);
+		BEGIN_RING(FIFO_COMMAND_NOP,0);
+		FIFO_EPILOGUE();
 	}
 
 	void* buffer2 = SPUGL_allocateBuffer(server, 1024);
