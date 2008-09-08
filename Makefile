@@ -660,5 +660,6 @@ server/spu/spumain.0: /usr/include/bits/stdio_lim.h
 server/spu/spumain.0: /usr/include/bits/sys_errlist.h
 server/spu/spumain.0: /usr/include/bits/stdio-ldbl.h server/connection.h
 server/spu/spumain.0: client/fifo.h queue.h types.h client/gen_command_defs.h
-server/spu/spumain.0: client/gen_command_defs.h server/spu/gen_command_exts.h
+server/spu/spumain.0: server/spu/spucontext.h client/gen_command_defs.h
+server/spu/spumain.0: server/spu/gen_command_exts.h
 server/spu/spumain.0: server/spu/gen_command_table.h

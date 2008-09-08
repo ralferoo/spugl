@@ -9,12 +9,11 @@
  *
  ****************************************************************************/
 
-/*0*/int imp_nop(void* p) {
-	printf("NOP\n");
-	return 0;
-}
+#ifndef __SPU_SPUCONTEXT_H
+#define __SPU_SPUCONTEXT_H
 
-/*1*/int imp_jump(unsigned int *from) {
-	printf("JUMP %x\n", *from);
-	return 1;
-}
+typedef struct {
+	unsigned long x;
+} Context;
+
+#endif // __SPU_SPUCONTEXT_H

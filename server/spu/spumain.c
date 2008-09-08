@@ -20,6 +20,7 @@
 
 #include "../connection.h"
 #include "../../client/fifo.h"
+#include "spucontext.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -36,9 +37,11 @@ static unsigned int fifo_eal = 0;
 static unsigned int fifo_ofs = 0;
 static unsigned int fifo_len = 0;
 
+static Context _contexts[MAX_COMMAND_BUFFERS];
+
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef int FIFO_COMMAND(unsigned int *data, unsigned int queue_id);
+typedef int FIFO_COMMAND(unsigned int *data, Context* context);
 
 #include "../../client/gen_command_defs.h"	// numeric definitions
 #include "gen_command_exts.h"			// extern definitions
@@ -73,6 +76,8 @@ void process_queue(unsigned int id, volatile char* buf_ptr) {
 	unsigned int wptr = queue->write_ptr;
 	unsigned int rptr = queue->read_ptr;
 
+	Context *context = &_contexts[id];
+
 	while (wptr != rptr) {
 //		printf("could process queue %x at %x:%x, buffer %x:%x, write %x, read %x\n",
 //			id, eah_buffer_tables, eal_memptr, eah, eal, queue->write_ptr, queue->read_ptr);
@@ -96,7 +101,7 @@ retry_loop:		;
 						printf("[%02x:%08x] command %x, data length %d\n",
 								id, rptr, command, size);
 #endif
-						if ( (*func)(cmd_buf, id) ) {
+						if ( (*func)(cmd_buf, context) ) {
 							if (command != FIFO_COMMAND_JUMP) {
 								// cannot process at the moment, try another queue
 								return;

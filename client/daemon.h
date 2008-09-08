@@ -22,6 +22,9 @@ typedef struct __SPUGL_reply SPUGL_reply;
 // This is the structure of the socket level communcations between client
 // and server
 
+// TODO: this needs to be made compatible across PPC and PPC64; PPC64 seems to
+// TODO: be doing some very wacky alignment stuff... :(
+
 struct __SPUGL_request {
 	union {
 		struct {
