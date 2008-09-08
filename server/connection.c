@@ -25,7 +25,7 @@
 
 #include "connection.h"
 #include "ppufuncs.h"
-#include "../client/fifo.h"
+#include "../client/fifodefs.h"
 #include "../client/daemon.h"
 
 char SPUGL_VERSION[] = "spugl version " VERSION_STRING;

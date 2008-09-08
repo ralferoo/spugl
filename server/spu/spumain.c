@@ -19,7 +19,7 @@
 #include <stdio.h>
 
 #include "../connection.h"
-#include "../../client/fifo.h"
+#include "../../client/fifodefs.h"
 #include "spucontext.h"
 
 ////////////////////////////////////////////////////////////////////////////////

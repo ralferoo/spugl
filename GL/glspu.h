@@ -10,6 +10,10 @@
 
 #include <GL/gl.h>
 
+GLAPI void GLAPIENTRY glspuNop(void);
+GLAPI unsigned int glspuTarget();
+GLAPI void GLAPIENTRY glspuJump(unsigned int target);
+
 GLAPI void GLAPIENTRY glspuSetup(char* dumpName);
 GLAPI void GLAPIENTRY glspuDestroy(void);
 GLAPI void GLAPIENTRY glspuFlip(void);

@@ -24,6 +24,8 @@
 	context->modelview_matrix_z = z;
 	context->modelview_matrix_w = w;
 
+	printf("MODELVIEW MATRIX\n");
+
 	return 0;
 }
 
@@ -38,6 +40,8 @@
 	context->projection_matrix_z = z;
 	context->projection_matrix_w = w;
 
+	printf("PROJECTION MATRIX\n");
+
 	return 0;
 }
 
@@ -51,6 +55,8 @@
 	context->texture_matrix_y = y;
 	context->texture_matrix_z = z;
 	context->texture_matrix_w = w;
+
+	printf("TEXTURE MATRIX\n");
 
 	return 0;
 }

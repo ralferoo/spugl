@@ -9,14 +9,90 @@
  *
  ****************************************************************************/
 
-#ifdef __DONT_INCLUDE
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 
-#include "fifo.h"
+#include "fifodefs.h"
 #include <GL/gl.h>
+
+GLAPI void GLAPIENTRY glspuNop()
+{
+	FIFO_PROLOGUE(1);
+	BEGIN_RING(FIFO_COMMAND_NOP,0);
+	FIFO_EPILOGUE();
+}
+
+GLAPI unsigned int glspuTarget()
+{
+	return _SPUGL_fifo->write_ptr;
+}
+
+GLAPI void GLAPIENTRY glspuJump(unsigned int target)
+{
+	FIFO_PROLOGUE(1);
+	BEGIN_RING(FIFO_COMMAND_JUMP,1);
+	OUT_RING(target);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glLoadMatrixd(const GLdouble* mat)
+{
+	FIFO_PROLOGUE(20);
+	BEGIN_RING(FIFO_COMMAND_LOAD_MODELVIEW_MATRIX,16);
+	OUT_RINGf(mat[0]);
+	OUT_RINGf(mat[1]);
+	OUT_RINGf(mat[2]);
+	OUT_RINGf(mat[3]);
+	OUT_RINGf(mat[4]);
+	OUT_RINGf(mat[5]);
+	OUT_RINGf(mat[6]);
+	OUT_RINGf(mat[7]);
+	OUT_RINGf(mat[8]);
+	OUT_RINGf(mat[9]);
+	OUT_RINGf(mat[10]);
+	OUT_RINGf(mat[11]);
+	OUT_RINGf(mat[12]);
+	OUT_RINGf(mat[13]);
+	OUT_RINGf(mat[14]);
+	OUT_RINGf(mat[15]);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glLoadMatrixf(const GLfloat* mat)
+{
+	FIFO_PROLOGUE(20);
+	BEGIN_RING(FIFO_COMMAND_LOAD_MODELVIEW_MATRIX,16);
+	OUT_RINGf(mat[0]);
+	OUT_RINGf(mat[1]);
+	OUT_RINGf(mat[2]);
+	OUT_RINGf(mat[3]);
+	OUT_RINGf(mat[4]);
+	OUT_RINGf(mat[5]);
+	OUT_RINGf(mat[6]);
+	OUT_RINGf(mat[7]);
+	OUT_RINGf(mat[8]);
+	OUT_RINGf(mat[9]);
+	OUT_RINGf(mat[10]);
+	OUT_RINGf(mat[11]);
+	OUT_RINGf(mat[12]);
+	OUT_RINGf(mat[13]);
+	OUT_RINGf(mat[14]);
+	OUT_RINGf(mat[15]);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glLoadIdentity( void )
+{
+	static const float identity[16] = {
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f};
+	glLoadMatrixf(&identity);
+}
+
+#ifdef __DONT_INCLUDE
 
 extern BitmapImage _getScreen(char* dumpName);
 extern void _closeScreen(void);
@@ -240,52 +316,6 @@ GLAPI void GLAPIENTRY calculateMipmap(void* tl, void* tr, void* bl, void* br, vo
 	OUT_RINGea(bl);
 	OUT_RINGea(br);
 	OUT_RINGea(o);
-	FIFO_EPILOGUE();
-}
-
-GLAPI void GLAPIENTRY glLoadMatrixd(const GLdouble* mat)
-{
-	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_MATRIX,16,0);
-	OUT_RINGf(mat[0]);
-	OUT_RINGf(mat[1]);
-	OUT_RINGf(mat[2]);
-	OUT_RINGf(mat[3]);
-	OUT_RINGf(mat[4]);
-	OUT_RINGf(mat[5]);
-	OUT_RINGf(mat[6]);
-	OUT_RINGf(mat[7]);
-	OUT_RINGf(mat[8]);
-	OUT_RINGf(mat[9]);
-	OUT_RINGf(mat[10]);
-	OUT_RINGf(mat[11]);
-	OUT_RINGf(mat[12]);
-	OUT_RINGf(mat[13]);
-	OUT_RINGf(mat[14]);
-	OUT_RINGf(mat[15]);
-	FIFO_EPILOGUE();
-}
-
-GLAPI void GLAPIENTRY glLoadMatrixf(const GLfloat* mat)
-{
-	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_MATRIX,16,0);
-	OUT_RINGf(mat[0]);
-	OUT_RINGf(mat[1]);
-	OUT_RINGf(mat[2]);
-	OUT_RINGf(mat[3]);
-	OUT_RINGf(mat[4]);
-	OUT_RINGf(mat[5]);
-	OUT_RINGf(mat[6]);
-	OUT_RINGf(mat[7]);
-	OUT_RINGf(mat[8]);
-	OUT_RINGf(mat[9]);
-	OUT_RINGf(mat[10]);
-	OUT_RINGf(mat[11]);
-	OUT_RINGf(mat[12]);
-	OUT_RINGf(mat[13]);
-	OUT_RINGf(mat[14]);
-	OUT_RINGf(mat[15]);
 	FIFO_EPILOGUE();
 }
 
