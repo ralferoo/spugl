@@ -138,7 +138,8 @@ $(BASE_NAME).tar.gz:	$(SOURCE_DIST_FILES) Makefile
 	tar cfz $@ -C .dist .
 
 edit:
-	gvim -p shader.c texture.c queue.h test.c struct.h glfifo.c textureprep.c decode.c primitives.c
+	gvim -p Makefile testclient.c client/glfifo.c server/spu/*.[ch]
+#	gvim -p shader.c texture.c queue.h test.c struct.h glfifo.c textureprep.c decode.c primitives.c
 
 source:
 	make shader.s && less shader.s
