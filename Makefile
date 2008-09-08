@@ -11,7 +11,7 @@
 
 BASE_NAME = spugl-client-0.1
 
-TARGETS = test spugld testclient
+TARGETS = spugld testclient
 
 LIBDIRS = -L/usr/lib
 
@@ -153,8 +153,8 @@ spufifo.0: Makefile $(GENPRODUCTS)
 
 NEW_GEN_SOURCES := $(wildcard server/spu/*_cmd.c)
 client/gen_command_defs.h: .gennew
-server/spu/gen_command_exts.h: .gennew
-server/spu/gen_command_table.h: .gennew
+server/spu/gen_command_exts.inc: .gennew
+server/spu/gen_command_table.inc: .gennew
 .gennew: server/importdefs.pl $(NEW_GEN_SOURCES)
 	perl server/importdefs.pl $(NEW_GEN_SOURCES)
 	@touch .gennew
@@ -208,7 +208,7 @@ clean:
 #	rm -f *.spe *.o$(USERLAND)
 	rm -f *.0 *.o32 *.o64
 	rm -rf build dist
-	rm -f .gen test
+	rm -f .gen .gennew test
 	rm -f textures/*.o
 	rm -f spugld spugld.debug testclient spugl-*/*.o spugl.a
 	rm -f server/*.o client/*.o
@@ -476,6 +476,30 @@ server/connection.o: server/ppufuncs.h client/fifo.h queue.h types.h
 server/connection.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 server/connection.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
 server/connection.o: client/gen_command_defs.h client/daemon.h
+server/control.o: /usr/include/stdlib.h /usr/include/features.h
+server/control.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+server/control.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+server/control.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+server/control.o: /usr/include/sys/types.h /usr/include/bits/types.h
+server/control.o: /usr/include/bits/typesizes.h /usr/include/time.h
+server/control.o: /usr/include/endian.h /usr/include/bits/endian.h
+server/control.o: /usr/include/sys/select.h /usr/include/bits/select.h
+server/control.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
+server/control.o: /usr/include/sys/sysmacros.h
+server/control.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+server/control.o: /usr/include/bits/stdlib-ldbl.h /usr/include/stdio.h
+server/control.o: /usr/include/libio.h /usr/include/_G_config.h
+server/control.o: /usr/include/wchar.h /usr/include/bits/wchar.h
+server/control.o: /usr/include/gconv.h
+server/control.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+server/control.o: /usr/include/bits/libio-ldbl.h
+server/control.o: /usr/include/bits/stdio_lim.h
+server/control.o: /usr/include/bits/sys_errlist.h
+server/control.o: /usr/include/bits/stdio-ldbl.h /usr/include/unistd.h
+server/control.o: /usr/include/bits/posix_opt.h /usr/include/bits/confname.h
+server/control.o: /usr/include/getopt.h /usr/include/sys/mman.h
+server/control.o: /usr/include/bits/mman.h server/connection.h
+server/control.o: /usr/include/libspe.h
 server/main.o: /usr/include/stdio.h /usr/include/features.h
 server/main.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 server/main.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -519,30 +543,6 @@ server/main.o: /usr/include/sys/resource.h /usr/include/bits/resource.h
 server/main.o: /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h
 server/main.o: /usr/include/sys/stat.h /usr/include/bits/stat.h
 server/main.o: server/connection.h server/ppufuncs.h
-server/spucontrol.o: /usr/include/stdlib.h /usr/include/features.h
-server/spucontrol.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
-server/spucontrol.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
-server/spucontrol.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h
-server/spucontrol.o: /usr/include/sys/types.h /usr/include/bits/types.h
-server/spucontrol.o: /usr/include/bits/typesizes.h /usr/include/time.h
-server/spucontrol.o: /usr/include/endian.h /usr/include/bits/endian.h
-server/spucontrol.o: /usr/include/sys/select.h /usr/include/bits/select.h
-server/spucontrol.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
-server/spucontrol.o: /usr/include/sys/sysmacros.h
-server/spucontrol.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
-server/spucontrol.o: /usr/include/bits/stdlib-ldbl.h /usr/include/stdio.h
-server/spucontrol.o: /usr/include/libio.h /usr/include/_G_config.h
-server/spucontrol.o: /usr/include/wchar.h /usr/include/bits/wchar.h
-server/spucontrol.o: /usr/include/gconv.h
-server/spucontrol.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
-server/spucontrol.o: /usr/include/bits/libio-ldbl.h
-server/spucontrol.o: /usr/include/bits/stdio_lim.h
-server/spucontrol.o: /usr/include/bits/sys_errlist.h
-server/spucontrol.o: /usr/include/bits/stdio-ldbl.h /usr/include/unistd.h
-server/spucontrol.o: /usr/include/bits/posix_opt.h
-server/spucontrol.o: /usr/include/bits/confname.h /usr/include/getopt.h
-server/spucontrol.o: /usr/include/sys/mman.h /usr/include/bits/mman.h
-server/spucontrol.o: server/connection.h /usr/include/libspe.h
 
 spufifo.0: spuregs.h struct.h types.h
 spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
@@ -643,6 +643,23 @@ oldshader.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 oldshader.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
 oldshader.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
 
+server/spu/context_cmd.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
+server/spu/context_cmd.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+server/spu/context_cmd.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
+server/spu/context_cmd.0: server/spu/spucontext.h
+server/spu/ip_cmd.0: /usr/include/stdio.h /usr/include/features.h
+server/spu/ip_cmd.0: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+server/spu/ip_cmd.0: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+server/spu/ip_cmd.0: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+server/spu/ip_cmd.0: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+server/spu/ip_cmd.0: /usr/include/libio.h /usr/include/_G_config.h
+server/spu/ip_cmd.0: /usr/include/wchar.h /usr/include/bits/wchar.h
+server/spu/ip_cmd.0: /usr/include/gconv.h
+server/spu/ip_cmd.0: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+server/spu/ip_cmd.0: /usr/include/bits/libio-ldbl.h
+server/spu/ip_cmd.0: /usr/include/bits/stdio_lim.h
+server/spu/ip_cmd.0: /usr/include/bits/sys_errlist.h
+server/spu/ip_cmd.0: /usr/include/bits/stdio-ldbl.h
 server/spu/spumain.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 server/spu/spumain.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 server/spu/spumain.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
@@ -661,5 +678,5 @@ server/spu/spumain.0: /usr/include/bits/sys_errlist.h
 server/spu/spumain.0: /usr/include/bits/stdio-ldbl.h server/connection.h
 server/spu/spumain.0: client/fifo.h queue.h types.h client/gen_command_defs.h
 server/spu/spumain.0: server/spu/spucontext.h client/gen_command_defs.h
-server/spu/spumain.0: server/spu/gen_command_exts.h
-server/spu/spumain.0: server/spu/gen_command_table.h
+server/spu/spumain.0: server/spu/gen_command_exts.inc
+server/spu/spumain.0: server/spu/gen_command_table.inc

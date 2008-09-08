@@ -44,10 +44,10 @@ static Context _contexts[MAX_COMMAND_BUFFERS];
 typedef int FIFO_COMMAND(unsigned int *data, Context* context);
 
 #include "../../client/gen_command_defs.h"	// numeric definitions
-#include "gen_command_exts.h"			// extern definitions
+#include "gen_command_exts.inc"			// extern definitions
 
 FIFO_COMMAND* fifo_commands[] = {
-	#include "gen_command_table.h"		// table entries
+	#include "gen_command_table.inc"	// table entries
 };
 
 

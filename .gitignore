@@ -3,6 +3,7 @@
 # object files, PPU and SPU
 *.[o0]
 *.o32
+*.o64
 # embeddable SPU executable
 *.spe
 .gen
@@ -20,3 +21,4 @@ version.txt
 z
 #junk
 Makefile.bak
+nohup.out

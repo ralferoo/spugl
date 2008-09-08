@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 
 open(DEF, ">client/gen_command_defs.h") || die "Can't open defs file\n";
-open(EXT, ">server/spu/gen_command_exts.h") || die "Can't open exts file\n";
-open(TBL, ">server/spu/gen_command_table.h") || die "Can't open table file\n";
+open(EXT, ">server/spu/gen_command_exts.inc") || die "Can't open exts file\n";
+open(TBL, ">server/spu/gen_command_table.inc") || die "Can't open table file\n";
 
 @x=();
 

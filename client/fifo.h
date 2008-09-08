@@ -16,6 +16,8 @@
 #include "gen_command_defs.h"
 
 //////////////////////////////////////////////////////////////////////////////
+//
+// This is the definition of the queue structure (pretty simple)
 
 struct __CommandQueue {
 	unsigned long write_ptr;	// relative to &write_ptr
@@ -29,12 +31,26 @@ struct __CommandQueue {
 };
 
 //////////////////////////////////////////////////////////////////////////////
+//
+// This a reference to the current queue
+
+#ifdef __PPC__
+extern CommandQueue* _SPUGL_fifo;
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// Used to store a float on the queue
 
 union __f2i
 {
   float f;
   unsigned int i;
 };
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// These are macros to generate the queue commands, PPC only
 
 #ifdef __PPC__
 
@@ -49,8 +65,6 @@ __fifo_ptr = 0UL;
 #define OUT_RINGf(v) { union __f2i temp; temp.f = v;  *(__fifo_ptr)++ = temp.i; }
 #define BEGIN_RING(c,s) OUT_RING(c | (s<<24))
 
-//////////////////////////////////////////////////////////////////////////////
-
 inline unsigned int* _begin_fifo(CommandQueue* queue, unsigned int minsize) {
 	unsigned int* ptr = (unsigned int*) ( ((void*)queue) + queue->write_ptr );
 	return ptr;
@@ -63,5 +77,7 @@ inline void _end_fifo(CommandQueue* queue, unsigned int* ptr) {
 }
 
 #endif // __PPC__
+
+//////////////////////////////////////////////////////////////////////////////
 
 #endif //  __client_fifo_h

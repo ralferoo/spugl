@@ -1,0 +1,5 @@
+[FIFO_COMMAND_LOAD_MODELVIEW_MATRIX] = (FIFO_COMMAND*) &imp_load_modelview_matrix,
+[FIFO_COMMAND_LOAD_PROJECTION_MATRIX] = (FIFO_COMMAND*) &imp_load_projection_matrix,
+[FIFO_COMMAND_LOAD_TEXTURE_MATRIX] = (FIFO_COMMAND*) &imp_load_texture_matrix,
+[FIFO_COMMAND_NOP] = (FIFO_COMMAND*) &imp_nop,
+[FIFO_COMMAND_JUMP] = (FIFO_COMMAND*) &imp_jump,
