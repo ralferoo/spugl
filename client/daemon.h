@@ -11,8 +11,8 @@
 
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 2
-#define VERSION_REVISION 16
-#define VERSION_STRING "0.2.16"
+#define VERSION_REVISION 17
+#define VERSION_STRING "0.2.17"
 
 typedef struct __SPUGL_request SPUGL_request;
 typedef struct __SPUGL_reply SPUGL_reply;
@@ -23,21 +23,29 @@ typedef struct __SPUGL_reply SPUGL_reply;
 // and server
 
 struct __SPUGL_request {
-	unsigned short command;
 	union {
 		struct {
+			unsigned short command;
+		} header;
+		struct {
+			unsigned short command;
 			unsigned short major, minor, revision;
 		} version;
 		struct {
+			unsigned short command;
 			unsigned long size;
 		} alloc;
 		struct {
+			unsigned short command;
 			unsigned long id;
 		} flush;
 		struct {
+			unsigned short command;
 			unsigned long id;
 		} free;
-			
+		//struct {
+		//	unsigned char size[16];
+		//} pad;
 	};
 };
 
@@ -58,5 +66,8 @@ struct __SPUGL_reply {
 		struct {
 			unsigned long id;
 		} alloc;
+		//struct {
+		//	unsigned char size[16];
+		//} pad;
 	};
 };

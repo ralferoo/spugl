@@ -281,7 +281,7 @@ int handleConnectionData(Connection* connection, char* mountname) {
 		return 1;
 	}
 
-	switch (request.command) {
+	switch (request.header.command) {
 		case SPUGLR_GET_VERSION:
 			reply.version.major = VERSION_MAJOR;
 			reply.version.minor = VERSION_MINOR;
@@ -315,8 +315,7 @@ int handleConnectionData(Connection* connection, char* mountname) {
 			break;
 			
 		default: 
-			//sprintf(buffer, "invalid request command %d on fd %d", request.command, connection->fd);
-			sprintf(buffer, "invalid request command %d", request.command);
+			sprintf(buffer, "invalid request command %d", request.header.command);
 			syslog(LOG_ERR, buffer);
 			return 1;
 	}

@@ -72,7 +72,7 @@ static void _freeBuffer(void* buffer, unsigned short command) {
 			// tell the server we've junked the buffer
 			SPUGL_request request;
 			SPUGL_reply reply;
-			request.command = command;
+			request.free.command = command;
 			request.free.id = test->id;
 			send(test->server_fd, &request, sizeof(request), 0);
 
@@ -95,7 +95,7 @@ static void _freeBuffer(void* buffer, unsigned short command) {
 static void* _allocate(int server, unsigned long size, unsigned short command) {
 	SPUGL_request request;
 	SPUGL_reply reply;
-	request.command = command;
+	request.alloc.command = command;
 	request.alloc.size = size;
 	send(server, &request, sizeof(request), 0);
 
@@ -188,14 +188,14 @@ int SPUGL_connect() {
 
 	SPUGL_request request;
 	SPUGL_reply reply;
-	request.command = SPUGLR_GET_VERSION;
+	request.header.command = SPUGLR_GET_VERSION;
 	send(server, &request, sizeof(request), 0);
 	recv(server, &reply, sizeof(reply), 0);
 #ifdef INFO
 	printf("Server version is %d.%d.%d\n", reply.version.major, reply.version.minor, reply.version.revision);
 #endif
 
-	request.command = SPUGLR_NEGOTIATE_VERSION;
+	request.version.command = SPUGLR_NEGOTIATE_VERSION;
 	request.version.major = VERSION_MAJOR;
 	request.version.minor = VERSION_MINOR;
 	request.version.revision = VERSION_REVISION;
@@ -213,7 +213,7 @@ void SPUGL_flush(CommandQueue* buffer) {
 		if (ptr->data == buffer) {
 			// send flush message to server
 			SPUGL_request request;
-			request.command = SPUGLR_FLUSH;
+			request.flush.command = SPUGLR_FLUSH;
 			request.flush.id = ptr->id;
 			send(ptr->server_fd, &request, sizeof(request), 0);
 
@@ -228,7 +228,7 @@ void SPUGL_flush(CommandQueue* buffer) {
 
 void SPUGL_invalidRequest(int server) {
 	SPUGL_request request;
-	request.command = 4242;
+	request.header.command = 4242;
 	send(server, &request, sizeof(request), 0);
 }
 
