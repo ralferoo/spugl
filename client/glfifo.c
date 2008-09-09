@@ -89,7 +89,7 @@ GLAPI void GLAPIENTRY glLoadIdentity( void )
 		0.0f, 1.0f, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.0f, 0.0f, 0.0f, 1.0f};
-	glLoadMatrixf(&identity);
+	glLoadMatrixf(identity);
 }
 
 #ifdef __DONT_INCLUDE

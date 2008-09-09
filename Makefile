@@ -25,7 +25,8 @@ USERLAND = 32
 #USERLAND = 64
 
 PPUCC = gcc
-PPUCCFLAGS = -c -ggdb -m$(USERLAND) $(LIBSPE2) -DUSERLAND_$(USERLAND)_BITS -I. -Wno-trigraphs -std=gnu99
+PPUCCFLAGS = -c -ggdb $(LIBSPE2) -I. -Wno-trigraphs -std=gnu99
+PPCCCFLAGSARCH =-m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS
 
 NEWSPUCC = cellgcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -I/usr/include
 SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -fpic -I.
@@ -55,11 +56,13 @@ DAEMON_TARGETS_C := $(wildcard server/*.c)
 DAEMON_TARGETS_H := $(wildcard server/*.h)
 DAEMON_TARGETS := $(patsubst %.c,%.o,$(DAEMON_TARGETS_C))
 
-CLIENT_TARGETS = testclient.o spugl.a
+CLIENT_TARGETS32 = testclient.o32 spugl.a32
+CLIENT_TARGETS64 = testclient.o64 spugl.a64
 
 CLIENT_LIB_TARGETS_C := $(wildcard client/*.c)
 CLIENT_LIB_TARGETS_H := $(wildcard client/*.h)
-CLIENT_LIB_TARGETS := $(patsubst %.c,%.o,$(CLIENT_LIB_TARGETS_C))
+CLIENT_LIB_TARGETS32 := $(patsubst %.c,%.o32,$(CLIENT_LIB_TARGETS_C))
+CLIENT_LIB_TARGETS64 := $(patsubst %.c,%.o64,$(CLIENT_LIB_TARGETS_C))
 
 all:	$(TARGETS)
 
@@ -78,11 +81,17 @@ spugld:	spugld.debug
 spugld.debug:	$(DAEMON_TARGETS) $(SPU_DRIVER_HNDL)
 	gcc -m$(USERLAND) -o $@ $(DAEMON_TARGETS) $(SPU_DRIVER_HNDL) $(LIBS)
 
-testclient:	$(CLIENT_TARGETS)
-	gcc -m$(USERLAND) -o $@ $(CLIENT_TARGETS)
+testclient:	$(CLIENT_TARGETS32)
+	gcc -m32 -o $@ $(CLIENT_TARGETS32)
 
-spugl.a:	$(CLIENT_LIB_TARGETS)
-	ar -r $@ $(CLIENT_LIB_TARGETS)
+testclient64:	$(CLIENT_TARGETS64)
+	gcc -m64 -o $@ $(CLIENT_TARGETS64)
+
+spugl.a32:	$(CLIENT_LIB_TARGETS32)
+	ar -r $@ $(CLIENT_LIB_TARGETS32)
+
+spugl.a64:	$(CLIENT_LIB_TARGETS64)
+	ar -r $@ $(CLIENT_LIB_TARGETS64)
 
 test:	$(PPU_TEST_OBJS) $(SPU_HNDL)
 	gcc -m$(USERLAND) -o test $(PPU_TEST_OBJS) $(SPU_HNDL) $(LIBDIRS) $(LIBS)
@@ -211,8 +220,8 @@ clean:
 	rm -rf build dist
 	rm -f .gen .gennew test
 	rm -f textures/*.o
-	rm -f spugld spugld.debug testclient spugl-*/*.o spugl.a
-	rm -f server/*.o client/*.o
+	rm -f spugld spugld.debug testclient testclient64 spugl-*/*.o spugl.a spugl.a32 spugl.a64
+	rm -f server/*.o client/*.o client/*.o32 client/*.o64
 
 # gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h
 
@@ -221,10 +230,22 @@ clean:
 # rules
 
 %.o: %.c
-	$(PPUCC) $(PPUCCFLAGS) $< -o $@
+	$(PPUCC) $(PPUCCFLAGS) $(PPUCCFLAGSARCH) $< -o $@
 
 %.o: %.cpp
-	$(PPUCC) $(PPUCCFLAGS) $< -o $@
+	$(PPUCC) $(PPUCCFLAGS) $(PPUCCFLAGSARCH) $< -o $@
+
+%.o32: %.c
+	$(PPUCC) $(PPUCCFLAGS) -m32 $< -o $@
+
+%.o32: %.cpp
+	$(PPUCC) $(PPUCCFLAGS) -m32 $< -o $@
+
+%.o64: %.c
+	$(PPUCC) $(PPUCCFLAGS) -m64 $< -o $@
+
+%.o64: %.cpp
+	$(PPUCC) $(PPUCCFLAGS) -m64 $< -o $@
 
 ###############################################################################
 #
