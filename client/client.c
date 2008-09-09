@@ -44,21 +44,21 @@ static SPUGL_Buffer* firstBuffer;
 
 static void* _allocate(int server, unsigned int size, unsigned short command);
 
-CommandQueue* glspuAllocateCommandQueue(int server, unsigned int size) {
+CommandQueue* spuglAllocateCommandQueue(int server, unsigned int size) {
 	return _allocate(server, size, SPUGLR_ALLOC_COMMAND_QUEUE);
 }
 	
-void* glspuAllocateBuffer(int server, unsigned int size) {
+void* spuglAllocateBuffer(int server, unsigned int size) {
 	return (CommandQueue*) _allocate(server, size, SPUGLR_ALLOC_BUFFER);
 }
 	
 static void _freeBuffer(void* buffer, unsigned short command);
 
-void glspuFreeCommandQueue(CommandQueue* buffer) {
+void spuglFreeCommandQueue(CommandQueue* buffer) {
 	_freeBuffer(buffer, SPUGLR_FREE_COMMAND_QUEUE);
 }
 
-void glspuFreeBuffer(void* buffer) {
+void spuglFreeBuffer(void* buffer) {
 	_freeBuffer(buffer, SPUGLR_FREE_COMMAND_QUEUE);
 }
 
@@ -175,7 +175,7 @@ static void* _allocate(int server, unsigned int size, unsigned short command) {
 	}
 }
 
-int glspuConnect() {
+int spuglConnect() {
 	struct sockaddr_un sock_addr = { AF_UNIX, "\0spugl-server" };
 	int server = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (server<0) {
@@ -205,11 +205,11 @@ int glspuConnect() {
 	return server;
 }
 
-void glspuDisconnect(int server) {
+void spuglDisconnect(int server) {
 	close(server);
 }
 
-void glspuFlush(CommandQueue* buffer) {
+void spuglFlush(CommandQueue* buffer) {
 	SPUGL_Buffer* ptr = firstBuffer;
 	while (ptr) {
 		if (ptr->data == buffer) {
@@ -228,7 +228,7 @@ void glspuFlush(CommandQueue* buffer) {
 	}
 }
 
-void glspuInvalidRequest(int server) {
+void spuglInvalidRequest(int server) {
 	SPUGL_request request;
 	request.header.command = 4242;
 	send(server, &request, sizeof(request), 0);
@@ -242,7 +242,7 @@ void glspuInvalidRequest(int server) {
 
 CommandQueue* _SPUGL_fifo = NULL;
 
-CommandQueue* glspuSetCurrentContext(CommandQueue* newContext) {
+CommandQueue* spuglSetCurrentContext(CommandQueue* newContext) {
 	CommandQueue* old = _SPUGL_fifo;
 	_SPUGL_fifo = newContext;
 	return old;

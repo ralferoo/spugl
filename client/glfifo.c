@@ -16,19 +16,19 @@
 #include "fifodefs.h"
 #include <GL/gl.h>
 
-GLAPI void GLAPIENTRY glspuNop()
+GLAPI void GLAPIENTRY spuglNop()
 {
 	FIFO_PROLOGUE(1);
 	BEGIN_RING(FIFO_COMMAND_NOP,0);
 	FIFO_EPILOGUE();
 }
 
-GLAPI unsigned int glspuTarget()
+GLAPI unsigned int spuglTarget()
 {
 	return _SPUGL_fifo->write_ptr;
 }
 
-GLAPI void GLAPIENTRY glspuJump(unsigned int target)
+GLAPI void GLAPIENTRY spuglJump(unsigned int target)
 {
 	FIFO_PROLOGUE(1);
 	BEGIN_RING(FIFO_COMMAND_JUMP,1);
@@ -123,7 +123,7 @@ static void updateScreenPointer(void)
 	FIFO_EPILOGUE();
 }
 
-GLAPI void GLAPIENTRY glspuSetup(char* dumpName)
+GLAPI void GLAPIENTRY spuglSetup(char* dumpName)
 {
 	ctx = _init_3d_driver(1);
 	screen = _getScreen(dumpName);
@@ -139,7 +139,7 @@ GLAPI void GLAPIENTRY glspuSetup(char* dumpName)
 	localTextures[6] = convertGimpTexture(&mim);
 }
 
-GLAPI void GLAPIENTRY glspuDestroy(void)
+GLAPI void GLAPIENTRY spuglDestroy(void)
 {
 	_exit_3d_driver(ctx);
 	_closeScreen();
@@ -147,20 +147,20 @@ GLAPI void GLAPIENTRY glspuDestroy(void)
 	screen = NULL;
 }
 
-GLAPI void GLAPIENTRY glspuFlip(void)
+GLAPI void GLAPIENTRY spuglFlip(void)
 {
 	screen = _flipScreen();
 	updateScreenPointer();
 }
 
-GLAPI void GLAPIENTRY glspuClear(void)
+GLAPI void GLAPIENTRY spuglClear(void)
 {
 	FIFO_PROLOGUE(ctx,2);
 	BEGIN_RING(SPU_COMMAND_CLEAR_SCREEN,1,0);
 	FIFO_EPILOGUE();
 }
 
-GLAPI void GLAPIENTRY glspuSetFlag(u32* ptr, u32 value)
+GLAPI void GLAPIENTRY spuglSetFlag(u32* ptr, u32 value)
 {
 	FIFO_PROLOGUE(ctx,3);
 	BEGIN_RING(SPU_COMMAND_SET_FLAG,1,1);
@@ -169,7 +169,7 @@ GLAPI void GLAPIENTRY glspuSetFlag(u32* ptr, u32 value)
 	FIFO_EPILOGUE();
 }
 
-GLAPI void GLAPIENTRY glspuWait(void)
+GLAPI void GLAPIENTRY spuglWait(void)
 {
 	_waitScreen();
 }

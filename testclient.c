@@ -17,62 +17,62 @@
 #include "client/fifodefs.h"
 
 #include "GL/gl.h"
-#include "GL/glspu.h"
+#include "GL/spugl.h"
 
 int main(int argc, char* argv[]) {
-	int server = glspuConnect();
+	int server = spuglConnect();
 	if (server<0) {
 		printf("Cannot connect to spugl server\n");
 		exit(1);
 	}
 
-	CommandQueue* queue = glspuAllocateCommandQueue(server, 2047*1024);
+	CommandQueue* queue = spuglAllocateCommandQueue(server, 2047*1024);
 	if (queue==NULL) { printf("Out of memory\n"); exit(1); }
 
 	for (int q=0; q<4; q++) {
-		CommandQueue* queue = glspuAllocateCommandQueue(server, 2047*1024);
+		CommandQueue* queue = spuglAllocateCommandQueue(server, 2047*1024);
 		if (queue==NULL) { printf("Out of memory on extra queue %d\n", q); exit(1); }
-		glspuSetCurrentContext(queue);
+		spuglSetCurrentContext(queue);
 		FIFO_PROLOGUE(10);
 		BEGIN_RING(FIFO_COMMAND_NOP,0);
 		FIFO_EPILOGUE();
 	}
 
-	void* buffer2 = glspuAllocateBuffer(server, 1024);
+	void* buffer2 = spuglAllocateBuffer(server, 1024);
 	if (buffer2==NULL) { printf("Out of memory\n"); exit(1); }
-	void* buffer = glspuAllocateBuffer(server, 204*1024*1024);
+	void* buffer = spuglAllocateBuffer(server, 204*1024*1024);
 	if (buffer==NULL) { printf("Out of memory\n"); exit(1); }
-	glspuFreeBuffer(buffer);
+	spuglFreeBuffer(buffer);
 
-	buffer = glspuAllocateBuffer(server, 1024*1024);
+	buffer = spuglAllocateBuffer(server, 1024*1024);
 	if (buffer==NULL) { printf("Out of memory\n"); exit(1); }
 
 
-	glspuSetCurrentContext(queue);
-	unsigned int start = glspuTarget();
+	spuglSetCurrentContext(queue);
+	unsigned int start = spuglTarget();
 
 	glLoadIdentity();
-	glspuNop();
+	spuglNop();
 
 	for (int i=0; i<4; i++) {
 		usleep(500000);
-		glspuNop();
+		spuglNop();
 	}
 	sleep(1);
 
-	glspuNop();
-	glspuJump(start);
+	spuglNop();
+	spuglJump(start);
 	sleep(2);
 
-	glspuFreeBuffer(buffer);
+	spuglFreeBuffer(buffer);
 
-	glspuFlush(queue);
-	glspuFreeCommandQueue(queue);
+	spuglFlush(queue);
+	spuglFreeCommandQueue(queue);
 
-	glspuInvalidRequest(server);
+	spuglInvalidRequest(server);
 
-//	glspuFreeBuffer(buffer2);
-	glspuDisconnect(server);
+//	spuglFreeBuffer(buffer2);
+	spuglDisconnect(server);
 
 	exit(0);
 }

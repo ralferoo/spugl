@@ -13,7 +13,7 @@
 #include <stdio.h>
 
 #include "struct.h"
-#include <GL/glspu.h>
+#include <GL/spugl.h>
 
 u32* prepare_texture(gimp_image* source);
 

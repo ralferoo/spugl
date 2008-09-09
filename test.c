@@ -25,7 +25,7 @@
 #include <time.h>
 
 #include <GL/gl.h>
-#include <GL/glspu.h>
+#include <GL/spugl.h>
 
 void gluPerspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar);
 
@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
 		argv++;
 	}
 
-	glspuSetup(argc>1 ? argv[1] : NULL);
+	spuglSetup(argc>1 ? argv[1] : NULL);
 
 	// NOTE THIS ISN'T A REAL OPENGL TRANSFORM!!!
 
@@ -104,8 +104,8 @@ int main(int argc, char* argv[]) {
 		struct timespec startPoint;
 		clock_gettime(CLOCK_MONOTONIC,&startPoint);
 
-		unsigned long blks_start = glspuBlocksProduced();
-		unsigned long caches_start = glspuCacheMisses();
+		unsigned long blks_start = spuglBlocksProduced();
+		unsigned long caches_start = spuglCacheMisses();
 
 		int but = stick_buttons() & ((1<<9) | (1<<8) | (1<<10) | (1<<11) | (1<<14) | (1<<13));
 		if (but) {
@@ -142,9 +142,9 @@ int main(int argc, char* argv[]) {
 
 		float x,y,z,t;
 
-		glspuClear();
-		unsigned long _start = glspuCounter();
-		unsigned long _startBlocked = glspuBlockedCounter();
+		spuglClear();
+		unsigned long _start = spuglCounter();
+		unsigned long _startBlocked = spuglBlockedCounter();
 	if(1) {
 		glBegin(GL_TRIANGLES);
 		for (f=0; f<6; f++) {
@@ -216,17 +216,17 @@ cheat:
 
 		double uptoFlip = getTimeSince(startPoint);
 
-		glspuFlip();
+		spuglFlip();
 #ifdef SYNC_WITH_FRAME
-		glspuWait();
+		spuglWait();
 #ifdef DOUBLE_SYNC
 		double x1 = getTimeSince(startPoint);
 		if (x1<(1.0/45.0))
-			glspuWait();
+			spuglWait();
 #endif
 #endif
-		unsigned long _end = glspuCounter();
-		unsigned long _endBlocked = glspuBlockedCounter();
+		unsigned long _end = spuglCounter();
+		unsigned long _endBlocked = spuglBlockedCounter();
 		GLenum error = glGetError();
 		if (error)
 			printf("glGetError() returned %d\n", error);
@@ -235,11 +235,11 @@ skip:
 
 		double uptoLoop = getTimeSince(startPoint);
 
-		unsigned long blks_end = glspuBlocksProduced();
-		unsigned long caches_end = glspuCacheMisses();
+		unsigned long blks_end = spuglBlocksProduced();
+		unsigned long caches_end = spuglCacheMisses();
 
 		// test the set flag functionality - this variable is updated by the SPU
-		glspuSetFlag(&flag, flag+1);
+		spuglSetFlag(&flag, flag+1);
 
 		// bah humbug, stdio buffering, bah!
 		char buffer[256];
@@ -259,7 +259,7 @@ skip:
 	exit(0);
 
 //	usleep(250000);
-	glspuDestroy();
+	spuglDestroy();
 
 	// quick hack so that SPU debugging messages have a chance to come out
 	usleep(150000);
