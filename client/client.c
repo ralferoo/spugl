@@ -44,21 +44,21 @@ static SPUGL_Buffer* firstBuffer;
 
 static void* _allocate(int server, unsigned int size, unsigned short command);
 
-CommandQueue* SPUGL_allocateCommandQueue(int server, unsigned int size) {
+CommandQueue* glspuAllocateCommandQueue(int server, unsigned int size) {
 	return _allocate(server, size, SPUGLR_ALLOC_COMMAND_QUEUE);
 }
 	
-void* SPUGL_allocateBuffer(int server, unsigned int size) {
+void* glspuAllocateBuffer(int server, unsigned int size) {
 	return (CommandQueue*) _allocate(server, size, SPUGLR_ALLOC_BUFFER);
 }
 	
 static void _freeBuffer(void* buffer, unsigned short command);
 
-void SPUGL_freeCommandQueue(CommandQueue* buffer) {
+void glspuFreeCommandQueue(CommandQueue* buffer) {
 	_freeBuffer(buffer, SPUGLR_FREE_COMMAND_QUEUE);
 }
 
-void SPUGL_freeBuffer(void* buffer) {
+void glspuFreeBuffer(void* buffer) {
 	_freeBuffer(buffer, SPUGLR_FREE_COMMAND_QUEUE);
 }
 
@@ -175,7 +175,7 @@ static void* _allocate(int server, unsigned int size, unsigned short command) {
 	}
 }
 
-int SPUGL_connect() {
+int glspuConnect() {
 	struct sockaddr_un sock_addr = { AF_UNIX, "\0spugl-server" };
 	int server = socket(PF_UNIX, SOCK_STREAM, 0);
 	if (server<0) {
@@ -205,11 +205,11 @@ int SPUGL_connect() {
 	return server;
 }
 
-void SPUGL_disconnect(int server) {
+void glspuDisconnect(int server) {
 	close(server);
 }
 
-void SPUGL_flush(CommandQueue* buffer) {
+void glspuFlush(CommandQueue* buffer) {
 	SPUGL_Buffer* ptr = firstBuffer;
 	while (ptr) {
 		if (ptr->data == buffer) {
@@ -228,7 +228,7 @@ void SPUGL_flush(CommandQueue* buffer) {
 	}
 }
 
-void SPUGL_invalidRequest(int server) {
+void glspuInvalidRequest(int server) {
 	SPUGL_request request;
 	request.header.command = 4242;
 	send(server, &request, sizeof(request), 0);
@@ -242,7 +242,7 @@ void SPUGL_invalidRequest(int server) {
 
 CommandQueue* _SPUGL_fifo = NULL;
 
-CommandQueue* SPUGL_currentContext(CommandQueue* newContext) {
+CommandQueue* glspuSetCurrentContext(CommandQueue* newContext) {
 	CommandQueue* old = _SPUGL_fifo;
 	_SPUGL_fifo = newContext;
 	return old;

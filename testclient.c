@@ -20,35 +20,35 @@
 #include "GL/glspu.h"
 
 int main(int argc, char* argv[]) {
-	int server = SPUGL_connect();
+	int server = glspuConnect();
 	if (server<0) {
 		printf("Cannot connect to spugl server\n");
 		exit(1);
 	}
 
-	CommandQueue* queue = SPUGL_allocateCommandQueue(server, 2047*1024);
+	CommandQueue* queue = glspuAllocateCommandQueue(server, 2047*1024);
 	if (queue==NULL) { printf("Out of memory\n"); exit(1); }
 
 	for (int q=0; q<4; q++) {
-		CommandQueue* queue = SPUGL_allocateCommandQueue(server, 2047*1024);
+		CommandQueue* queue = glspuAllocateCommandQueue(server, 2047*1024);
 		if (queue==NULL) { printf("Out of memory on extra queue %d\n", q); exit(1); }
-		SPUGL_currentContext(queue);
+		glspuSetCurrentContext(queue);
 		FIFO_PROLOGUE(10);
 		BEGIN_RING(FIFO_COMMAND_NOP,0);
 		FIFO_EPILOGUE();
 	}
 
-	void* buffer2 = SPUGL_allocateBuffer(server, 1024);
+	void* buffer2 = glspuAllocateBuffer(server, 1024);
 	if (buffer2==NULL) { printf("Out of memory\n"); exit(1); }
-	void* buffer = SPUGL_allocateBuffer(server, 204*1024*1024);
+	void* buffer = glspuAllocateBuffer(server, 204*1024*1024);
 	if (buffer==NULL) { printf("Out of memory\n"); exit(1); }
-	SPUGL_freeBuffer(buffer);	
+	glspuFreeBuffer(buffer);
 
-	buffer = SPUGL_allocateBuffer(server, 1024*1024);
+	buffer = glspuAllocateBuffer(server, 1024*1024);
 	if (buffer==NULL) { printf("Out of memory\n"); exit(1); }
 
 
-	SPUGL_currentContext(queue);
+	glspuSetCurrentContext(queue);
 	unsigned int start = glspuTarget();
 
 	glLoadIdentity();
@@ -64,15 +64,15 @@ int main(int argc, char* argv[]) {
 	glspuJump(start);
 	sleep(2);
 
-	SPUGL_freeBuffer(buffer);	
+	glspuFreeBuffer(buffer);
 
-	SPUGL_flush(queue);
-	SPUGL_freeCommandQueue(queue);	
+	glspuFlush(queue);
+	glspuFreeCommandQueue(queue);
 
-	SPUGL_invalidRequest(server);
+	glspuInvalidRequest(server);
 
-//	SPUGL_freeBuffer(buffer2);	
-	SPUGL_disconnect(server);
+//	glspuFreeBuffer(buffer2);
+	glspuDisconnect(server);
 
 	exit(0);
 }

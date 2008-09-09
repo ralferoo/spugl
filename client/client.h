@@ -17,24 +17,24 @@
 
 // this returns a connection to the server, passed to all other routines.
 // returns negative integer on error
-int SPUGL_connect();
+int glspuConnect();
 
 // disconnects the client from the server
-void SPUGL_disconnect(int server);
+void glspuDisconnect(int server);
 
 // waits until command queue has finished processing
-void SPUGL_flush(CommandQueue* buffer);
+void glspuFlush(CommandQueue* buffer);
 
 // allocates/frees an OpenGL FIFO
-CommandQueue* SPUGL_allocateCommandQueue(int server, unsigned int size);
-void SPUGL_freeCommandQueue(CommandQueue* buffer);
+CommandQueue* glspuAllocateCommandQueue(int server, unsigned int size);
+void glspuFreeCommandQueue(CommandQueue* buffer);
 
 // allocates/frees a general buffer suitable for textures, pixel buffers, etc.
-void* SPUGL_allocateBuffer(int server, unsigned int size);
-void SPUGL_freeBuffer(void* buffer);
+void* glspuAllocateBuffer(int server, unsigned int size);
+void glspuFreeBuffer(void* buffer);
 
 // sends the server an invalid request (for testing - should cause the connection to drop)
-void SPUGL_invalidRequest(int server);
+void glspuInvalidRequest(int server);
 
 // changes the current OpenGL context
-CommandQueue* SPUGL_currentContext(CommandQueue* newContext);
+CommandQueue* glspuSetCurrentContext(CommandQueue* newContext);
