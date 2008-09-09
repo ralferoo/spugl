@@ -74,6 +74,9 @@ server:	spugld .FORCE
 client:	testclient .FORCE
 	./testclient
 
+client64:	testclient64 .FORCE
+	./testclient64
+
 spugld:	spugld.debug
 	cp $< $@
 	strip $@
