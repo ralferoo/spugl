@@ -187,6 +187,8 @@ server/spu_main.handle.spe: $(SPU_DRIVER_TARGETS) Makefile
 depend: .gen
 	@echo checking dependencies
 	@makedepend -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(PPU_SRCS) -DUSERLAND_$(USERLAND)_BITS
+	@makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(CLIENT_LIB_TARGETS_C) -o.o32 -DUSERLAND_$(USERLAND)_BITS
+	@makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(CLIENT_LIB_TARGETS_C) -o.o64 -DUSERLAND_$(USERLAND)_BITS
 	@makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(CLIENT_LIB_TARGETS_C) $(DAEMON_TARGETS_C)
 	@makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.0 $(SPU_SRCS) -DSPU_REGS -DUSERLAND_$(USERLAND)_BITS
 	@rm -f Makefile.bak
@@ -401,6 +403,130 @@ test.o: /usr/include/bits/sys_errlist.h /usr/include/bits/stdio-ldbl.h
 test.o: ./GL/gl.h ./GL/glext.h /usr/include/inttypes.h /usr/include/stdint.h
 test.o: ./GL/glspu.h joystick.h
 
+client/client.o32: /usr/include/stdio.h /usr/include/features.h
+client/client.o32: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+client/client.o32: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+client/client.o32: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+client/client.o32: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+client/client.o32: /usr/include/libio.h /usr/include/_G_config.h
+client/client.o32: /usr/include/wchar.h /usr/include/bits/wchar.h
+client/client.o32: /usr/include/gconv.h
+client/client.o32: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+client/client.o32: /usr/include/bits/libio-ldbl.h
+client/client.o32: /usr/include/bits/stdio_lim.h
+client/client.o32: /usr/include/bits/sys_errlist.h
+client/client.o32: /usr/include/bits/stdio-ldbl.h /usr/include/stdlib.h
+client/client.o32: /usr/include/sys/types.h /usr/include/time.h
+client/client.o32: /usr/include/endian.h /usr/include/bits/endian.h
+client/client.o32: /usr/include/sys/select.h /usr/include/bits/select.h
+client/client.o32: /usr/include/bits/sigset.h /usr/include/bits/time.h
+client/client.o32: /usr/include/sys/sysmacros.h
+client/client.o32: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+client/client.o32: /usr/include/bits/stdlib-ldbl.h /usr/include/unistd.h
+client/client.o32: /usr/include/bits/posix_opt.h /usr/include/bits/confname.h
+client/client.o32: /usr/include/getopt.h /usr/include/sys/socket.h
+client/client.o32: /usr/include/sys/uio.h /usr/include/bits/uio.h
+client/client.o32: /usr/include/bits/socket.h
+client/client.o32: /usr/lib/gcc/spu/4.0.2/include/limits.h
+client/client.o32: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
+client/client.o32: /usr/include/asm/sockios.h /usr/include/sys/un.h
+client/client.o32: /usr/include/string.h /usr/include/sys/mman.h
+client/client.o32: /usr/include/bits/mman.h /usr/include/sys/stat.h
+client/client.o32: /usr/include/bits/stat.h /usr/include/fcntl.h
+client/client.o32: /usr/include/bits/fcntl.h client/daemon.h client/client.h
+client/client.o32: queue.h types.h
+client/client.o32: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+client/client.o32: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
+client/client.o32: client/fifodefs.h client/gen_command_defs.h
+client/glfifo.o32: /usr/include/stdlib.h /usr/include/features.h
+client/glfifo.o32: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+client/glfifo.o32: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+client/glfifo.o32: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+client/glfifo.o32: /usr/include/sys/types.h /usr/include/bits/types.h
+client/glfifo.o32: /usr/include/bits/typesizes.h /usr/include/time.h
+client/glfifo.o32: /usr/include/endian.h /usr/include/bits/endian.h
+client/glfifo.o32: /usr/include/sys/select.h /usr/include/bits/select.h
+client/glfifo.o32: /usr/include/bits/sigset.h /usr/include/bits/time.h
+client/glfifo.o32: /usr/include/sys/sysmacros.h
+client/glfifo.o32: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+client/glfifo.o32: /usr/include/bits/stdlib-ldbl.h /usr/include/stdio.h
+client/glfifo.o32: /usr/include/libio.h /usr/include/_G_config.h
+client/glfifo.o32: /usr/include/wchar.h /usr/include/bits/wchar.h
+client/glfifo.o32: /usr/include/gconv.h
+client/glfifo.o32: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+client/glfifo.o32: /usr/include/bits/libio-ldbl.h
+client/glfifo.o32: /usr/include/bits/stdio_lim.h
+client/glfifo.o32: /usr/include/bits/sys_errlist.h
+client/glfifo.o32: /usr/include/bits/stdio-ldbl.h /usr/include/math.h
+client/glfifo.o32: /usr/include/bits/huge_val.h /usr/include/bits/mathdef.h
+client/glfifo.o32: /usr/include/bits/mathcalls.h client/fifodefs.h queue.h
+client/glfifo.o32: types.h /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+client/glfifo.o32: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
+client/glfifo.o32: client/gen_command_defs.h ./GL/gl.h ./GL/glext.h
+client/glfifo.o32: /usr/include/inttypes.h /usr/include/stdint.h
+
+client/client.o64: /usr/include/stdio.h /usr/include/features.h
+client/client.o64: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+client/client.o64: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+client/client.o64: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+client/client.o64: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+client/client.o64: /usr/include/libio.h /usr/include/_G_config.h
+client/client.o64: /usr/include/wchar.h /usr/include/bits/wchar.h
+client/client.o64: /usr/include/gconv.h
+client/client.o64: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+client/client.o64: /usr/include/bits/libio-ldbl.h
+client/client.o64: /usr/include/bits/stdio_lim.h
+client/client.o64: /usr/include/bits/sys_errlist.h
+client/client.o64: /usr/include/bits/stdio-ldbl.h /usr/include/stdlib.h
+client/client.o64: /usr/include/sys/types.h /usr/include/time.h
+client/client.o64: /usr/include/endian.h /usr/include/bits/endian.h
+client/client.o64: /usr/include/sys/select.h /usr/include/bits/select.h
+client/client.o64: /usr/include/bits/sigset.h /usr/include/bits/time.h
+client/client.o64: /usr/include/sys/sysmacros.h
+client/client.o64: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+client/client.o64: /usr/include/bits/stdlib-ldbl.h /usr/include/unistd.h
+client/client.o64: /usr/include/bits/posix_opt.h /usr/include/bits/confname.h
+client/client.o64: /usr/include/getopt.h /usr/include/sys/socket.h
+client/client.o64: /usr/include/sys/uio.h /usr/include/bits/uio.h
+client/client.o64: /usr/include/bits/socket.h
+client/client.o64: /usr/lib/gcc/spu/4.0.2/include/limits.h
+client/client.o64: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
+client/client.o64: /usr/include/asm/sockios.h /usr/include/sys/un.h
+client/client.o64: /usr/include/string.h /usr/include/sys/mman.h
+client/client.o64: /usr/include/bits/mman.h /usr/include/sys/stat.h
+client/client.o64: /usr/include/bits/stat.h /usr/include/fcntl.h
+client/client.o64: /usr/include/bits/fcntl.h client/daemon.h client/client.h
+client/client.o64: queue.h types.h
+client/client.o64: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+client/client.o64: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
+client/client.o64: client/fifodefs.h client/gen_command_defs.h
+client/glfifo.o64: /usr/include/stdlib.h /usr/include/features.h
+client/glfifo.o64: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+client/glfifo.o64: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+client/glfifo.o64: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+client/glfifo.o64: /usr/include/sys/types.h /usr/include/bits/types.h
+client/glfifo.o64: /usr/include/bits/typesizes.h /usr/include/time.h
+client/glfifo.o64: /usr/include/endian.h /usr/include/bits/endian.h
+client/glfifo.o64: /usr/include/sys/select.h /usr/include/bits/select.h
+client/glfifo.o64: /usr/include/bits/sigset.h /usr/include/bits/time.h
+client/glfifo.o64: /usr/include/sys/sysmacros.h
+client/glfifo.o64: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+client/glfifo.o64: /usr/include/bits/stdlib-ldbl.h /usr/include/stdio.h
+client/glfifo.o64: /usr/include/libio.h /usr/include/_G_config.h
+client/glfifo.o64: /usr/include/wchar.h /usr/include/bits/wchar.h
+client/glfifo.o64: /usr/include/gconv.h
+client/glfifo.o64: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+client/glfifo.o64: /usr/include/bits/libio-ldbl.h
+client/glfifo.o64: /usr/include/bits/stdio_lim.h
+client/glfifo.o64: /usr/include/bits/sys_errlist.h
+client/glfifo.o64: /usr/include/bits/stdio-ldbl.h /usr/include/math.h
+client/glfifo.o64: /usr/include/bits/huge_val.h /usr/include/bits/mathdef.h
+client/glfifo.o64: /usr/include/bits/mathcalls.h client/fifodefs.h queue.h
+client/glfifo.o64: types.h /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+client/glfifo.o64: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
+client/glfifo.o64: client/gen_command_defs.h ./GL/gl.h ./GL/glext.h
+client/glfifo.o64: /usr/include/inttypes.h /usr/include/stdint.h
+
 client/client.o: /usr/include/stdio.h /usr/include/features.h
 client/client.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 client/client.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -433,6 +559,7 @@ client/client.o: /usr/include/bits/fcntl.h client/daemon.h client/client.h
 client/client.o: queue.h types.h
 client/client.o: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 client/client.o: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
+client/client.o: client/fifodefs.h client/gen_command_defs.h
 client/glfifo.o: /usr/include/stdlib.h /usr/include/features.h
 client/glfifo.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 client/glfifo.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h

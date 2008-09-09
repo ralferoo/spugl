@@ -272,6 +272,13 @@ int handleConnectionData(Connection* connection, char* mountname) {
 	char buffer[512];
 
 	int len = recv(connection->fd, &request, sizeof(request), 0/*MSG_DONTWAIT*/);
+#ifdef DEBUG
+	printf("received command len %d\n", len);
+	for (int j=0; j<len; j++)
+		printf("%02X ", ((unsigned char*)&request)[j]);
+	printf("\n");
+#endif
+
 //	if (len == -EAGAIN)
 //		return 0;		// need to retry, go back to polling loop
 

@@ -15,7 +15,10 @@ test
 spugld
 spugld.debug
 spugl.a
+spugl.a32
+spugl.a64
 testclient
+testclient64
 version.txt
 #symlink to spu includes
 z

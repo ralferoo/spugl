@@ -27,26 +27,28 @@
 #include "daemon.h"
 #include "client.h"
 
+#include "fifodefs.h"
+
 typedef struct __SPUGL_Buffer SPUGL_Buffer;
 
 struct __SPUGL_Buffer {
 	SPUGL_Buffer* next;
 	void* data;
-	unsigned long id;
-	unsigned long size;
+	unsigned int id;
+	unsigned int size;
 	int fd;
 	int server_fd;
 };
 
 static SPUGL_Buffer* firstBuffer;
 
-static void* _allocate(int server, unsigned long size, unsigned short command);
+static void* _allocate(int server, unsigned int size, unsigned short command);
 
-CommandQueue* SPUGL_allocateCommandQueue(int server, unsigned long size) {
+CommandQueue* SPUGL_allocateCommandQueue(int server, unsigned int size) {
 	return _allocate(server, size, SPUGLR_ALLOC_COMMAND_QUEUE);
 }
 	
-void* SPUGL_allocateBuffer(int server, unsigned long size) {
+void* SPUGL_allocateBuffer(int server, unsigned int size) {
 	return (CommandQueue*) _allocate(server, size, SPUGLR_ALLOC_BUFFER);
 }
 	
@@ -92,7 +94,7 @@ static void _freeBuffer(void* buffer, unsigned short command) {
 #endif
 }
 
-static void* _allocate(int server, unsigned long size, unsigned short command) {
+static void* _allocate(int server, unsigned int size, unsigned short command) {
 	SPUGL_request request;
 	SPUGL_reply reply;
 	request.alloc.command = command;

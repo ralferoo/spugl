@@ -20,14 +20,14 @@
 // This is the definition of the queue structure (pretty simple)
 
 struct __CommandQueue {
-	unsigned long write_ptr;	// relative to &write_ptr
-	unsigned long read_ptr;		// relative to &write_ptr
+	unsigned int write_ptr;	// relative to &write_ptr
+	unsigned int read_ptr;		// relative to &write_ptr
 
-	unsigned long buffer_start;
-	unsigned long buffer_end;
-	unsigned long pad[128/4 - 4];	// doesn't really need to be reserved, but might as well be
+	unsigned int buffer_start;
+	unsigned int buffer_end;
+	unsigned int pad[128/4 - 4];	// doesn't really need to be reserved, but might as well be
 
-	unsigned long data[0];
+	unsigned int data[0];
 };
 
 //////////////////////////////////////////////////////////////////////////////
