@@ -12,8 +12,9 @@
 #ifndef __client_fifo_h
 #define __client_fifo_h
 
-#include "queue.h"
 #include "gen_command_defs.h"
+
+typedef struct __CommandQueue CommandQueue;
 
 //////////////////////////////////////////////////////////////////////////////
 //

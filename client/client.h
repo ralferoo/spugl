@@ -9,7 +9,7 @@
  *
  ****************************************************************************/
 
-#include "queue.h"
+typedef struct __CommandQueue* SPUGL_QUEUE;
 
 //////////////////////////////////////////////////////////////////////////
 //
@@ -23,11 +23,11 @@ int glspuConnect();
 void glspuDisconnect(int server);
 
 // waits until command queue has finished processing
-void glspuFlush(CommandQueue* buffer);
+void glspuFlush(SPUGL_QUEUE buffer);
 
 // allocates/frees an OpenGL FIFO
-CommandQueue* glspuAllocateCommandQueue(int server, unsigned int size);
-void glspuFreeCommandQueue(CommandQueue* buffer);
+SPUGL_QUEUE glspuAllocateCommandQueue(int server, unsigned int size);
+void glspuFreeCommandQueue(SPUGL_QUEUE buffer);
 
 // allocates/frees a general buffer suitable for textures, pixel buffers, etc.
 void* glspuAllocateBuffer(int server, unsigned int size);
@@ -37,4 +37,4 @@ void glspuFreeBuffer(void* buffer);
 void glspuInvalidRequest(int server);
 
 // changes the current OpenGL context
-CommandQueue* glspuSetCurrentContext(CommandQueue* newContext);
+SPUGL_QUEUE glspuSetCurrentContext(SPUGL_QUEUE newContext);
