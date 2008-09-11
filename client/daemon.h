@@ -57,6 +57,7 @@ struct __SPUGL_request {
 #define SPUGLR_FREE_COMMAND_QUEUE	6
 #define SPUGLR_FREE_BUFFER		7
 #define SPUGLR_FLUSH			8
+#define SPUGLR_SCREEN_SIZE		9
 
 struct __SPUGL_reply {
 	union {
@@ -66,6 +67,9 @@ struct __SPUGL_reply {
 		struct {
 			unsigned int id;
 		} alloc;
+		struct {
+			unsigned int width, height;
+		} screensize;
 		//struct {
 		//	unsigned char size[16];
 		//} pad;

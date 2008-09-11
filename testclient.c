@@ -26,6 +26,10 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
+	int width, height;
+	spuglScreenSize(server, &width, &height);
+	printf("Connected to spugl, screen size is %dx%d\n", width, height);
+
 	CommandQueue* queue = spuglAllocateCommandQueue(server, 2047*1024);
 	if (queue==NULL) { printf("Out of memory\n"); exit(1); }
 

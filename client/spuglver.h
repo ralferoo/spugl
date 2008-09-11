@@ -9,7 +9,12 @@
  *
  ****************************************************************************/
 
+#ifndef __SPUGL_VER_H
+#define __SPUGL_VER_H
+
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 2
-#define VERSION_REVISION 29
-#define VERSION_STRING "0.2.29"
+#define VERSION_REVISION 31
+#define VERSION_STRING "0.2.31"
+
+#endif // __SPUGL_VER_H

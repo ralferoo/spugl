@@ -29,6 +29,7 @@
 
 #include "connection.h"
 #include "ppufuncs.h"
+#include "framebuffer.h"
 
 #ifndef MNT_DETACH
 // not defined on my system for some reason :(
@@ -72,6 +73,11 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
+	if (!Screen_open()) {
+		syslog(LOG_ERR, "cannot open screen");
+		exit(1);
+	}
+
 	mkdir(mountname, 0700);
 	mount("spugl", mountname, "tmpfs",
 			MS_NOATIME | MS_NODEV | MS_NODIRATIME | MS_NOEXEC | MS_NOSUID, "");
@@ -91,12 +97,12 @@ int main(int argc, char* argv[]) {
 	sigaction(SIGCHLD, &sa, NULL);
 	sigaction(SIGPIPE, &sa, NULL);
 
+	SPU_HANDLE thread = _init_spu_thread(blockManagementInit(), 1);
+
 	syslog(LOG_INFO, "accepting connections");
 
 	int connectionCount = 0;
 	ConnectionList list = {0};
-
-	SPU_HANDLE thread = _init_spu_thread(blockManagementInit(), 1);
 
 	while (!terminated) {
 		struct pollfd p[connectionCount+1];
@@ -193,6 +199,8 @@ disconnected:				handleDisconnect(connection);
 	blockManagementDestroy();
 	close(server);
 	syslog(LOG_INFO, "exiting");
+
+	Screen_close();
 
 	sa.sa_handler = sig_hup_onexit;
 	sigaction(SIGHUP, &sa, NULL);

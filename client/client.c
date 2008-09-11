@@ -248,3 +248,17 @@ CommandQueue* spuglSetCurrentContext(CommandQueue* newContext) {
 	return old;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+void spuglScreenSize(int server, unsigned int* width, unsigned int* height)
+{
+	SPUGL_request request;
+	request.header.command = SPUGLR_SCREEN_SIZE;
+	send(server, &request, sizeof(request), 0);
+
+	SPUGL_reply reply;
+	recv(server, &reply, sizeof(reply), 0);
+
+	*width	= reply.screensize.width;
+	*height	= reply.screensize.height;
+}

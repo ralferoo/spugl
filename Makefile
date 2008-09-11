@@ -637,7 +637,7 @@ server/connection.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
 server/connection.o: /usr/include/asm/sockios.h server/connection.h
 server/connection.o: server/ppufuncs.h client/fifodefs.h
 server/connection.o: client/gen_command_defs.h client/daemon.h
-server/connection.o: client/spuglver.h
+server/connection.o: client/spuglver.h server/framebuffer.h
 server/control.o: /usr/include/stdlib.h /usr/include/features.h
 server/control.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 server/control.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -707,7 +707,7 @@ server/framebuffer.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
 server/framebuffer.o: /usr/include/asm/sockios.h /usr/include/arpa/inet.h
 server/framebuffer.o: /usr/include/netinet/in.h /usr/include/bits/in.h
 server/framebuffer.o: /usr/include/bits/byteswap.h client/daemon.h
-server/framebuffer.o: client/spuglver.h
+server/framebuffer.o: client/spuglver.h server/framebuffer.h
 server/main.o: /usr/include/stdio.h /usr/include/features.h
 server/main.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 server/main.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -750,7 +750,7 @@ server/main.o: /usr/include/bits/mman.h /usr/include/sys/wait.h
 server/main.o: /usr/include/sys/resource.h /usr/include/bits/resource.h
 server/main.o: /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h
 server/main.o: /usr/include/sys/stat.h /usr/include/bits/stat.h
-server/main.o: server/connection.h server/ppufuncs.h
+server/main.o: server/connection.h server/ppufuncs.h server/framebuffer.h
 
 spufifo.0: spuregs.h struct.h types.h
 spufifo.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h

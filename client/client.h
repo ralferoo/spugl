@@ -9,6 +9,9 @@
  *
  ****************************************************************************/
 
+#ifndef __SPUGL_CLIENT_H
+#define __SPUGL_CLIENT_H
+
 typedef struct __CommandQueue* SPUGL_QUEUE;
 
 //////////////////////////////////////////////////////////////////////////
@@ -38,3 +41,8 @@ void spuglInvalidRequest(int server);
 
 // changes the current OpenGL context
 SPUGL_QUEUE spuglSetCurrentContext(SPUGL_QUEUE newContext);
+
+// gets the current screen width and height
+void spuglScreenSize(int server, unsigned int* width, unsigned int* height);
+
+#endif // __SPUGL_CLIENT_H

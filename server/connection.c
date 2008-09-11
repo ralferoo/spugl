@@ -27,6 +27,7 @@
 #include "ppufuncs.h"
 #include "../client/fifodefs.h"
 #include "../client/daemon.h"
+#include "framebuffer.h"
 
 char SPUGL_VERSION[] = "spugl version " VERSION_STRING;
 
@@ -316,11 +317,17 @@ int handleConnectionData(Connection* connection, char* mountname) {
 		case SPUGLR_FREE_BUFFER:
 			freeBuffer(connection, &request);
 			break;
-			
+
 		case SPUGLR_FLUSH:
 			flushQueue(connection, &request, &reply);
 			break;
-			
+
+		case SPUGLR_SCREEN_SIZE:
+			reply.screensize.width	= __SPUGL_SCREEN->width;
+			reply.screensize.height	= __SPUGL_SCREEN->height;
+			send(connection->fd, &reply, sizeof(reply), 0);
+			break;
+
 		default: 
 			sprintf(buffer, "invalid request command %d", request.header.command);
 			syslog(LOG_ERR, buffer);

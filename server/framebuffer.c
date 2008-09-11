@@ -29,17 +29,7 @@
 #include <arpa/inet.h>
 
 #include "../client/daemon.h"
-
-struct __SPUGL_framebuffer {
-	unsigned int	width, height;
-	unsigned int	stride;
-	unsigned int	frame[2];		// offsets from base
-	unsigned int	mode;
-	void*		mmap_base;
-	unsigned int	mmap_size;
-	int		fd;
-	int		hasUnblankedScreen;
-};
+#include "framebuffer.h"
 
 #define PS3FB_IOCTL_SETMODE          _IOW('r',  1, int)
 #define PS3FB_IOCTL_GETMODE          _IOR('r',  2, int)
@@ -47,6 +37,7 @@ struct __SPUGL_framebuffer {
 static struct __SPUGL_framebuffer screen = {
 	.fd = -1
 };
+struct __SPUGL_framebuffer* __SPUGL_SCREEN = NULL;
 
 static void switchMode(int gfxMode) {
 	int fd = open("/dev/console", O_NONBLOCK);
@@ -64,10 +55,10 @@ static void switchMode(int gfxMode) {
 	}
 }
 
-struct __SPUGL_framebuffer* screen_open(void)
+int Screen_open(void)
 {
 	if (screen.fd >= 0)
-		return &screen;
+		return 1;
 
 	screen.fd = open("/dev/fb0", O_RDWR);
 	if (screen.fd < 0)
@@ -114,7 +105,8 @@ struct __SPUGL_framebuffer* screen_open(void)
 	uint32_t showFrame = 0;
 	ioctl(screen.fd, PS3FB_IOCTL_FSEL, (unsigned long)&showFrame);
 
-	return &screen;
+	__SPUGL_SCREEN = &screen;
+	return 1;
 }
 
 void Screen_close(void) {
@@ -128,6 +120,7 @@ void Screen_close(void) {
 	}
 
 	switchMode(0);
+	__SPUGL_SCREEN = NULL;
 }
 
 int Screen_flip(int frame)
