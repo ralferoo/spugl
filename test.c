@@ -56,7 +56,7 @@ int faces[6][7] = {
 static inline double getTimeSince(struct timespec startPoint) {
 	struct timespec endPoint;
 	clock_gettime(CLOCK_MONOTONIC,&endPoint);
-	double secs = endPoint.tv_sec-startPoint.tv_sec +
+	double secs = endPoint.tv_sec-startPoint.tv_sec
 		((endPoint.tv_nsec-startPoint.tv_nsec)/1000000000.0);
 	return secs;
 }

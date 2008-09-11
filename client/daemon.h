@@ -2,7 +2,7 @@
  *
  * SPU GL - 3d rasterisation library for the PS3
  *
- * (c) 2008 Ranulf Doswell <dev@ranulf.net> 
+ * (c) 2008 Ranulf Doswell <dev@ranulf.net>
  *
  * This library may not be used or distributed without a licence, please
  * contact me for information if you wish to use it.
@@ -11,8 +11,8 @@
 
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 2
-#define VERSION_REVISION 27
-#define VERSION_STRING "0.2.27"
+#define VERSION_REVISION 28
+#define VERSION_STRING "0.2.28"
 
 typedef struct __SPUGL_request SPUGL_request;
 typedef struct __SPUGL_reply SPUGL_reply;
