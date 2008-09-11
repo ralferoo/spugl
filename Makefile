@@ -108,7 +108,7 @@ texmap.sqf:	test
 	echo 'Texture Mapping Demo':`date '+%s'` >/tmp/texmap-build/.version
 	mksquashfs /tmp/texmap-build $@ -noappend
 	
-client/daemon.h: .git
+client/spuglver.h: .git
 	./version.sh
 
 test.static:	$(PPU_TEST_OBJS) $(SPU_HNDL)
@@ -436,8 +436,9 @@ client/client.o32: /usr/include/asm/sockios.h /usr/include/sys/un.h
 client/client.o32: /usr/include/string.h /usr/include/sys/mman.h
 client/client.o32: /usr/include/bits/mman.h /usr/include/sys/stat.h
 client/client.o32: /usr/include/bits/stat.h /usr/include/fcntl.h
-client/client.o32: /usr/include/bits/fcntl.h client/daemon.h client/client.h
-client/client.o32: client/fifodefs.h client/gen_command_defs.h
+client/client.o32: /usr/include/bits/fcntl.h client/daemon.h
+client/client.o32: client/spuglver.h client/client.h client/fifodefs.h
+client/client.o32: client/gen_command_defs.h
 client/glfifo.o32: /usr/include/stdlib.h /usr/include/features.h
 client/glfifo.o32: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 client/glfifo.o32: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -493,8 +494,9 @@ client/client.o64: /usr/include/asm/sockios.h /usr/include/sys/un.h
 client/client.o64: /usr/include/string.h /usr/include/sys/mman.h
 client/client.o64: /usr/include/bits/mman.h /usr/include/sys/stat.h
 client/client.o64: /usr/include/bits/stat.h /usr/include/fcntl.h
-client/client.o64: /usr/include/bits/fcntl.h client/daemon.h client/client.h
-client/client.o64: client/fifodefs.h client/gen_command_defs.h
+client/client.o64: /usr/include/bits/fcntl.h client/daemon.h
+client/client.o64: client/spuglver.h client/client.h client/fifodefs.h
+client/client.o64: client/gen_command_defs.h
 client/glfifo.o64: /usr/include/stdlib.h /usr/include/features.h
 client/glfifo.o64: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 client/glfifo.o64: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -548,8 +550,8 @@ client/client.o: /usr/include/asm/sockios.h /usr/include/sys/un.h
 client/client.o: /usr/include/string.h /usr/include/sys/mman.h
 client/client.o: /usr/include/bits/mman.h /usr/include/sys/stat.h
 client/client.o: /usr/include/bits/stat.h /usr/include/fcntl.h
-client/client.o: /usr/include/bits/fcntl.h client/daemon.h client/client.h
-client/client.o: client/fifodefs.h client/gen_command_defs.h
+client/client.o: /usr/include/bits/fcntl.h client/daemon.h client/spuglver.h
+client/client.o: client/client.h client/fifodefs.h client/gen_command_defs.h
 client/glfifo.o: /usr/include/stdlib.h /usr/include/features.h
 client/glfifo.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 client/glfifo.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -635,6 +637,7 @@ server/connection.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
 server/connection.o: /usr/include/asm/sockios.h server/connection.h
 server/connection.o: server/ppufuncs.h client/fifodefs.h
 server/connection.o: client/gen_command_defs.h client/daemon.h
+server/connection.o: client/spuglver.h
 server/control.o: /usr/include/stdlib.h /usr/include/features.h
 server/control.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 server/control.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -659,6 +662,52 @@ server/control.o: /usr/include/bits/posix_opt.h /usr/include/bits/confname.h
 server/control.o: /usr/include/getopt.h /usr/include/sys/mman.h
 server/control.o: /usr/include/bits/mman.h server/connection.h
 server/control.o: /usr/include/libspe.h
+server/framebuffer.o: /usr/include/fcntl.h /usr/include/features.h
+server/framebuffer.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+server/framebuffer.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+server/framebuffer.o: /usr/include/bits/fcntl.h /usr/include/sys/types.h
+server/framebuffer.o: /usr/include/bits/types.h
+server/framebuffer.o: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+server/framebuffer.o: /usr/include/bits/typesizes.h /usr/include/time.h
+server/framebuffer.o: /usr/include/endian.h /usr/include/bits/endian.h
+server/framebuffer.o: /usr/include/sys/select.h /usr/include/bits/select.h
+server/framebuffer.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
+server/framebuffer.o: /usr/include/sys/sysmacros.h
+server/framebuffer.o: /usr/include/bits/pthreadtypes.h /usr/include/stdint.h
+server/framebuffer.o: /usr/include/bits/wchar.h /usr/include/unistd.h
+server/framebuffer.o: /usr/include/bits/posix_opt.h
+server/framebuffer.o: /usr/include/bits/confname.h /usr/include/getopt.h
+server/framebuffer.o: /usr/include/sys/ioctl.h /usr/include/bits/ioctls.h
+server/framebuffer.o: /usr/include/asm/ioctls.h /usr/include/asm/ioctl.h
+server/framebuffer.o: /usr/include/bits/ioctl-types.h /usr/include/termios.h
+server/framebuffer.o: /usr/include/bits/termios.h
+server/framebuffer.o: /usr/include/sys/ttydefaults.h /usr/include/sys/mman.h
+server/framebuffer.o: /usr/include/bits/mman.h /usr/include/linux/kd.h
+server/framebuffer.o: /usr/include/linux/types.h
+server/framebuffer.o: /usr/include/linux/posix_types.h
+server/framebuffer.o: /usr/include/linux/stddef.h
+server/framebuffer.o: /usr/include/asm/posix_types.h /usr/include/asm/types.h
+server/framebuffer.o: /usr/include/linux/tiocl.h /usr/include/sys/time.h
+server/framebuffer.o: /usr/include/linux/fb.h /usr/include/linux/i2c.h
+server/framebuffer.o: /usr/include/asm/ps3fb.h /usr/include/linux/ioctl.h
+server/framebuffer.o: /usr/include/stdlib.h /usr/include/alloca.h
+server/framebuffer.o: /usr/include/bits/stdlib-ldbl.h /usr/include/stdio.h
+server/framebuffer.o: /usr/include/libio.h /usr/include/_G_config.h
+server/framebuffer.o: /usr/include/wchar.h /usr/include/gconv.h
+server/framebuffer.o: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+server/framebuffer.o: /usr/include/bits/libio-ldbl.h
+server/framebuffer.o: /usr/include/bits/stdio_lim.h
+server/framebuffer.o: /usr/include/bits/sys_errlist.h
+server/framebuffer.o: /usr/include/bits/stdio-ldbl.h /usr/include/string.h
+server/framebuffer.o: /usr/include/net/if.h /usr/include/sys/socket.h
+server/framebuffer.o: /usr/include/sys/uio.h /usr/include/bits/uio.h
+server/framebuffer.o: /usr/include/bits/socket.h
+server/framebuffer.o: /usr/lib/gcc/spu/4.0.2/include/limits.h
+server/framebuffer.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
+server/framebuffer.o: /usr/include/asm/sockios.h /usr/include/arpa/inet.h
+server/framebuffer.o: /usr/include/netinet/in.h /usr/include/bits/in.h
+server/framebuffer.o: /usr/include/bits/byteswap.h client/daemon.h
+server/framebuffer.o: client/spuglver.h
 server/main.o: /usr/include/stdio.h /usr/include/features.h
 server/main.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 server/main.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
