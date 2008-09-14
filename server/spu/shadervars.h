@@ -31,7 +31,7 @@
  * Special constants
  *
  * const mediump int gl_MaxVertexAttribs = 8;
- * const mediump int gl_MaxVertexUniformVectors = 128;
+ * const mediump int gl_MaxVertexUniformVectors = 128;   // < maybe not all in regs
  * const mediump int gl_MaxVaryingVectors = 8;
  * const mediump int gl_MaxVertexTextureImageUnits = 0;
  * const mediump int gl_MaxCombinedTextureImageUnits = 8;
