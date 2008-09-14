@@ -1,0 +1,27 @@
+
+Input to vertex shader:
+
+Vertex uniforms	~96		Constant
+Attributes	 ~8		Per vertex
+
+Output from vertex shader:
+
+Varyings	 ~8		Per vertex
+gl_Position		vec4	Per vertex
+gl_FrontFacing		bool	Per vertex	(is this _really_ an output?)
+
+Then the "primitive assembly" and "rasterise" steps happen
+
+Input to fragment shader:
+
+Fragment uniforms ~16		Constant
+Varyings	   ~8		Interpolated
+gl_Position		vec4	Interpolated
+gl_FrontFacing		bool	(how to derive from the vertices?)
+gl_FragDepth		float	Interpolated
+gl_FragCoord		vec4
+
+Output from fragment shader:
+
+gl_FragColor		rgba	Result
+
