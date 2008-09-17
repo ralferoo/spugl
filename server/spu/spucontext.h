@@ -18,4 +18,17 @@ typedef struct {
 	vec_float4    texture_matrix_x,    texture_matrix_y,    texture_matrix_z,    texture_matrix_w;
 } Context;
 
+typedef struct {
+	float		recip[3];
+	float		x[3];
+	float		y[3];
+
+	float		A[3];
+	float		Adx[3];
+	float		Ady[3];
+
+	vec_float4	gl_Position[3];		// pre-multiplied by recip
+	vec_float4	varings[8][3];		// pre-multiplied by recip
+} Triangle;
+
 #endif // __SPU_SPUCONTEXT_H
