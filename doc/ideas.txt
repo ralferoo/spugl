@@ -231,3 +231,128 @@ static inline vec_float4 extract(
 		wA += spu_sel(wA_dx4,wA_dy,sel);
 
 wA = w[0] * Aa + w[1] * Ab + w[2] * Ac
+
+
+Idea for rendering with diagonal deltas:
+
+  0  1  5  6 14 15 27 28
+  2  4  7 13 16 26 29 42
+  3  8 12 17 25 30 41 43
+  9 11 18 24 31 40 44 53
+ 10 19 23 32 39 45 52 54
+ 20 22 33 38 46 51 55 60
+ 21 34 37 47 50 56 59 61
+ 35 36 48 49 57 58 62 63
+
+    0	0
+ 1  2	xq
+ 3  5	yrr
+ 6  9	xqqq
+10 14	yrrrr
+15 20	xqqqqq
+21 27	yrrrrrr
+28 35	xqqqqqqq
+36 42	xrrrrrr
+43 48	yqqqqq
+49 53	xrrrr
+54 57	yqqq
+58 60	xrr
+61 62	yq
+   63	x
+
+q=-x,+y
+r=+x,-y
+
+But does it actually gain anything? Still need to store values for each
+fragment if not doing entire block.
+
+
+
+
+mipmap level
+------------
+
+static inline vec_int4 log2_sqrt_clamp(vec_float4 a, vec_int4 adjust) {
+        qword ra = (qword) a;
+        qword rb = (qword) adjust;
+        qword t0 = si_shli(ra,1);
+        qword t1 = si_rotmi(t0,-24);
+        qword t2p = si_sfi(t1,127);
+        qword t2 = si_sf(t2p,rb);
+        qword t2a = si_rotmai(t2,-1);
+        qword t3 = si_rotmai(t2,-31);
+        qword t4 = si_andc(t2a,t3);
+        return (vec_int4) t4;
+}
+
+
+                        vec_int4 mipmap_real = log2_sqrt_clamp(k*w*w*w, adjust);                        // det
+ermine mipmap level
+                        vec_uint4 mipmap_clamp_sel = spu_cmpgt(max_mipmap,mipmap_real);
+                        vec_int4 mipmap = spu_sel(max_mipmap,mipmap_real,mipmap_clamp_sel);             // cla
+
+so, 3 mults per pixel
+
+-----------------------------
+
+
+a = pixel_10 - pixel_00	= (ua,va,pa)
+c = pixel_01 - pixel_00 = (uc,vc,pc)
+
+v(r) = a.cos(r) + c.sin(r)
+
+l(r) = | v(r) |               // sqrt2( v(r).du^2 + v(r).dv^2 + v(r).dp^2 )
+
+lod = log2( max( l(0), l(45), l(90), l(135) ) )
+
+sin(0) = cos(90) = 0
+sin(45) = cos(45) = sin(135) = 1/sqrt(2)
+sin(90) = cos(0) = 1
+cos(135) = -1/sqrt(2)
+
+a2 = a / sqrt(2) = (ua2,va2,pa2)
+c2 = c / sqrt(2) = (uc2,vc2,pc2)
+
+v(0)	= sqrt( uc^2 + vc^2 + pc^2 )
+v(90)	= sqrt( ua^2 + va^2 + pa^2 )
+
+v(45)	= sqrt( ( ua2+uc2)^2 + ( va2+vc2)^2 + ( pa2+vc2)^2 )
+v(135)	= sqrt( (-ua2+uc2)^2 + (-va2+vc2)^2 + (-pa2+vc2)^2 )
+
+v(45)	= sqrt( ( (uc+ua)^2 + (vc+va)^2 + (pc+pa)^2 )/2 )
+v(135)	= sqrt( ( (uc-ua)^2 + (vc-va)^2 + (pc-pa)^2 )/2 )
+
+lod = log2(sqrt(M)) = 0.5*log2(M)
+
+M = max(MA,MB,MC/2,MD/2)
+
+MA = uc^2 + vc^2 + pc^2
+MB = ua^2 + vc^2 + pc^2
+MC = (uc+ua)^2 + (vc+va)^2 + (pc+pa)^2
+MD = (uc-ua)^2 + (vc-va)^2 + (pc-pa)^2
+
+M = max( max(MA,MB), max(MC,MD)/2 )
+
+(x-y)^2 = x^2 + y^2 - 2xy
+(x+y)^2 = x^2 + y^2 + 2xy
+
+MX = 2(uc.ua) + 2(vc.va) + 2(pc.pa)
+
+MC = MA + MB + MX
+MD = MA + MB - MX
+
+A = (uc,vc,pc,xxx)
+B = (ua,va,pa,xxx)
+
+A.A, A.B, B.B
+
+3 mults per quad
+
+9 mults per 4 x quad
+
+if only considering u and v
+
+A = (ua,va, uc,vc, uc,vc)
+B = (ua,va, ua,va, uc,vc)
+
+
