@@ -9,6 +9,7 @@
  *
  ****************************************************************************/
 
+
 /*
  * Built in vertex shader vars:  (The OpenGL Shading Language, chapter 7)
  *
