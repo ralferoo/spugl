@@ -350,3 +350,9 @@ A.A, A.B, B.B
 
 9 mults per 4 x quad
 
+if only considering u and v
+
+A = (ua,va, uc,vc, uc,vc)
+B = (ua,va, ua,va, uc,vc)
+
+
