@@ -12,6 +12,14 @@
 #ifndef __SPU_SPUCONTEXT_H
 #define __SPU_SPUCONTEXT_H
 
+#include <spu_mfcio.h>
+#include <spu_intrinsics.h>
+
+extern unsigned int eah_buffer_tables;
+extern unsigned int eal_buffer_lock_table;
+extern unsigned int eal_buffer_memory_table;
+extern unsigned int eal_renderables_table;
+
 #define NUM_VERTEX_UNIFORM_VECTORS	128
 #define NUM_FRAGMENT_UNIFORM_VECTORS	 16
 

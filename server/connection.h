@@ -84,7 +84,7 @@ struct __ConnectionList {
 // Structure of a rendering surface
 
 struct __Renderable {
-	void*	buffer;
+	unsigned long long	ea;
 	int	id;
 	int	locks;
 	int	width;

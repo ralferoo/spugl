@@ -42,15 +42,16 @@ int blockManagementCreateRenderable(void* buffer, int width, int height, int str
 {
 	for (int id=0; id<MAX_RENDERABLES; id++) {
 		Renderable* result = _block_mgr_renderables_table + id;
-		if (result->buffer == NULL) {
+		if (result->ea == 0ULL) {
 			id |= (rand() << 16) & (~MAX_RENDERABLES);
-			result->buffer = buffer;
+			result->ea = (unsigned long long) buffer;
 			result->id = id;
 			result->width = width;
 			result->height = height;
 			result->stride = stride;
 			result->format = 0;
 			result->locks = 0;
+			printf("Renderable id %x is %x\n", id, buffer);
 			return id;
 		}
 	}

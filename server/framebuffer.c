@@ -78,18 +78,20 @@ int Screen_open(void)
 		return 0;
 	}
 
+	printf("Screen - %dx%d, border %dx%d\n", res.xres, res.yres, res.xoff, res.yoff);
+
 	screen.width		= res.xres - 2*res.xoff;
 	screen.height		= res.yres - 2*res.yoff;
 	screen.stride		= res.xres * 4;
-	screen.visible_frame	= (res.yoff * res.yres + res.xoff) * 4;
-	screen.draw_frame	= screen.visible_frame + res.yoff * res.xoff * 4;
+	screen.visible_frame	= (res.yoff * res.xres + res.xoff) * 4;
+	screen.draw_frame	= screen.visible_frame + res.yres * res.xres * 4;
 	screen.mmap_size	= res.num_frames * res.yres * res.xres * 4;
 	screen.mmap_base	= mmap(0, screen.mmap_size, PROT_WRITE, MAP_SHARED, screen.fd, 0);
 	screen.visible		= 0;
 	screen.draw_address	= screen.mmap_base + screen.draw_frame;
 
-	screen.renderable_id[1]	= blockManagementCreateRenderable(screen.visible_frame,	screen.width, screen.height, screen.stride);
-	screen.renderable_id[0]	= blockManagementCreateRenderable(screen.draw_frame,	screen.width, screen.height, screen.stride);
+	screen.renderable_id[1]	= blockManagementCreateRenderable(screen.mmap_base + screen.visible_frame,	screen.width, screen.height, screen.stride);
+	screen.renderable_id[0]	= blockManagementCreateRenderable(screen.mmap_base + screen.draw_frame,	screen.width, screen.height, screen.stride);
 
 	if (screen.mmap_base == NULL) {
 		close(screen.fd);
@@ -118,6 +120,8 @@ int Screen_open(void)
 }
 
 void Screen_close(void) {
+	switchMode(0);
+
 	if (screen.fd >= 0) {
 		if (screen.mmap_base != NULL) {
 			ioctl(screen.fd, PS3FB_IOCTL_OFF, 0);
@@ -131,7 +135,6 @@ void Screen_close(void) {
 		screen.console_fd = -1;
 	}
 
-	switchMode(0);
 	__SPUGL_SCREEN = NULL;
 }
 
@@ -159,6 +162,5 @@ void Screen_wait(void)
 
 	uint32_t crt = 0;
 	ioctl(screen.fd, FBIO_WAITFORVSYNC, (unsigned long)&crt);
-	printf("SYNC\n");
 }
 
