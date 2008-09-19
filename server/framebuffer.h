@@ -13,6 +13,8 @@
 #define __FRAMEBUFFER_H
 
 struct __SPUGL_framebuffer {
+	unsigned int	renderable_id[2];
+
 	unsigned int	width, height;
 	unsigned int	stride;
 	unsigned int	visible_frame;
@@ -31,7 +33,7 @@ extern int Screen_open(void);
 extern void Screen_close(void);
 extern void Screen_wait(void);
 //extern int Screen_flip(int frame);
-extern void Screen_swap(void);
+extern unsigned int Screen_swap(void);
 
 extern struct __SPUGL_framebuffer* __SPUGL_SCREEN;
 

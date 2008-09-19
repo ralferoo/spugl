@@ -73,6 +73,8 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
+	srand(time());
+	void* blockManagementData = blockManagementInit();
 	if (!Screen_open()) {
 		syslog(LOG_ERR, "cannot open screen");
 		exit(1);
@@ -97,7 +99,7 @@ int main(int argc, char* argv[]) {
 	sigaction(SIGCHLD, &sa, NULL);
 	sigaction(SIGPIPE, &sa, NULL);
 
-	SPU_HANDLE thread = _init_spu_thread(blockManagementInit(), 1);
+	SPU_HANDLE thread = _init_spu_thread(blockManagementData, 1);
 
 	syslog(LOG_INFO, "accepting connections");
 

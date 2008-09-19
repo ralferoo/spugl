@@ -247,7 +247,7 @@ void spuglWait(CommandQueue* buffer) {
 	}
 }
 
-void spuglFlip(CommandQueue* buffer) {
+unsigned int spuglFlip(CommandQueue* buffer) {
 	SPUGL_Buffer* ptr = firstBuffer;
 	while (ptr) {
 		if (ptr->data == buffer) {
@@ -260,10 +260,11 @@ void spuglFlip(CommandQueue* buffer) {
 			// wait for server to reply - means server has flipped frame
 			SPUGL_reply reply;
 			recv(ptr->server_fd, &reply, sizeof(reply), 0);
-			return;
+			return reply.flip.context;
 		}
 		ptr = ptr->next;
 	}
+	return -1;
 }
 
 void spuglInvalidRequest(int server) {

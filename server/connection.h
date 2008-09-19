@@ -26,6 +26,8 @@
 #define MAX_COMMAND_BUFFERS	(16)		// power of two, must be <=128
 #define OUT_OF_BUFFERS		(0xffffffff)
 
+#define MAX_RENDERABLES	(32)		// power of two, for mask use
+
 //////////////////////////////////////////////////////////////////////////////
 
 extern char SPUGL_VERSION[];
@@ -34,6 +36,7 @@ typedef struct __Allocation Allocation;
 typedef struct __Connection Connection;
 typedef struct __ConnectionList ConnectionList;
 typedef struct __SPU_HANDLE* SPU_HANDLE;
+typedef struct __Renderable Renderable;
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -74,6 +77,20 @@ struct __Allocation {
 struct __ConnectionList {
 	Connection* first;
 	Connection* firstClosed;
+};
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// Structure of a rendering surface
+
+struct __Renderable {
+	void*	buffer;
+	int	id;
+	int	locks;
+	int	width;
+	int	height;
+	int	stride;
+	int	format;
 };
 
 #endif // __SERVER_CONNECTION_H

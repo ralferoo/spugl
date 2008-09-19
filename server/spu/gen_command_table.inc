@@ -3,3 +3,4 @@
 [FIFO_COMMAND_LOAD_TEXTURE_MATRIX] = (FIFO_COMMAND*) &imp_load_texture_matrix,
 [FIFO_COMMAND_NOP] = (FIFO_COMMAND*) &imp_nop,
 [FIFO_COMMAND_JUMP] = (FIFO_COMMAND*) &imp_jump,
+[FIFO_COMMAND_DRAW_CONTEXT] = (FIFO_COMMAND*) &imp_draw_context,

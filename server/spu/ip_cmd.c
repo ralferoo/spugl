@@ -20,3 +20,8 @@
 	printf("JUMP %x\n", *from);
 	return 1;
 }
+
+/*6*/int imp_draw_context(unsigned int* from) {
+	printf("DRAW CTX %x\n", *from);
+	return 0;
+}

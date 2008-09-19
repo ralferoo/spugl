@@ -72,6 +72,9 @@ struct __SPUGL_reply {
 		struct {
 			unsigned int width, height;
 		} screensize;
+		struct {
+			unsigned int context;
+		} flip;
 		//struct {
 		//	unsigned char size[16];
 		//} pad;

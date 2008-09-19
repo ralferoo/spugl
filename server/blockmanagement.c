@@ -17,11 +17,45 @@
 #include <stdio.h>
 #include <string.h>
 
-static void*			_block_mgr_buffer	= NULL;
-static signed char*		_block_mgr_lock_table	= NULL;
-static unsigned long long*	_block_mgr_ea_table	= NULL;
+static void*			_block_mgr_buffer		= NULL;
+static signed char*		_block_mgr_lock_table		= NULL;
+static unsigned long long*	_block_mgr_ea_table		= NULL;
+static Renderable*		_block_mgr_renderables_table	= NULL;
 
 #define BLOCK_ID_MASK (MAX_DATA_BUFFERS-1)
+
+// TODO: there should be management around this, but currently it's only used for the framebuffer...
+Renderable* blockManagementGetRenderable(int id)
+{
+	if (id<0 || id>=MAX_RENDERABLES)
+		return NULL;
+
+	Renderable* result = _block_mgr_renderables_table + ( id & (MAX_RENDERABLES-1) );
+	if (result->id == id)
+		return result;
+
+	return NULL;
+}
+
+// TODO: there should be management around this, but currently it's only used for the framebuffer...
+int blockManagementCreateRenderable(void* buffer, int width, int height, int stride)
+{
+	for (int id=0; id<MAX_RENDERABLES; id++) {
+		Renderable* result = _block_mgr_renderables_table + id;
+		if (result->buffer == NULL) {
+			id |= (rand() << 16) & (~MAX_RENDERABLES);
+			result->buffer = buffer;
+			result->id = id;
+			result->width = width;
+			result->height = height;
+			result->stride = stride;
+			result->format = 0;
+			result->locks = 0;
+			return id;
+		}
+	}
+	return -1;
+}
 
 void blockManagementDebug()
 {
@@ -57,12 +91,16 @@ void blockManagementDebug()
 // initialises the block management system
 void *blockManagementInit() 
 {
-	_block_mgr_buffer = malloc(127+MAX_DATA_BUFFERS*(sizeof(signed char)+sizeof(long long)));
+	_block_mgr_buffer = malloc(127 +
+				   MAX_DATA_BUFFERS * ( sizeof(signed char)+sizeof(long long) ) +
+				   MAX_RENDERABLES * sizeof(Renderable) );
 	_block_mgr_lock_table = (signed char*) ((((unsigned int)_block_mgr_buffer)+127)&~127);
 	_block_mgr_ea_table = (unsigned long long*) (_block_mgr_lock_table+MAX_DATA_BUFFERS);
+	_block_mgr_renderables_table = (Renderable*) (_block_mgr_ea_table+MAX_DATA_BUFFERS);
 
 	memset(_block_mgr_lock_table, -1, MAX_DATA_BUFFERS);
 	memset(_block_mgr_ea_table, 0, MAX_DATA_BUFFERS*sizeof(long long));
+	memset(_block_mgr_renderables_table, 0, MAX_RENDERABLES*sizeof(Renderable));
 	blockManagementDebug();
 
 	return _block_mgr_lock_table;

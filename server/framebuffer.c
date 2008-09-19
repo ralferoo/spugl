@@ -88,6 +88,9 @@ int Screen_open(void)
 	screen.visible		= 0;
 	screen.draw_address	= screen.mmap_base + screen.draw_frame;
 
+	screen.renderable_id[1]	= blockManagementCreateRenderable(screen.visible_frame,	screen.width, screen.height, screen.stride);
+	screen.renderable_id[0]	= blockManagementCreateRenderable(screen.draw_frame,	screen.width, screen.height, screen.stride);
+
 	if (screen.mmap_base == NULL) {
 		close(screen.fd);
 		screen.fd = -1;
@@ -132,7 +135,7 @@ void Screen_close(void) {
 	__SPUGL_SCREEN = NULL;
 }
 
-void Screen_swap(void)
+unsigned int Screen_swap(void)
 {
 	if (screen.fd < 0)
 		return -1;
@@ -140,12 +143,13 @@ void Screen_swap(void)
 	uint32_t showFrame = screen.visible ? 0 : 1;
 	screen.visible = showFrame;
 	ioctl(screen.fd, PS3FB_IOCTL_FSEL, (unsigned long)&showFrame);
-	printf("FLIP %d\n", showFrame);
 
 	unsigned int f = screen.draw_frame;
 	screen.draw_frame = screen.visible_frame;
 	screen.visible_frame = f;
 	screen.draw_address = screen.mmap_base + screen.draw_frame;
+
+	return screen.renderable_id[showFrame];
 }
 
 void Screen_wait(void)

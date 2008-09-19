@@ -36,6 +36,14 @@ GLAPI void GLAPIENTRY spuglJump(unsigned int target)
 	FIFO_EPILOGUE();
 }
 
+GLAPI void GLAPIENTRY spuglDrawContext(unsigned int target)
+{
+	FIFO_PROLOGUE(1);
+	BEGIN_RING(FIFO_COMMAND_DRAW_CONTEXT,1);
+	OUT_RING(target);
+	FIFO_EPILOGUE();
+}
+
 GLAPI void GLAPIENTRY glLoadMatrixd(const GLdouble* mat)
 {
 	FIFO_PROLOGUE(20);
@@ -91,6 +99,19 @@ GLAPI void GLAPIENTRY glLoadIdentity( void )
 		0.0f, 0.0f, 0.0f, 1.0f};
 	glLoadMatrixf(identity);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifdef __DONT_INCLUDE
 

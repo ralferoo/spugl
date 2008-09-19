@@ -28,6 +28,7 @@
 unsigned int eah_buffer_tables;
 unsigned int eal_buffer_lock_table;
 unsigned int eal_buffer_memory_table;
+unsigned int eal_renderables_table;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -226,6 +227,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 	eah_buffer_tables = (unsigned int)(program_data_ea >> 32);
 	eal_buffer_lock_table = (unsigned int)(program_data_ea & ~127);
 	eal_buffer_memory_table = eal_buffer_lock_table + MAX_DATA_BUFFERS;
+	eal_renderables_table = eal_buffer_memory_table + MAX_DATA_BUFFERS * sizeof(unsigned long long);
 
 	int i = 0;
 	for(;;) {

@@ -36,18 +36,22 @@ int main(int argc, char* argv[]) {
 	void* buffer = spuglAllocateBuffer(server, 204*1024*1024);
 	if (buffer==NULL) { printf("Out of memory\n"); exit(1); }
 
+	unsigned int context = spuglFlip(queue);
+
 	spuglSetCurrentContext(queue);
 	unsigned int start = spuglTarget();
 
 	glLoadIdentity();
 	spuglNop();
+	spuglDrawContext(context);
 
 	spuglJump(start);
 
 	for (int i=0; i<120; i++) {
+		spuglDrawContext(context);
 		spuglFlush(queue);
 		spuglWait(queue);
-		spuglFlip(queue);
+		context = spuglFlip(queue);
 	}
 
 	//sleep(1);

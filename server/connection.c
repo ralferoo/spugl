@@ -334,7 +334,7 @@ int handleConnectionData(Connection* connection, char* mountname) {
 			break;
 
 		case SPUGLR_FLIP:
-			Screen_swap();
+			reply.flip.context = Screen_swap();
 			send(connection->fd, &reply, sizeof(reply), 0);
 			break;
 

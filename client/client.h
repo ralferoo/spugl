@@ -32,7 +32,7 @@ void spuglFlush(SPUGL_QUEUE buffer);
 void spuglWait(SPUGL_QUEUE buffer);
 
 // flips the screen
-void spuglFlip(SPUGL_QUEUE buffer);
+unsigned int spuglFlip(SPUGL_QUEUE buffer);
 
 // allocates/frees an OpenGL FIFO
 SPUGL_QUEUE spuglAllocateCommandQueue(int server, unsigned int size);
@@ -50,5 +50,13 @@ SPUGL_QUEUE spuglSetCurrentContext(SPUGL_QUEUE newContext);
 
 // gets the current screen width and height
 void spuglScreenSize(int server, unsigned int* width, unsigned int* height);
+
+///////////////////////////////////
+//
+// defined in glfifo.c
+
+void spuglDrawContext(unsigned int target);
+void spuglJump(unsigned int target);
+void spuglNop(void);
 
 #endif // __SPUGL_CLIENT_H
