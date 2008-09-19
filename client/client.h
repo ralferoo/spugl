@@ -58,5 +58,6 @@ void spuglScreenSize(int server, unsigned int* width, unsigned int* height);
 void spuglDrawContext(unsigned int target);
 void spuglJump(unsigned int target);
 void spuglNop(void);
+unsigned int spuglTarget();
 
 #endif // __SPUGL_CLIENT_H

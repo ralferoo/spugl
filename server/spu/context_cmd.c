@@ -24,8 +24,6 @@
 	context->modelview_matrix_z = z;
 	context->modelview_matrix_w = w;
 
-	printf("MODELVIEW MATRIX\n");
-
 	return 0;
 }
 
@@ -39,8 +37,6 @@
 	context->projection_matrix_y = y;
 	context->projection_matrix_z = z;
 	context->projection_matrix_w = w;
-
-	printf("PROJECTION MATRIX\n");
 
 	return 0;
 }
@@ -56,7 +52,39 @@
 	context->texture_matrix_z = z;
 	context->texture_matrix_w = w;
 
-	printf("TEXTURE MATRIX\n");
-
 	return 0;
 }
+
+/*7*/int imp_load_vertex_attrib_1(float* from, Context* context) {
+	unsigned int which = *( (unsigned int*) from );
+        vec_float4 x = { from[ 1], 0.0f, 0.0f, 1.0f };
+	if (which<NUM_FRAGMENT_UNIFORM_VECTORS)
+		context->fragment_uniform_vectors[which] = x;
+	return 0;
+}
+
+/*8*/int imp_load_vertex_attrib_2(float* from, Context* context) {
+	unsigned int which = *( (unsigned int*) from );
+        vec_float4 x = { from[ 1], from[ 2], 0.0f, 1.0f };
+	if (which<NUM_FRAGMENT_UNIFORM_VECTORS)
+		context->fragment_uniform_vectors[which] = x;
+	return 0;
+}
+
+/*9*/int imp_load_vertex_attrib_3(float* from, Context* context) {
+	unsigned int which = *( (unsigned int*) from );
+        vec_float4 x = { from[ 1], from[ 2], from[ 3], 1.0f };
+	if (which<NUM_FRAGMENT_UNIFORM_VECTORS)
+		context->fragment_uniform_vectors[which] = x;
+	return 0;
+}
+
+/*10*/int imp_load_vertex_attrib_4(float* from, Context* context) {
+	unsigned int which = *( (unsigned int*) from );
+        vec_float4 x = { from[ 1], from[ 2], from[ 3], from[ 4] };
+	if (which<NUM_FRAGMENT_UNIFORM_VECTORS)
+		context->fragment_uniform_vectors[which] = x;
+	return 0;
+}
+
+

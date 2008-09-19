@@ -17,6 +17,7 @@
 #define __USE_GNU
 #include <poll.h>
 #include <fcntl.h>
+#include <time.h>
 
 #include <sys/mount.h>
 #include <sys/types.h>
@@ -73,7 +74,7 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
-	srand(time());
+	srand(time(NULL));
 	void* blockManagementData = blockManagementInit();
 	if (!Screen_open()) {
 		syslog(LOG_ERR, "cannot open screen");

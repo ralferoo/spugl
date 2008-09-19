@@ -1,6 +1,10 @@
 extern FIFO_COMMAND imp_load_modelview_matrix;
 extern FIFO_COMMAND imp_load_projection_matrix;
 extern FIFO_COMMAND imp_load_texture_matrix;
+extern FIFO_COMMAND imp_load_vertex_attrib_1;
+extern FIFO_COMMAND imp_load_vertex_attrib_2;
+extern FIFO_COMMAND imp_load_vertex_attrib_3;
+extern FIFO_COMMAND imp_load_vertex_attrib_4;
 extern FIFO_COMMAND imp_nop;
 extern FIFO_COMMAND imp_jump;
 extern FIFO_COMMAND imp_draw_context;

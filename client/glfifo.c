@@ -100,6 +100,82 @@ GLAPI void GLAPIENTRY glLoadIdentity( void )
 	glLoadMatrixf(identity);
 }
 
+GLAPI void GLAPIENTRY glVertexAttrib1fv(const GLuint index, const GLfloat* mat)
+{
+	FIFO_PROLOGUE(3);
+	BEGIN_RING(FIFO_COMMAND_LOAD_VERTEX_ATTRIB_1,2);
+	OUT_RINGf(mat[0]);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glVertexAttrib2fv(const GLuint index, const GLfloat* mat)
+{
+	FIFO_PROLOGUE(4);
+	BEGIN_RING(FIFO_COMMAND_LOAD_VERTEX_ATTRIB_2,3);
+	OUT_RINGf(mat[0]);
+	OUT_RINGf(mat[1]);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glVertexAttrib3fv(const GLuint index, const GLfloat* mat)
+{
+	FIFO_PROLOGUE(5);
+	BEGIN_RING(FIFO_COMMAND_LOAD_VERTEX_ATTRIB_3,4);
+	OUT_RINGf(mat[0]);
+	OUT_RINGf(mat[1]);
+	OUT_RINGf(mat[2]);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glVertexAttrib4fv(const GLuint index, const GLfloat* mat)
+{
+	FIFO_PROLOGUE(6);
+	BEGIN_RING(FIFO_COMMAND_LOAD_VERTEX_ATTRIB_4,5);
+	OUT_RINGf(mat[0]);
+	OUT_RINGf(mat[1]);
+	OUT_RINGf(mat[2]);
+	OUT_RINGf(mat[3]);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glVertexAttrib1f(const GLuint index, const GLfloat x)
+{
+	FIFO_PROLOGUE(3);
+	BEGIN_RING(FIFO_COMMAND_LOAD_VERTEX_ATTRIB_1,2);
+	OUT_RINGf(x);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glVertexAttrib2f(const GLuint index, const GLfloat x, const GLfloat y)
+{
+	FIFO_PROLOGUE(4);
+	BEGIN_RING(FIFO_COMMAND_LOAD_VERTEX_ATTRIB_2,3);
+	OUT_RINGf(x);
+	OUT_RINGf(y);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glVertexAttrib3f(const GLuint index, const GLfloat x, const GLfloat y, const GLfloat z)
+{
+	FIFO_PROLOGUE(5);
+	BEGIN_RING(FIFO_COMMAND_LOAD_VERTEX_ATTRIB_3,4);
+	OUT_RINGf(x);
+	OUT_RINGf(y);
+	OUT_RINGf(z);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glVertexAttrib4f(const GLuint index, const GLfloat x, const GLfloat y, const GLfloat z, const GLfloat w)
+{
+	FIFO_PROLOGUE(6);
+	BEGIN_RING(FIFO_COMMAND_LOAD_VERTEX_ATTRIB_4,5);
+	OUT_RINGf(x);
+	OUT_RINGf(y);
+	OUT_RINGf(z);
+	OUT_RINGf(w);
+	FIFO_EPILOGUE();
+}
+
 
 
 
