@@ -187,8 +187,8 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 
 	// i_face_sum = x0(y2-y1)+x1(y0-y2)+y2(y1-y0)
 	vec_int4 i_face_mul = spu_mulo((vec_short8)i_x, (vec_short8)spu_sub(i_y_ccw, i_y_cw));
-	int i_face_sum = spu_extract(i_face_mul, 0)
-			 spu_extract(i_face_mul, 1)
+	int i_face_sum = spu_extract(i_face_mul, 0) +
+			 spu_extract(i_face_mul, 1) +
 			 spu_extract(i_face_mul, 2);
 	vec_int4 i_base_area = spu_insert(i_face_sum, spu_splats(0), 0);
 	vec_uint4 i_fcgt_area = spu_cmpgt(spu_splats(0), i_base_area);
@@ -234,8 +234,8 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	vec_float4 v_by_to_cy = spu_sub(v_y_ccw, v_y_cw);
 
 	vec_float4 face_mul = spu_mul(TRIx, v_by_to_cy);
-	float face_sum = spu_extract(face_mul, 0)
-			 spu_extract(face_mul, 1)
+	float face_sum = spu_extract(face_mul, 0) +
+			 spu_extract(face_mul, 1) +
 			 spu_extract(face_mul, 2);
 
 	vec_float4 cast_zero = (vec_float4) {0.0f, 0.0f, 0.0f, 0.0f};
