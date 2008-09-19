@@ -868,6 +868,10 @@ server/spu/ip_cmd.0: /usr/include/bits/libio-ldbl.h
 server/spu/ip_cmd.0: /usr/include/bits/stdio_lim.h
 server/spu/ip_cmd.0: /usr/include/bits/sys_errlist.h
 server/spu/ip_cmd.0: /usr/include/bits/stdio-ldbl.h server/spu/spucontext.h
+server/spu/ip_cmd.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
+server/spu/ip_cmd.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+server/spu/ip_cmd.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
+server/spu/ip_cmd.0: server/connection.h
 server/spu/spumain.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 server/spu/spumain.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 server/spu/spumain.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
