@@ -83,7 +83,7 @@ int Screen_open(void)
 	screen.stride	= res.xres * 4;
 	screen.frame[0]	= (res.yoff * res.yres + res.xoff) * 4;
 	screen.frame[1] = screen.frame[0] + res.yoff * res.xoff * 4;
-	screen.mmap_size= 1920 * 1080 * 4 * res.num_frames; //res.num_frames * res.yres * res.xres * 4;
+	screen.mmap_size= res.num_frames * res.yres * res.xres * 4;
 	screen.mmap_base= mmap(0, screen.mmap_size, PROT_WRITE, MAP_SHARED, screen.fd, 0);
 
 	if (screen.mmap_base == NULL) {
