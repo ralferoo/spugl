@@ -17,7 +17,7 @@
 #include "client/fifodefs.h"
 
 #include "GL/gl.h"
-#include "GL/spugl.h"
+//#include "GL/spugl.h"
 
 int main(int argc, char* argv[]) {
 	int server = spuglConnect();
@@ -44,9 +44,13 @@ int main(int argc, char* argv[]) {
 
 	spuglJump(start);
 
-	spuglFlush(queue);
+	for (int i=0; i<120; i++) {
+		spuglFlush(queue);
+		spuglWait(queue);
+		spuglFlip(queue);
+	}
 
-	sleep(1);
+	//sleep(1);
 
 	spuglFreeBuffer(buffer);
 	spuglFreeCommandQueue(queue);

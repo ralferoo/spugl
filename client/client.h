@@ -28,6 +28,12 @@ void spuglDisconnect(int server);
 // waits until command queue has finished processing
 void spuglFlush(SPUGL_QUEUE buffer);
 
+// waits until frame flyback
+void spuglWait(SPUGL_QUEUE buffer);
+
+// flips the screen
+void spuglFlip(SPUGL_QUEUE buffer);
+
 // allocates/frees an OpenGL FIFO
 SPUGL_QUEUE spuglAllocateCommandQueue(int server, unsigned int size);
 void spuglFreeCommandQueue(SPUGL_QUEUE buffer);

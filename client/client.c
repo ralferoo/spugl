@@ -228,6 +228,44 @@ void spuglFlush(CommandQueue* buffer) {
 	}
 }
 
+void spuglWait(CommandQueue* buffer) {
+	SPUGL_Buffer* ptr = firstBuffer;
+	while (ptr) {
+		if (ptr->data == buffer) {
+			// send sync message to server
+			SPUGL_request request;
+			request.flush.command = SPUGLR_SYNC;
+			request.flush.id = ptr->id;
+			send(ptr->server_fd, &request, sizeof(request), 0);
+
+			// wait for server to reply - means server has synced with frame flyback
+			SPUGL_reply reply;
+			recv(ptr->server_fd, &reply, sizeof(reply), 0);
+			return;
+		}
+		ptr = ptr->next;
+	}
+}
+
+void spuglFlip(CommandQueue* buffer) {
+	SPUGL_Buffer* ptr = firstBuffer;
+	while (ptr) {
+		if (ptr->data == buffer) {
+			// send flip message to server
+			SPUGL_request request;
+			request.flush.command = SPUGLR_FLIP;
+			request.flush.id = ptr->id;
+			send(ptr->server_fd, &request, sizeof(request), 0);
+
+			// wait for server to reply - means server has flipped frame
+			SPUGL_reply reply;
+			recv(ptr->server_fd, &reply, sizeof(reply), 0);
+			return;
+		}
+		ptr = ptr->next;
+	}
+}
+
 void spuglInvalidRequest(int server) {
 	SPUGL_request request;
 	request.header.command = 4242;
