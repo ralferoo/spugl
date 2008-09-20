@@ -33,8 +33,11 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 	mfc_write_tag_mask(1<<0);
 	mfc_read_tag_status_all();
 
-
 	while (cache_ea) {
+		// terminate immediately if possible
+		if (spu_stat_in_mbox())
+			return;
+
 		// read the cache line
 		spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
 		spu_readch(MFC_RdAtomicStat);
@@ -42,11 +45,10 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 		unsigned int endTriangle = cache->endTriangle;
 		vec_ushort8 testTriangle = spu_splats((unsigned short) endTriangle);
 
-		vec_uchar16 doneTriangle = spu_shuffle(
+		vec_uint4 doneTriangleGather = spu_gather( (vec_uchar16) spu_shuffle(
 			(vec_uchar16) spu_cmpeq(testTriangle, cache->chunkTriangle[0]),
 			(vec_uchar16) spu_cmpeq(testTriangle, cache->chunkTriangle[1]),
-			SHUFFLE_MERGE_BYTES);
-		vec_uint4 doneTriangleGather = spu_gather(doneTriangle);
+			SHUFFLE_MERGE_BYTES) );
 		// doneTriangleGather, rightmost 16 bits of word 0 set if triangle done
 #ifdef TEST
 printf("G1=%04x, G2=%04x, gather=%04x\n",
@@ -119,6 +121,13 @@ printf("v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChunk=%d,
 
 			cache->chunkTriangleArray[chunkToProcess] = endTriangle;
 			cache->chunksWaiting	|=    0x8000>>chunkToProcess;
+
+			do {
+				vec_ushort8 testEnd = spu_splats( (unsigned short) (chunkStart+chunkLength) );
+				vec_ushort8 testTri = spu_splats( (unsigned short) (endTriangle) );
+
+
+			} while(0);
 
 			// attempt the write
 			spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);

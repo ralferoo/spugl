@@ -181,6 +181,7 @@ disconnected:				handleDisconnect(connection);
 		// process other events
 		Connection* conn = list.first;
 		while (conn) {
+			printf("process %08x\n", conn);
 			processOutstandingRequests(conn);
 			conn = conn->nextConnection;
 		}
