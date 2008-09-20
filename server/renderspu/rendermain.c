@@ -25,6 +25,8 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 
 	int i = 0;
 	for(;;) {
+		process_render_tasks(eah_render_tasks, eal_render_tasks);
+
 		// look for termination command
 		while (spu_stat_in_mbox()) {
 			unsigned int mbox = spu_read_in_mbox();

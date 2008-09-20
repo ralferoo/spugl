@@ -25,9 +25,9 @@ static unsigned long long*	_block_mgr_render_tasks		= NULL;
 
 #define BLOCK_ID_MASK (MAX_DATA_BUFFERS-1)
 
-unsigned long long** blockManagementGetRenderTasksPointer(void)
+unsigned long long* blockManagementGetRenderTasksPointer(void)
 {
-	return &_block_mgr_render_tasks;
+	return _block_mgr_render_tasks;
 }
 
 // TODO: there should be management around this, but currently it's only used for the framebuffer...
@@ -106,8 +106,9 @@ void *blockManagementInit()
 	_block_mgr_ea_table = (unsigned long long*) (_block_mgr_lock_table+MAX_DATA_BUFFERS);
 	_block_mgr_renderables_table = (Renderable*) (_block_mgr_ea_table+MAX_DATA_BUFFERS);
 	_block_mgr_render_tasks = (unsigned long long*) (_block_mgr_renderables_table+MAX_RENDERABLES);
+	void* _end = (void*) (_block_mgr_render_tasks+1);
 
-	printf("Render tasks at %x\n", _block_mgr_render_tasks);
+	// printf("Render tasks at %x, end buffer at %x\n", _block_mgr_render_tasks, _end);
 
 	memset(_block_mgr_lock_table, -1, MAX_DATA_BUFFERS);
 	memset(_block_mgr_ea_table, 0, MAX_DATA_BUFFERS*sizeof(long long));

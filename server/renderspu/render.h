@@ -15,14 +15,9 @@
 #include <spu_mfcio.h>
 #include <spu_intrinsics.h>
 
-typedef union {
-	struct {
-		unsigned long eah;
-		unsigned long eal;
-	};
-	unsigned long long ea;
-} EA;
+void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_render_tasks);
 
+/*
 #define NUMBER_OF_CHUNKS 29				// small enough to fit, can't be over 31 in any case
 
 struct __RenderableCacheLine {
@@ -38,6 +33,33 @@ struct __RenderableCacheLine {
 } __attribute__((aligned(128)));
 
 struct RenderableChunk {
+	unsigned char	dx;
+	unsigned char	dy;
+};
+*/
+
+typedef struct {
+	vec_ushort8	chunkTriangle[2];
+// 32
+	vec_ushort8	chunkStart[2];
+// 64
+	vec_ushort8	chunkEnd[2];
+// 96
+	unsigned long long	next;
+	unsigned long long	triangle_base;
+	unsigned long long	chunk_base;
+// 120
+	unsigned short	chunksWaiting;				// bitmask of chunks waiting to be rendered
+	unsigned short	chunksBusy;				// bitmask of chunks being rendered
+	unsigned short	endTriangle;				// triangle buffer that is waiting to be filled
+
+//	unsigned short	chunksFree; // ~(chunksWaiting|chunksBusy)	// bitmask of chunks that can be allocated
+// 126
+} RenderableCacheLine ;
+
+struct RenderableChunk {
+	unsigned long	pixel_eal;
+	unsigned long	depth_eal;
 	unsigned char	dx;
 	unsigned char	dy;
 };
