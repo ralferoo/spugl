@@ -128,7 +128,7 @@ void *blockManagementInit()
 	cacheLine->next = 0ULL;
 	cacheLine->chunksWaiting = 0x8000;
 	cacheLine->chunksFree = 0x7fff;
-	cacheLine->endTriangle = 425;
+	cacheLine->endTriangle = 5;
 
 	*_block_mgr_render_tasks = (unsigned long long) ( (unsigned long)cacheLine );
 

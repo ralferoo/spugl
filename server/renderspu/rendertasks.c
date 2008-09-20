@@ -135,6 +135,7 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 
 	__asm("stop 0x2110\n\t.word 0");
 
-	return endTriangle;
+	return chunkTriangle+1;
+	//return endTriangle;
 }
 
