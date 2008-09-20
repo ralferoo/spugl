@@ -15,6 +15,8 @@
 #include <spu_mfcio.h>
 #include <spu_intrinsics.h>
 
+#define NUMBER_OF_CHUNKS_TO_PROCESS	7
+
 void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_render_tasks);
 
 /*
@@ -39,11 +41,20 @@ struct RenderableChunk {
 */
 
 typedef struct {
-	vec_ushort8	chunkTriangle[2];
+	union {
+		vec_ushort8	chunkTriangle[2];
+		unsigned short	chunkTriangleArray[16];
+	};
 // 32
-	vec_ushort8	chunkStart[2];
+	union {
+		vec_ushort8	chunkStart[2];
+		unsigned short	chunkStartArray[16];
+	};
 // 64
-	vec_ushort8	chunkEnd[2];
+	union {
+		vec_ushort8	chunkLength[2];
+		unsigned short	chunkLengthArray[16];
+	};
 // 96
 	unsigned long long	next;
 	unsigned long long	triangle_base;
