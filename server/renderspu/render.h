@@ -17,7 +17,13 @@
 
 #define NUMBER_OF_CHUNKS_TO_PROCESS	7
 
+// handle cache line details
 void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_render_tasks);
+
+// process a chunk of render work
+unsigned short process_render_chunk(unsigned short chunkStart, unsigned short chunkLength,
+				    unsigned short chunkTriangle, unsigned short endTriangle,
+				    unsigned long long triangleBase, unsigned long long chunkBase);
 
 /*
 #define NUMBER_OF_CHUNKS 29				// small enough to fit, can't be over 31 in any case
@@ -57,8 +63,8 @@ typedef struct {
 	};
 // 96
 	unsigned long long	next;
-	unsigned long long	triangle_base;
-	unsigned long long	chunk_base;
+	unsigned long long	triangleBase;
+	unsigned long long	chunkBase;
 // 120
 	unsigned short	chunksWaiting;				// bitmask of chunks waiting to be rendered
 	unsigned short	chunksBusy;				// bitmask of chunks being rendered

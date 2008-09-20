@@ -97,10 +97,8 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 		}
 
 		// now, if we got here, then we have a successful lock on a chunk
-		printf("Processing chunk %d at %d len %d, triangle %x\n",
-				chunkToProcess, chunkStart, chunkLength, chunkTriangle );
-
-		__asm("stop 0x2110\n\t.word 0");
+		endTriangle = process_render_chunk(chunkStart, chunkLength, chunkTriangle, endTriangle,
+					cache->triangleBase, cache->chunkBase);
 
 		// now mark the chunk as complete...
 		do {
@@ -116,5 +114,14 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 			status = spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS;
 		} while (status);
 	} // while (cache_ea) - process current cache line
+}
+
+unsigned short process_render_chunk(unsigned short chunkStart, unsigned short chunkLength,
+				    unsigned short chunkTriangle, unsigned short endTriangle,
+				    unsigned long long triangleBase, unsigned long long chunkBase)
+{
+	printf("Processing chunk at %d len %d, triangle %x\n", chunkStart, chunkLength, chunkTriangle );
+
+	__asm("stop 0x2110\n\t.word 0");
 }
 
