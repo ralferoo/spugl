@@ -41,6 +41,7 @@ struct __SPU_HANDLE {
 #endif
 	void* local_store;
 	void* list;
+	int id;
 };
 
 #ifdef USE_LIBSPE2
@@ -70,7 +71,7 @@ void *main_program_thread(SPU_HANDLE context)
 	unsigned int entry_point = SPE_DEFAULT_ENTRY;
 	do {
 //		printf("restarting at %x\n", entry_point);
-		retval = spe_context_run(context->spe_ctx, &entry_point, 0, context->list, NULL, NULL);
+		retval = spe_context_run(context->spe_ctx, &entry_point, 0, context->list, context->id, NULL);
 //		printf("exited at %x\n", entry_point);
 	} while (retval > 0);
 //	printf("retval = %d\n", retval);
@@ -85,6 +86,9 @@ SPU_HANDLE _init_spu_thread(void* list, int master)
 	if (context == NULL)
 		return NULL;
 
+	static int id = 0;
+	context->id = id++;
+
 	//context->master = master;
 	context->list = list;
 
@@ -98,7 +102,7 @@ SPU_HANDLE _init_spu_thread(void* list, int master)
 	if (retval) {
 #else
 	context->spe_id = spe_create_thread(0, master ? spu_main_program : render_main_program,
-							context->list, NULL, -1, 0);
+							context->list, context->id, -1, 0);
 	if (context->spe_id==0) {
 #endif
 		free(context);

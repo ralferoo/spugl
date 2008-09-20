@@ -15,6 +15,24 @@
 
 #include "render.h"
 
+void debug_render_tasks(RenderableCacheLine* cache)
+{
+	int mask = 0x8000;
+	for (int i=0; i<16; i++) {
+		if (1 || cache->chunksWaiting & mask) {
+			printf("[%d] DEBUG %2d - [%c%c] Start %4d Length %4d End %4d Triangle %x\n",
+				_SPUID, i,
+				cache->chunksWaiting & mask ? 'W': '-',
+				cache->chunksFree & mask ? 'F': '-',
+				cache->chunkStartArray[i],
+				cache->chunkLengthArray[i],
+				cache->chunkStartArray[i] + cache->chunkLengthArray[i],
+				cache->chunkTriangleArray[i]);
+		}
+		mask>>=1;
+	}
+}
+
 void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_render_tasks)
 {
 	const vec_uchar16 SHUFFLE_MERGE_BYTES = (vec_uchar16) {	// merge lo bytes from unsigned shorts (array)
@@ -51,7 +69,8 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 			SHUFFLE_MERGE_BYTES) );
 		// doneTriangleGather, rightmost 16 bits of word 0 set if triangle done
 #ifdef TEST
-printf("G1=%04x, G2=%04x, gather=%04x\n",
+printf("[%d] G1=%04x, G2=%04x, gather=%04x\n",
+	_SPUID,
 	spu_extract(spu_gather(spu_cmpeq(testTriangle, cache->chunkTriangle[0])),0),
 	spu_extract(spu_gather(spu_cmpeq(testTriangle, cache->chunkTriangle[1])),0),
 	spu_extract(doneTriangleGather,0) );
@@ -65,7 +84,8 @@ printf("G1=%04x, G2=%04x, gather=%04x\n",
 		unsigned int chunkToProcess = spu_extract( spu_cntlz(v_mayprocess), 0 )-16;
 		unsigned int freeChunk = spu_extract( spu_cntlz(v_free), 0 )-16;
 #ifdef TEST
-printf("v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChunk=%d, g=%04x\n",
+printf("[%d] v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChunk=%d, g=%04x\n",
+	_SPUID,
 	spu_extract(v_waiting, 0),
 	spu_extract(v_mayprocess, 0), chunkToProcess,
 	spu_extract(v_free, 0), freeChunk,
@@ -73,6 +93,9 @@ printf("v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChunk=%d,
 #endif // TEST
 		if (!spu_extract(v_mayprocess, 0)) {
 			// nothing to process, try the next cache line in the rendering tasks list
+#ifdef TEST
+			debug_render_tasks(cache);
+#endif // TEST
 			cache_ea = cache->next;
 			continue;
 		}
@@ -90,10 +113,13 @@ printf("v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChunk=%d,
 			cache->chunkLengthArray  [chunkToProcess] = NUMBER_OF_TILES_PER_CHUNK;
 			cache->chunksWaiting	|=    0x8000>>freeChunk;
 			cache->chunksFree	&= ~( 0x8000>>freeChunk );
-			printf("Split chunk %d at %d len %d, creating remainder chunk %d at %d len %d [%d]\n",
+#ifdef TEST
+			printf("[%d] Split chunk %d at %d len %d, creating remainder chunk %d at %d len %d [%d]\n",
+				_SPUID,
 				chunkToProcess, chunkStart, chunkLength, freeChunk,
 				cache->chunkStartArray [freeChunk], cache->chunkLengthArray[freeChunk],
 				chunkTriangle);
+#endif // TEST
 			chunkLength = NUMBER_OF_TILES_PER_CHUNK;
 		}
 		//cache->chunksBusy	|=    0x8000>>chunkToProcess;
@@ -104,6 +130,7 @@ printf("v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChunk=%d,
 		unsigned int status = spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS;
 		if (status) {
 			// cache is dirty and write failed, reload it and attempt the whole thing again again
+			printf("[%d] Atomic write failed, retring...\n", _SPUID);
 			continue;
 		}
 
@@ -114,20 +141,111 @@ printf("v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChunk=%d,
 		// now mark the chunk as complete...
 		do {
 #ifdef TEST
-			printf("Trying to release chunk %d\n", chunkToProcess);
+			printf("[%d] Trying to release chunk %d\n", _SPUID, chunkToProcess);
 #endif // TEST
+
 			spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
 			spu_readch(MFC_RdAtomicStat);
 
 			cache->chunkTriangleArray[chunkToProcess] = endTriangle;
 			cache->chunksWaiting	|=    0x8000>>chunkToProcess;
 
+			vec_ushort8 testTri = spu_splats( (unsigned short) endTriangle );
+			unsigned short cStart = chunkStart;
+			unsigned short cLength = chunkLength;
+			unsigned int   cIndex = chunkToProcess;
+
+			int repeat;
 			do {
-				vec_ushort8 testEnd = spu_splats( (unsigned short) (chunkStart+chunkLength) );
-				vec_ushort8 testTri = spu_splats( (unsigned short) (endTriangle) );
+#ifdef TEST
+				debug_render_tasks(cache);
 
+				printf("[%d] cStart=%d, cLength=%d, cIndex=%d\n",
+					_SPUID, cStart, cLength, cIndex);
+#endif // TEST
 
-			} while(0);
+				vec_ushort8 testStart = spu_splats( (unsigned short)(cStart+cLength) );
+				vec_ushort8 testEnd = spu_splats( cStart );
+
+				vec_uint4 testTriangleGather = spu_gather( (vec_uchar16) spu_shuffle(
+					(vec_uchar16) spu_cmpeq(testTri, cache->chunkTriangle[0]),
+					(vec_uchar16) spu_cmpeq(testTri, cache->chunkTriangle[1]),
+					SHUFFLE_MERGE_BYTES) );
+
+				vec_uint4 testStartGather = spu_gather( (vec_uchar16) spu_shuffle(
+					(vec_uchar16) spu_cmpeq(testStart, cache->chunkStart[0]),
+					(vec_uchar16) spu_cmpeq(testStart, cache->chunkStart[1]),
+					SHUFFLE_MERGE_BYTES) );
+
+				vec_uint4 testEndGather = spu_gather( (vec_uchar16) spu_shuffle(
+					(vec_uchar16) spu_cmpeq(testEnd,
+							spu_add(cache->chunkLength[0], cache->chunkStart[0])),
+					(vec_uchar16) spu_cmpeq(testEnd,
+							spu_add(cache->chunkLength[1], cache->chunkStart[1])),
+					SHUFFLE_MERGE_BYTES) );
+
+				vec_uint4 testWaiting = spu_splats( (unsigned int)cache->chunksWaiting );
+				vec_uint4 matchMask = spu_and(testWaiting, testTriangleGather);
+
+				vec_uint4 matchFollowing = spu_and( testStartGather, matchMask );
+				vec_uint4 matchPreceding   = spu_and( testEndGather, matchMask );
+
+#ifdef TEST
+				printf("[%d] Join tests: W: %04x T: %04x S:%04x %c E:%04x %c tS:%d tE:%d\n",
+					_SPUID,
+					spu_extract(testWaiting, 0),
+					spu_extract(testTriangleGather, 0),
+					spu_extract(testStartGather, 0), spu_extract(matchFollowing,0) ? '*' : ' ',
+					spu_extract(testEndGather, 0),   spu_extract(matchPreceding,0) ? '*' : ' ',
+					spu_extract(testStart, 0),
+					spu_extract(testEnd, 0));
+#endif // TEST
+
+				if (spu_extract(matchFollowing,0)) {
+					unsigned int otherIndex = spu_extract( spu_cntlz(matchFollowing), 0 )-16;
+#ifdef TEST
+					printf("[%d] Merging %d with following %d, %d+%d and %d+%d\n",
+						_SPUID,
+						cIndex, otherIndex,
+						cache->chunkStartArray[cIndex],
+						cache->chunkLengthArray[cIndex],
+						cache->chunkStartArray[otherIndex],
+						cache->chunkLengthArray[otherIndex]);
+#endif // TEST
+
+					cache->chunksWaiting &= ~( 0x8000>>otherIndex );
+					cache->chunksFree    |=    0x8000>>otherIndex;
+					cache->chunkLengthArray[cIndex] += cache->chunkLengthArray[otherIndex];
+
+#ifdef TEST
+					debug_render_tasks(cache);
+#endif // TEST
+				}
+
+				if (spu_extract(matchPreceding,0)) {
+					unsigned int otherIndex = spu_extract( spu_cntlz(matchPreceding), 0 )-16;
+#ifdef TEST
+					printf("[%d] Merging preceding %d with %d, %d+%d and %d+%d\n",
+						_SPUID,
+						otherIndex, cIndex,
+						cache->chunkStartArray[otherIndex],
+						cache->chunkLengthArray[otherIndex],
+						cache->chunkStartArray[cIndex],
+						cache->chunkLengthArray[cIndex]);
+#endif // TEST
+
+					cache->chunksWaiting &= ~( 0x8000>>cIndex );
+					cache->chunksFree    |=    0x8000>>cIndex;
+					cache->chunkLengthArray[otherIndex] += cache->chunkLengthArray[cIndex];
+					cIndex = otherIndex;
+
+#ifdef TEST
+					debug_render_tasks(cache);
+#endif // TEST
+				}
+
+				repeat = spu_extract( spu_or(matchFollowing, matchPreceding), 0);
+			} while(repeat);
 
 			// attempt the write
 			spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
@@ -140,9 +258,11 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 				    unsigned short chunkTriangle, unsigned short endTriangle,
 				    unsigned long long triangleBase, unsigned long long chunkBase)
 {
-	printf("Processing chunk at %d len %d, triangle %x\n", chunkStart, chunkLength, chunkTriangle );
+	printf("[%d] Processing chunk at %d len %d, triangle %x\n",
+		_SPUID,
+		chunkStart, chunkLength, chunkTriangle );
 
-	__asm("stop 0x2110\n\t.word 0");
+//	__asm("stop 0x2110\n\t.word 0");
 
 	return chunkTriangle+1;
 	//return endTriangle;

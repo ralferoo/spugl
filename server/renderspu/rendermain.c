@@ -15,13 +15,17 @@
 
 #include "render.h"
 
+unsigned int _SPUID;
+
 unsigned long eah_render_tasks;
 unsigned long eal_render_tasks;
 
 int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned long long env) {
+	_SPUID = (unsigned int) env;
+
 	eah_render_tasks = (unsigned int)(program_data_ea >> 32);
 	eal_render_tasks = (unsigned int)(program_data_ea & 0xffffffff);
-	printf("Render SPU thread started, render tasks at %x:%08x...\n", eah_render_tasks, eal_render_tasks);
+	printf("[%d] Render SPU thread started, render tasks at %x:%08x...\n", _SPUID, eah_render_tasks, eal_render_tasks);
 
 	int i = 0;
 	for(;;) {
