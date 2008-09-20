@@ -17,8 +17,8 @@
 
 void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_render_tasks)
 {
-	const vec_uchar16 SHUFFLE_MERGE_BYTES = (vec_uchar16) {	// merge high bytes from halfwords into bytes
-		0,16, 2,18, 4,20, 6,22,		8,24, 10,26, 12,28, 14,30 };
+	const vec_uchar16 SHUFFLE_MERGE_BYTES = (vec_uchar16) {	// merge lo bytes from unsigned shorts (array)
+		1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 };
 
 	const vec_uchar16 SHUFFLE_GET_BUSY_WITH_ONES = (vec_uchar16) {	// get busy flag with ones in unused bytes
 		0xc0, 0xc0, 2, 3, 0xc0,0xc0,0xc0,0xc0, 0xc0,0xc0,0xc0,0xc0 };
@@ -40,7 +40,7 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 		spu_readch(MFC_RdAtomicStat);
 
 		unsigned int endTriangle = cache->endTriangle;
-		vec_ushort8 testTriangle = spu_splats(endTriangle);
+		vec_ushort8 testTriangle = spu_splats((unsigned short) endTriangle);
 
 		vec_uchar16 doneTriangle = spu_shuffle(
 			(vec_uchar16) spu_cmpeq(testTriangle, cache->chunkTriangle[0]),
@@ -48,12 +48,27 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 			SHUFFLE_MERGE_BYTES);
 		vec_uint4 doneTriangleGather = spu_gather(doneTriangle);
 		// doneTriangleGather, rightmost 16 bits of word 0 set if triangle done
-
+#ifdef TEST
+printf("G1=%04x, G2=%04x, gather=%04x\n",
+	spu_extract(spu_gather(spu_cmpeq(testTriangle, cache->chunkTriangle[0])),0),
+	spu_extract(spu_gather(spu_cmpeq(testTriangle, cache->chunkTriangle[1])),0),
+	spu_extract(doneTriangleGather,0) );
+#endif // TEST
 		vec_uint4 v_waiting = spu_splats( (unsigned int)cache->chunksWaiting );
+		vec_uint4 v_free = spu_splats( (unsigned int)cache->chunksFree );
+
 		vec_uint4 v_mayprocess = spu_andc(v_waiting, doneTriangleGather);
 		// v_mayprocess bits are set if chunkWaiting bit set and triangle not complete
 
 		unsigned int chunkToProcess = spu_extract( spu_cntlz(v_mayprocess), 0 )-16;
+		unsigned int freeChunk = spu_extract( spu_cntlz(v_free), 0 )-16;
+#ifdef TEST
+printf("v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChunk=%d, g=%04x\n",
+	spu_extract(v_waiting, 0),
+	spu_extract(v_mayprocess, 0), chunkToProcess,
+	spu_extract(v_free, 0), freeChunk,
+	spu_extract(doneTriangleGather,0) );
+#endif // TEST
 		if (!spu_extract(v_mayprocess, 0)) {
 			// nothing to process, try the next cache line in the rendering tasks list
 			cache_ea = cache->next;
@@ -65,28 +80,22 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 		unsigned int chunkLength   	= cache->chunkLengthArray  [chunkToProcess];
 		unsigned int chunkTriangle	= cache->chunkTriangleArray[chunkToProcess];
 
-		// get the busy flags in case we need to split up this chunk...
-		vec_ushort8 v_busy_temp = (vec_ushort8) cache->chunksBusy;
-		vec_uint4 v_busy = spu_shuffle( v_busy_temp, v_busy_temp, SHUFFLE_GET_BUSY_WITH_ONES );
-		vec_uint4 v_free = spu_nor(v_waiting,v_busy);
-		// v_free bits are set if not waiting or busy
-
-		unsigned int freeChunk = spu_extract( spu_cntlz(v_mayprocess), 0 )-16;
-		if (spu_extract(v_free, 0) && chunkLength>NUMBER_OF_CHUNKS_TO_PROCESS) {
+		if (spu_extract(v_free, 0) && chunkLength>NUMBER_OF_TILES_PER_CHUNK) {
 			// there's one spare slot to move remainder into, so split the chunk up
-			cache->chunkStartArray   [freeChunk]	  = chunkStart + NUMBER_OF_CHUNKS_TO_PROCESS;
-			cache->chunkLengthArray  [freeChunk]	  = chunkLength - NUMBER_OF_CHUNKS_TO_PROCESS;
+			cache->chunkStartArray   [freeChunk]	  = chunkStart + NUMBER_OF_TILES_PER_CHUNK;
+			cache->chunkLengthArray  [freeChunk]	  = chunkLength - NUMBER_OF_TILES_PER_CHUNK;
 			cache->chunkTriangleArray[freeChunk]	  = chunkTriangle;
-			cache->chunkLengthArray  [chunkToProcess] = NUMBER_OF_CHUNKS_TO_PROCESS;
-			cache->chunksWaiting	|=    1<<freeChunk;
-			cache->chunksBusy	&= ~( 1<<freeChunk );
-			printf("Split chunk %d at %d len %d, creating remainder chunk %d at %d len %d\n",
+			cache->chunkLengthArray  [chunkToProcess] = NUMBER_OF_TILES_PER_CHUNK;
+			cache->chunksWaiting	|=    0x8000>>freeChunk;
+			cache->chunksFree	&= ~( 0x8000>>freeChunk );
+			printf("Split chunk %d at %d len %d, creating remainder chunk %d at %d len %d [%d]\n",
 				chunkToProcess, chunkStart, chunkLength, freeChunk,
-				cache->chunkStartArray [freeChunk], cache->chunkLengthArray[freeChunk]);
-			chunkLength = NUMBER_OF_CHUNKS_TO_PROCESS;
+				cache->chunkStartArray [freeChunk], cache->chunkLengthArray[freeChunk],
+				chunkTriangle);
+			chunkLength = NUMBER_OF_TILES_PER_CHUNK;
 		}
-		cache->chunksBusy	|=    1<<chunkToProcess;
-		cache->chunksWaiting	&= ~( 1<<chunkToProcess );
+		//cache->chunksBusy	|=    0x8000>>chunkToProcess;
+		cache->chunksWaiting	&= ~( 0x8000>>chunkToProcess );
 
 		// write out the updated cache line
 		spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
@@ -102,12 +111,14 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 
 		// now mark the chunk as complete...
 		do {
+#ifdef TEST
+			printf("Trying to release chunk %d\n", chunkToProcess);
+#endif // TEST
 			spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
 			spu_readch(MFC_RdAtomicStat);
 
 			cache->chunkTriangleArray[chunkToProcess] = endTriangle;
-			cache->chunksBusy	|=    1<<chunkToProcess;
-			cache->chunksWaiting	&= ~( 1<<chunkToProcess );
+			cache->chunksWaiting	|=    0x8000>>chunkToProcess;
 
 			// attempt the write
 			spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
@@ -123,5 +134,7 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 	printf("Processing chunk at %d len %d, triangle %x\n", chunkStart, chunkLength, chunkTriangle );
 
 	__asm("stop 0x2110\n\t.word 0");
+
+	return endTriangle;
 }
 

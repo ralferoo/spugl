@@ -17,6 +17,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "renderspu/render.h"
+
 static void*			_block_mgr_buffer		= NULL;
 static signed char*		_block_mgr_lock_table		= NULL;
 static unsigned long long*	_block_mgr_ea_table		= NULL;
@@ -99,13 +101,17 @@ void blockManagementDebug()
 void *blockManagementInit() 
 {
 	_block_mgr_buffer = malloc(127 +
+				   128 +
 				   MAX_DATA_BUFFERS * ( sizeof(signed char)+sizeof(unsigned long long) ) +
 				   MAX_RENDERABLES * sizeof(Renderable) +
 				   sizeof(unsigned long long) );
-	_block_mgr_lock_table = (signed char*) ((((unsigned int)_block_mgr_buffer)+127)&~127);
+	void* _aligned = (void*) ((((unsigned int)_block_mgr_buffer)+127)&~127);
+
+	_block_mgr_lock_table = (signed char*) (_aligned + 128);
 	_block_mgr_ea_table = (unsigned long long*) (_block_mgr_lock_table+MAX_DATA_BUFFERS);
 	_block_mgr_renderables_table = (Renderable*) (_block_mgr_ea_table+MAX_DATA_BUFFERS);
 	_block_mgr_render_tasks = (unsigned long long*) (_block_mgr_renderables_table+MAX_RENDERABLES);
+
 	void* _end = (void*) (_block_mgr_render_tasks+1);
 
 	// printf("Render tasks at %x, end buffer at %x\n", _block_mgr_render_tasks, _end);
@@ -113,7 +119,18 @@ void *blockManagementInit()
 	memset(_block_mgr_lock_table, -1, MAX_DATA_BUFFERS);
 	memset(_block_mgr_ea_table, 0, MAX_DATA_BUFFERS*sizeof(long long));
 	memset(_block_mgr_renderables_table, 0, MAX_RENDERABLES*sizeof(Renderable));
-	*_block_mgr_render_tasks = 0ULL;
+
+	RenderableCacheLine* cacheLine = (RenderableCacheLine*) _aligned;
+	memset(cacheLine, 0, 128);
+	cacheLine->chunkTriangleArray[0] = 0;
+	cacheLine->chunkStartArray[0] = 0;
+	cacheLine->chunkLengthArray[0] = 4096;
+	cacheLine->next = 0ULL;
+	cacheLine->chunksWaiting = 0x8000;
+	cacheLine->chunksFree = 0x7fff;
+	cacheLine->endTriangle = 425;
+
+	*_block_mgr_render_tasks = (unsigned long long) ( (unsigned long)cacheLine );
 
 	blockManagementDebug();
 
