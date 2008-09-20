@@ -717,6 +717,7 @@ server/framebuffer.o: /usr/include/asm/sockios.h /usr/include/arpa/inet.h
 server/framebuffer.o: /usr/include/netinet/in.h /usr/include/bits/in.h
 server/framebuffer.o: /usr/include/bits/byteswap.h client/daemon.h
 server/framebuffer.o: client/spuglver.h server/framebuffer.h
+server/framebuffer.o: server/ppufuncs.h server/connection.h
 server/main.o: /usr/include/stdio.h /usr/include/features.h
 server/main.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 server/main.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -860,10 +861,25 @@ oldshader.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 oldshader.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h fifo.h types.h
 oldshader.0: gen_spu_command_defs.h struct.h spuregs.h queue.h
 
+server/spu/context_cmd.0: /usr/include/stdio.h /usr/include/features.h
+server/spu/context_cmd.0: /usr/include/sys/cdefs.h
+server/spu/context_cmd.0: /usr/include/bits/wordsize.h
+server/spu/context_cmd.0: /usr/include/gnu/stubs.h
+server/spu/context_cmd.0: /usr/include/gnu/stubs-32.h
+server/spu/context_cmd.0: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+server/spu/context_cmd.0: /usr/include/bits/types.h
+server/spu/context_cmd.0: /usr/include/bits/typesizes.h /usr/include/libio.h
+server/spu/context_cmd.0: /usr/include/_G_config.h /usr/include/wchar.h
+server/spu/context_cmd.0: /usr/include/bits/wchar.h /usr/include/gconv.h
+server/spu/context_cmd.0: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+server/spu/context_cmd.0: /usr/include/bits/libio-ldbl.h
+server/spu/context_cmd.0: /usr/include/bits/stdio_lim.h
+server/spu/context_cmd.0: /usr/include/bits/sys_errlist.h
+server/spu/context_cmd.0: /usr/include/bits/stdio-ldbl.h
 server/spu/context_cmd.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 server/spu/context_cmd.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 server/spu/context_cmd.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
-server/spu/context_cmd.0: server/spu/spucontext.h
+server/spu/context_cmd.0: server/spu/spucontext.h server/connection.h
 server/spu/ip_cmd.0: /usr/include/stdio.h /usr/include/features.h
 server/spu/ip_cmd.0: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 server/spu/ip_cmd.0: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -876,11 +892,7 @@ server/spu/ip_cmd.0: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
 server/spu/ip_cmd.0: /usr/include/bits/libio-ldbl.h
 server/spu/ip_cmd.0: /usr/include/bits/stdio_lim.h
 server/spu/ip_cmd.0: /usr/include/bits/sys_errlist.h
-server/spu/ip_cmd.0: /usr/include/bits/stdio-ldbl.h server/spu/spucontext.h
-server/spu/ip_cmd.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
-server/spu/ip_cmd.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
-server/spu/ip_cmd.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
-server/spu/ip_cmd.0: server/connection.h
+server/spu/ip_cmd.0: /usr/include/bits/stdio-ldbl.h
 server/spu/spumain.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 server/spu/spumain.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 server/spu/spumain.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
