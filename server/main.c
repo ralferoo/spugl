@@ -32,6 +32,8 @@
 #include "ppufuncs.h"
 #include "framebuffer.h"
 
+#define NUMBER_OF_RENDER_SPU_THREADS 4
+
 #ifndef MNT_DETACH
 // not defined on my system for some reason :(
 #define MNT_DETACH 2
@@ -101,8 +103,10 @@ int main(int argc, char* argv[]) {
 	sigaction(SIGPIPE, &sa, NULL);
 
 	SPU_HANDLE thread = _init_spu_thread(blockManagementData, 1);
-	SPU_HANDLE thread_r1 = _init_spu_thread(blockManagementGetRenderTasksPointer(), 0);
-	SPU_HANDLE thread_r2 = _init_spu_thread(blockManagementGetRenderTasksPointer(), 0);
+
+	SPU_HANDLE renderThread[NUMBER_OF_RENDER_SPU_THREADS];
+	for (int i=0; i<NUMBER_OF_RENDER_SPU_THREADS; i++)
+		renderThread[i] = _init_spu_thread(blockManagementGetRenderTasksPointer(), 0);
 
 	syslog(LOG_INFO, "accepting connections");
 
@@ -213,8 +217,9 @@ disconnected:				handleDisconnect(connection);
 	sigaction(SIGINT, &sa, NULL);
 
 	_exit_spu_thread(thread);
-	_exit_spu_thread(thread_r1);
-	_exit_spu_thread(thread_r2);
+
+	for (int i=0; i<NUMBER_OF_RENDER_SPU_THREADS; i++)
+		_exit_spu_thread( renderThread[i] );
 
 	umount2(mountname, MNT_FORCE | MNT_DETACH);
 	rmdir(mountname);

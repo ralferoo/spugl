@@ -122,6 +122,13 @@ printf("[%d] v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChun
 #endif // TEST
 			chunkLength = NUMBER_OF_TILES_PER_CHUNK;
 		}
+		else if (chunkLength>NUMBER_OF_TILES_PER_CHUNK) {
+			printf("[%d] Unable to split chunk %d at %d len %d\n",
+				_SPUID,
+				chunkToProcess, chunkStart, chunkLength);
+			debug_render_tasks(cache);
+		}
+
 		//cache->chunksBusy	|=    0x8000>>chunkToProcess;
 		cache->chunksWaiting	&= ~( 0x8000>>chunkToProcess );
 
@@ -159,10 +166,10 @@ printf("[%d] v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChun
 			do {
 #ifdef TEST
 				debug_render_tasks(cache);
+#endif // TEST
 
 				printf("[%d] cStart=%d, cLength=%d, cIndex=%d\n",
 					_SPUID, cStart, cLength, cIndex);
-#endif // TEST
 
 				vec_ushort8 testStart = spu_splats( (unsigned short)(cStart+cLength) );
 				vec_ushort8 testEnd = spu_splats( cStart );
@@ -216,6 +223,7 @@ printf("[%d] v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChun
 					cache->chunksWaiting &= ~( 0x8000>>otherIndex );
 					cache->chunksFree    |=    0x8000>>otherIndex;
 					cache->chunkLengthArray[cIndex] += cache->chunkLengthArray[otherIndex];
+					cLength = cache->chunkLengthArray[cIndex];
 
 #ifdef TEST
 					debug_render_tasks(cache);
@@ -238,6 +246,7 @@ printf("[%d] v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChun
 					cache->chunksFree    |=    0x8000>>cIndex;
 					cache->chunkLengthArray[otherIndex] += cache->chunkLengthArray[cIndex];
 					cIndex = otherIndex;
+					cStart = cache->chunkStartArray[cIndex];
 
 #ifdef TEST
 					debug_render_tasks(cache);
