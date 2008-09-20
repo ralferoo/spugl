@@ -7,7 +7,7 @@
  * This library may not be used or distributed without a licence, please
  * contact me for information if you wish to use it.
  *
- ****************************************************************************/
+ ***************************************************************************/
 
 #ifndef __SPU_SPUCONTEXT_H
 #define __SPU_SPUCONTEXT_H
@@ -15,41 +15,55 @@
 #include <spu_mfcio.h>
 #include <spu_intrinsics.h>
 
-extern unsigned int eah_buffer_tables;
-extern unsigned int eal_buffer_lock_table;
-extern unsigned int eal_buffer_memory_table;
-extern unsigned int eal_renderables_table;
+typedef union {
+	struct {
+		unsigned long eah;
+		unsigned long eal;
+	};
+	unsigned long long ea;
+} EA;
 
-#define MAX_TRIANGLES			256
-#define MAX_CHUNKS			64
+#define NUMBER_OF_CHUNKS 29				// small enough to fit, can't be over 31 in any case
 
-typedef struct {
-	unsigned long pixel_eah;
-	unsigned long pixel_eal;
-	unsigned long zbuf_eah;
-	unsigned long zbuf_eal;
-} RenderableTile;
+struct __RenderableCacheLine {
+	vec_uchar16	chunkTriangle1;				// triangle ID last drawn by corresponding chunk
+	vec_uchar16	chunkTriangle2;				// last triangle ID in index 31 (byte 15 of #2)
+//32
+	unsigned int	chunksBusy;				// bitmask of chunks being rendered
+	unsigned int	chunksFree;				// bitmask of chunks that can be allocated
+//40
+	unsigned short	chunkOffset[NUMBER_OF_CHUNKS];		// start of chunk (max 4096 = 64*64 = 16*256)
+	unsigned char	chunkLength[NUMBER_OF_CHUNKS];		// length of chunk
+//40+3*NUMBER_OF_CHUNKS = 40+87 = 127
+} __attribute__((aligned(128)));
 
-typedef struct {
-	unsigned long	base_pixel_eah;
-	unsigned long	base_pixel_eal;
-	unsigned long	base_zbuf_eah;
-	unsigned long	base_zbuf_eal;				// 16 bytes
-	unsigned short	pixel_eal_tile_dx;
-	unsigned short 	pixel_eal_tile_dy;
-	unsigned short	zbuf_eal_tile_dx;
-	unsigned short	zbuf_eal_tile_dy;			// 24 bytes
-	unsigned short	left_edge;
-	unsigned short	right_edge;
-	unsigned short	top_edge;
-	unsigned short	bottom_edge;				// 32 bytes
-} RenderableTarget;
+struct RenderableChunk {
+	unsigned char	dx;
+	unsigned char	dy;
+};
 
-typedef struct {
-	RenderableTarget* target;
-	unsigned short	number_of_chunks;
-	unsigned short	x_y[0];
-} RenderableChunkList;
+struct RenderableTarget {
+	unsigned long long	next;			// next renderable target in queue
+	unsigned long long	atomic;			// pointer to atomic structure (128 byte aligned)
+
+	unsigned long long	pixels;			// pixel buffer
+	unsigned long long	zbuffer;		// depth buffer
+// 32
+	unsigned int		pixel_eal_tile_dx;
+	unsigned int 		pixel_eal_tile_dy;
+	unsigned int 		pixel_eal_stride;
+// 44
+	unsigned int		zbuf_eal_tile_dx;
+	unsigned int		zbuf_eal_tile_dy;
+	unsigned int 		zbuf_eal_stride;
+// 56
+	unsigned short		left_edge;
+	unsigned short		right_edge;
+	unsigned short		top_edge;
+	unsigned short		bottom_edge;
+// 64
+	struct RenderableChunk 	chunks[0];
+};
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,18 +71,6 @@ typedef struct {
 // Plan for atomic cache line stuff...
 //
 // Have one cache line for each renderable target and therefore its own triangle buffer etc...
-
-#define NUMBER_OF_CHUNKS 32
-
-struct __RenderableCacheLine {
-	unsigned int	chunksBusy;				// bitmask of chunks being rendered
-	unsigned int	chunksFree;				// bitmask of chunks that can be allocated
-
-	unsigned short	chunkOffset[NUMBER_OF_CHUNKS];		// start of chunk (max 4096 = 64*64)
-	unsigned char	chunkLength[NUMBER_OF_CHUNKS];		// length of chunk
-	unsigned char	chunkTriangle[NUMBER_OF_CHUNKS];	// triangle last drawn by chunk
-} __attribute__((aligned(128)));
-
 
 #define NUM_VERTEX_UNIFORM_VECTORS	128
 #define NUM_FRAGMENT_UNIFORM_VECTORS	 16

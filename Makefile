@@ -52,6 +52,11 @@ SPU_DRIVER_TARGETS := $(patsubst %.c,%.0,$(SPU_DRIVER_SOURCES))
 SPU_DRIVER_HNDL = server/spu_main.handle.o$(USERLAND)
 SPU_DRIVER_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(SPU_DRIVER_HNDL))
 
+RENDER_DRIVER_SOURCES := $(wildcard server/renderspu/*.c)
+RENDER_DRIVER_TARGETS := $(patsubst %.c,%.0,$(RENDER_DRIVER_SOURCES))
+RENDER_DRIVER_HNDL = server/render_main.handle.o$(USERLAND)
+RENDER_DRIVER_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(RENDER_DRIVER_HNDL))
+
 DAEMON_TARGETS_C := $(wildcard server/*.c)
 DAEMON_TARGETS_H := $(wildcard server/*.h)
 DAEMON_TARGETS := $(patsubst %.c,%.o,$(DAEMON_TARGETS_C))
@@ -81,8 +86,8 @@ spugld:	spugld.debug
 	cp $< $@
 	strip $@
 
-spugld.debug:	$(DAEMON_TARGETS) $(SPU_DRIVER_HNDL)
-	gcc -m$(USERLAND) -o $@ $(DAEMON_TARGETS) $(SPU_DRIVER_HNDL) $(LIBS)
+spugld.debug:	$(DAEMON_TARGETS) $(SPU_DRIVER_HNDL) $(RENDER_DRIVER_HNDL)
+	gcc -m$(USERLAND) -o $@ $(DAEMON_TARGETS) $(SPU_DRIVER_HNDL) $(RENDER_DRIVER_HNDL) $(LIBS)
 
 testclient:	$(CLIENT_TARGETS32)
 	gcc -m32 -o $@ $(CLIENT_TARGETS32)
@@ -186,6 +191,10 @@ spu_3d.handle.spe: $(SPU_OBJS) Makefile
 server/spu_main.handle.spe: $(SPU_DRIVER_TARGETS) Makefile
 	$(SPUCC) $(SPU_DRIVER_TARGETS) -o server/spu_main.handle.spe
 	spu-strip server/spu_main.handle.spe
+
+server/render_main.handle.spe: $(RENDER_DRIVER_TARGETS) Makefile
+	$(SPUCC) $(RENDER_DRIVER_TARGETS) -o server/render_main.handle.spe
+	spu-strip server/render_main.handle.spe
 
 depend: .gen
 	@echo checking dependencies

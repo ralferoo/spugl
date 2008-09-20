@@ -52,6 +52,8 @@ int		blockManagementTryFree(unsigned int id);
 Renderable* blockManagementGetRenderable(int id);
 int blockManagementCreateRenderable(void* buffer, int width, int height, int stride);
 
+// render tasks pointer; this holds the address of the first render task
+unsigned long long** blockManagementGetRenderTasksPointer(void);
 
 //////////////////////////////////////////////////////////////////////////////
 

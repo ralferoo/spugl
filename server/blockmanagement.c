@@ -21,8 +21,14 @@ static void*			_block_mgr_buffer		= NULL;
 static signed char*		_block_mgr_lock_table		= NULL;
 static unsigned long long*	_block_mgr_ea_table		= NULL;
 static Renderable*		_block_mgr_renderables_table	= NULL;
+static unsigned long long*	_block_mgr_render_tasks		= NULL;
 
 #define BLOCK_ID_MASK (MAX_DATA_BUFFERS-1)
+
+unsigned long long** blockManagementGetRenderTasksPointer(void)
+{
+	return &_block_mgr_render_tasks;
+}
 
 // TODO: there should be management around this, but currently it's only used for the framebuffer...
 Renderable* blockManagementGetRenderable(int id)
@@ -44,7 +50,7 @@ int blockManagementCreateRenderable(void* buffer, int width, int height, int str
 		Renderable* result = _block_mgr_renderables_table + id;
 		if (result->ea == 0ULL) {
 			id |= (rand() << 16) & (~MAX_RENDERABLES);
-			result->ea = (unsigned long long) buffer;
+			result->ea = (unsigned long long) ( (unsigned long)buffer );
 			result->id = id;
 			result->width = width;
 			result->height = height;
@@ -93,15 +99,21 @@ void blockManagementDebug()
 void *blockManagementInit() 
 {
 	_block_mgr_buffer = malloc(127 +
-				   MAX_DATA_BUFFERS * ( sizeof(signed char)+sizeof(long long) ) +
-				   MAX_RENDERABLES * sizeof(Renderable) );
+				   MAX_DATA_BUFFERS * ( sizeof(signed char)+sizeof(unsigned long long) ) +
+				   MAX_RENDERABLES * sizeof(Renderable) +
+				   sizeof(unsigned long long) );
 	_block_mgr_lock_table = (signed char*) ((((unsigned int)_block_mgr_buffer)+127)&~127);
 	_block_mgr_ea_table = (unsigned long long*) (_block_mgr_lock_table+MAX_DATA_BUFFERS);
 	_block_mgr_renderables_table = (Renderable*) (_block_mgr_ea_table+MAX_DATA_BUFFERS);
+	_block_mgr_render_tasks = (unsigned long long*) (_block_mgr_renderables_table+MAX_RENDERABLES);
+
+	printf("Render tasks at %x\n", _block_mgr_render_tasks);
 
 	memset(_block_mgr_lock_table, -1, MAX_DATA_BUFFERS);
 	memset(_block_mgr_ea_table, 0, MAX_DATA_BUFFERS*sizeof(long long));
 	memset(_block_mgr_renderables_table, 0, MAX_RENDERABLES*sizeof(Renderable));
+	*_block_mgr_render_tasks = 0ULL;
+
 	blockManagementDebug();
 
 	return _block_mgr_lock_table;
