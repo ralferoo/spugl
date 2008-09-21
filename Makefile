@@ -206,6 +206,7 @@ depend: .gen
 	@rm -f Makefile.bak
 	@for i in $(SPU_OBJS) ; do grep $$i:.*spuregs.h Makefile >/dev/null || [ ! -f `basename $$i .0`.c ] || ( echo ERROR: $$i does not refer to spuregs.h && false) ; done
 	@makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.0 $(SPU_DRIVER_SOURCES) -DSPU_REGS -DUSERLAND_$(USERLAND)_BITS
+	@makedepend -a -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.0 $(RENDER_DRIVER_SOURCES) -DSPU_REGS -DUSERLAND_$(USERLAND)_BITS
 
 # SPU rules
 
@@ -608,7 +609,7 @@ server/blockmanagement.o: /usr/include/bits/libio-ldbl.h
 server/blockmanagement.o: /usr/include/bits/stdio_lim.h
 server/blockmanagement.o: /usr/include/bits/sys_errlist.h
 server/blockmanagement.o: /usr/include/bits/stdio-ldbl.h
-server/blockmanagement.o: /usr/include/string.h
+server/blockmanagement.o: /usr/include/string.h server/renderspu/render.h
 server/connection.o: /usr/include/syslog.h /usr/include/sys/syslog.h
 server/connection.o: /usr/include/features.h /usr/include/sys/cdefs.h
 server/connection.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
@@ -913,3 +914,45 @@ server/spu/spumain.0: client/fifodefs.h client/gen_command_defs.h
 server/spu/spumain.0: server/spu/spucontext.h client/gen_command_defs.h
 server/spu/spumain.0: server/spu/gen_command_exts.inc
 server/spu/spumain.0: server/spu/gen_command_table.inc
+
+server/renderspu/rendermain.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
+server/renderspu/rendermain.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+server/renderspu/rendermain.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
+server/renderspu/rendermain.0: /usr/include/stdio.h /usr/include/features.h
+server/renderspu/rendermain.0: /usr/include/sys/cdefs.h
+server/renderspu/rendermain.0: /usr/include/bits/wordsize.h
+server/renderspu/rendermain.0: /usr/include/gnu/stubs.h
+server/renderspu/rendermain.0: /usr/include/gnu/stubs-32.h
+server/renderspu/rendermain.0: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+server/renderspu/rendermain.0: /usr/include/bits/types.h
+server/renderspu/rendermain.0: /usr/include/bits/typesizes.h
+server/renderspu/rendermain.0: /usr/include/libio.h /usr/include/_G_config.h
+server/renderspu/rendermain.0: /usr/include/wchar.h /usr/include/bits/wchar.h
+server/renderspu/rendermain.0: /usr/include/gconv.h
+server/renderspu/rendermain.0: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+server/renderspu/rendermain.0: /usr/include/bits/libio-ldbl.h
+server/renderspu/rendermain.0: /usr/include/bits/stdio_lim.h
+server/renderspu/rendermain.0: /usr/include/bits/sys_errlist.h
+server/renderspu/rendermain.0: /usr/include/bits/stdio-ldbl.h
+server/renderspu/rendermain.0: server/renderspu/render.h
+server/renderspu/rendertasks.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
+server/renderspu/rendertasks.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+server/renderspu/rendertasks.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
+server/renderspu/rendertasks.0: /usr/include/stdio.h /usr/include/features.h
+server/renderspu/rendertasks.0: /usr/include/sys/cdefs.h
+server/renderspu/rendertasks.0: /usr/include/bits/wordsize.h
+server/renderspu/rendertasks.0: /usr/include/gnu/stubs.h
+server/renderspu/rendertasks.0: /usr/include/gnu/stubs-32.h
+server/renderspu/rendertasks.0: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+server/renderspu/rendertasks.0: /usr/include/bits/types.h
+server/renderspu/rendertasks.0: /usr/include/bits/typesizes.h
+server/renderspu/rendertasks.0: /usr/include/libio.h /usr/include/_G_config.h
+server/renderspu/rendertasks.0: /usr/include/wchar.h
+server/renderspu/rendertasks.0: /usr/include/bits/wchar.h
+server/renderspu/rendertasks.0: /usr/include/gconv.h
+server/renderspu/rendertasks.0: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+server/renderspu/rendertasks.0: /usr/include/bits/libio-ldbl.h
+server/renderspu/rendertasks.0: /usr/include/bits/stdio_lim.h
+server/renderspu/rendertasks.0: /usr/include/bits/sys_errlist.h
+server/renderspu/rendertasks.0: /usr/include/bits/stdio-ldbl.h
+server/renderspu/rendertasks.0: server/renderspu/render.h
