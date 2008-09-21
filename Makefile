@@ -880,7 +880,8 @@ server/spu/context_cmd.0: /usr/include/bits/stdio-ldbl.h
 server/spu/context_cmd.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 server/spu/context_cmd.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 server/spu/context_cmd.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
-server/spu/context_cmd.0: server/spu/spucontext.h server/connection.h
+server/spu/context_cmd.0: server/spu/spucontext.h server/spu/spuregs.h
+server/spu/context_cmd.0: server/connection.h
 server/spu/ip_cmd.0: /usr/include/stdio.h /usr/include/features.h
 server/spu/ip_cmd.0: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
 server/spu/ip_cmd.0: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
@@ -894,6 +895,25 @@ server/spu/ip_cmd.0: /usr/include/bits/libio-ldbl.h
 server/spu/ip_cmd.0: /usr/include/bits/stdio_lim.h
 server/spu/ip_cmd.0: /usr/include/bits/sys_errlist.h
 server/spu/ip_cmd.0: /usr/include/bits/stdio-ldbl.h
+server/spu/primitives.0: /usr/include/stdio.h /usr/include/features.h
+server/spu/primitives.0: /usr/include/sys/cdefs.h
+server/spu/primitives.0: /usr/include/bits/wordsize.h
+server/spu/primitives.0: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+server/spu/primitives.0: /usr/lib/gcc/spu/4.0.2/include/stddef.h
+server/spu/primitives.0: /usr/include/bits/types.h
+server/spu/primitives.0: /usr/include/bits/typesizes.h /usr/include/libio.h
+server/spu/primitives.0: /usr/include/_G_config.h /usr/include/wchar.h
+server/spu/primitives.0: /usr/include/bits/wchar.h /usr/include/gconv.h
+server/spu/primitives.0: /usr/lib/gcc/spu/4.0.2/include/stdarg.h
+server/spu/primitives.0: /usr/include/bits/libio-ldbl.h
+server/spu/primitives.0: /usr/include/bits/stdio_lim.h
+server/spu/primitives.0: /usr/include/bits/sys_errlist.h
+server/spu/primitives.0: /usr/include/bits/stdio-ldbl.h
+server/spu/primitives.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
+server/spu/primitives.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
+server/spu/primitives.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
+server/spu/primitives.0: server/spu/spucontext.h server/spu/spuregs.h
+server/spu/primitives.0: server/connection.h server/renderspu/render.h
 server/spu/spumain.0: /usr/lib/gcc/spu/4.0.2/include/spu_mfcio.h
 server/spu/spumain.0: /usr/lib/gcc/spu/4.0.2/include/spu_intrinsics.h
 server/spu/spumain.0: /usr/lib/gcc/spu/4.0.2/include/spu_internals.h
@@ -911,7 +931,8 @@ server/spu/spumain.0: /usr/include/bits/stdio_lim.h
 server/spu/spumain.0: /usr/include/bits/sys_errlist.h
 server/spu/spumain.0: /usr/include/bits/stdio-ldbl.h server/connection.h
 server/spu/spumain.0: client/fifodefs.h client/gen_command_defs.h
-server/spu/spumain.0: server/spu/spucontext.h client/gen_command_defs.h
+server/spu/spumain.0: server/spu/spucontext.h server/spu/spuregs.h
+server/spu/spumain.0: client/gen_command_defs.h
 server/spu/spumain.0: server/spu/gen_command_exts.inc
 server/spu/spumain.0: server/spu/gen_command_table.inc
 

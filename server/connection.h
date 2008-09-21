@@ -83,6 +83,8 @@ struct __ConnectionList {
 //
 // Structure of a rendering surface
 
+#define TRIANGLE_BUFFER_SIZE	65536
+
 struct __Renderable {
 	unsigned long long	ea;
 	int	id;
@@ -91,6 +93,9 @@ struct __Renderable {
 	int	height;
 	int	stride;
 	int	format;
+	void*	memoryBuffer;
+	void*	cacheLine;
+	void*	triangleBase;
 };
 
 #endif // __SERVER_CONNECTION_H

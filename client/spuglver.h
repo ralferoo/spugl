@@ -14,7 +14,7 @@
 
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 2
-#define VERSION_REVISION 64
-#define VERSION_STRING "0.2.64"
+#define VERSION_REVISION 65
+#define VERSION_STRING "0.2.65"
 
 #endif // __SPUGL_VER_H

@@ -14,6 +14,7 @@
 #include <stdio.h>
 
 #include "render.h"
+#include "../connection.h"
 
 void debug_render_tasks(RenderableCacheLine* cache)
 {
@@ -32,6 +33,10 @@ void debug_render_tasks(RenderableCacheLine* cache)
 		mask>>=1;
 	}
 }
+
+char __renderable_base_buffer[ 256 + sizeof(Renderable) ] __attribute__((__aligned__(128)));
+unsigned long long currentRenderableBaseAddress = ~0ULL;
+Renderable* currentRenderableBase;
 
 void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_render_tasks)
 {
@@ -106,35 +111,25 @@ printf("[%d] wait=%04x, may=%04x, chunkToProcess=%d, free=%04x(%2d), freeChunk=%
 			continue;
 		}
 
+		// read in the renderable's information
+		unsigned long long renderableBase = cache->renderableBase;
+		if (renderableBase != currentRenderableBaseAddress) {
+			currentRenderableBaseAddress = renderableBase;
+			int offset = renderableBase & 127;
+			currentRenderableBase = (Renderable*) (__renderable_base_buffer + offset);
+			unsigned long long end = (renderableBase + sizeof(Renderable) + 127) & ~127;
+			renderableBase &= ~127;
+			unsigned int length = end - renderableBase;
+
+			spu_mfcdma64(__renderable_base_buffer, mfc_ea2h(renderableBase), mfc_ea2l(renderableBase),
+				length, 1, MFC_GET_CMD);
+		}
+
+
 		// at least one of the bits is set, chunkToProcess is a valid result
 		unsigned int chunkStart    	= cache->chunkStartArray   [chunkToProcess];
 		unsigned int chunkLength   	= cache->chunkLengthArray  [chunkToProcess];
 		unsigned int chunkTriangle	= cache->chunkTriangleArray[chunkToProcess];
-
-		// This is failing because the blocks are ending up fragmented, probably simplest fix is
-		// for the next block to prefer to follow on from the block we just finished
-		//
-		// [4] Atomic write failed, retring...
-		// [4] Unable to split chunk 12 at 1192 len 856
-		// [4] DEBUG  0 - [W-] Start    0 Length  770 End  770 Triangle 5
-		// [4] DEBUG  1 - [W-] Start 1171 Length    7 End 1178 Triangle 5
-		// [4] DEBUG  2 - [W-] Start 2048 Length   42 End 2090 Triangle 5
-		// [4] DEBUG  3 - [W-] Start 1108 Length   56 End 1164 Triangle 5
-		// [4] DEBUG  4 - [W-] Start 1024 Length   49 End 1073 Triangle 5
-		// [4] DEBUG  5 - [W-] Start 1080 Length   21 End 1101 Triangle 5
-		// [4] DEBUG  6 - [W-] Start 3072 Length   42 End 3114 Triangle 5
-		// [4] DEBUG  7 - [--] Start 1101 Length    7 End 1108 Triangle 0
-		// [4] DEBUG  8 - [--] Start 1073 Length    7 End 1080 Triangle 0
-		// [4] DEBUG  9 - [--] Start 1178 Length    7 End 1185 Triangle 0
-		// [4] DEBUG 10 - [W-] Start 1185 Length    7 End 1192 Triangle 5
-		// [4] DEBUG 11 - [--] Start 1164 Length    7 End 1171 Triangle 0
-		// [4] DEBUG 12 - [W-] Start 1192 Length  856 End 2048 Triangle 0
-		// [4] DEBUG 13 - [W-] Start 2090 Length  982 End 3072 Triangle 0
-		// [4] DEBUG 14 - [W-] Start 3114 Length  982 End 4096 Triangle 0
-		// [4] DEBUG 15 - [W-] Start  770 Length  254 End 1024 Triangle 0
-		//
-		// Alternatively, instead of just splitting whenever we feel like it, instead we split
-		// another block only if we need it
 
 		if (numberOfWaitingChunks < CHUNK_DIVIDE_THRESHOLD &&
 		    chunkLength>NUMBER_OF_TILES_PER_CHUNK) {
@@ -154,7 +149,7 @@ printf("[%d] wait=%04x, may=%04x, chunkToProcess=%d, free=%04x(%2d), freeChunk=%
 			cache->chunkLengthArray  [chunkToProcess] = chunkBoundary - chunkStart;
 			cache->chunksWaiting	|=    0x8000>>freeChunk2;
 			cache->chunksFree	&= ~( 0x8000>>freeChunk2 );
-#ifndef TEST
+#ifdef TEST
 			printf("[%d] W=%d Divided chunk %d at %d len %d, remainder chunk %d at %d len %d [%d]\n",
 				_SPUID, numberOfWaitingChunks,
 				chunkToProcess, chunkStart, chunkLength, freeChunk2,
@@ -200,10 +195,16 @@ printf("[%d] wait=%04x, may=%04x, chunkToProcess=%d, free=%04x(%2d), freeChunk=%
 			printf("[%d] Atomic write failed, retring...\n", _SPUID);
 			continue;
 		}
+
+		// ensure that the currentRenderableBase structure has finished DMA (shouldn't be a problem
+		// but always worth checking)
+		mfc_write_tag_mask(1<<1);
+		mfc_read_tag_status_all();
+
 renderMoreTriangles:
 		// now, if we got here, then we have a successful lock on a chunk
 		endTriangle = process_render_chunk(chunkStart, chunkLength, chunkTriangle, endTriangle,
-					cache->triangleBase, cache->chunkBase);
+					cache->triangleBase, currentRenderableBase);
 
 		// now mark the chunk as complete...
 		do {
@@ -336,11 +337,17 @@ renderMoreTriangles:
 
 unsigned short process_render_chunk(unsigned short chunkStart, unsigned short chunkLength,
 				    unsigned short chunkTriangle, unsigned short endTriangle,
-				    unsigned long long triangleBase, unsigned long long chunkBase)
+				    unsigned long long triangleBase, Renderable* renderable)
 {
-	printf("[%d] Processing chunk at %d len %d, triangle %x\n",
+/*
+	printf("[%d] Screen address: %llx, id %x, locks %d, size %dx%d, stride 0x%x, format %d\n",
 		_SPUID,
-		chunkStart, chunkLength, chunkTriangle );
+		renderable->ea, renderable->id, renderable->locks,
+		renderable->width, renderable->height, renderable->stride, renderable->format);
+*/
+	printf("[%d] Processing chunk at %d len %d, triangle %x to renderable %x\n",
+		_SPUID,
+		chunkStart, chunkLength, chunkTriangle, renderable->id);
 
 //	__asm("stop 0x2110\n\t.word 0");
 

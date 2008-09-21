@@ -57,7 +57,7 @@
 	return 0;
 }
 
-/*6*/int imp_draw_context(unsigned int* from) {
+/*6*/int imp_draw_context(unsigned int* from, Context* context) {
 	unsigned int id = *from;
 
 	unsigned int eal = eal_renderables_table + sizeof(Renderable) * ( id&(MAX_RENDERABLES-1) );
@@ -114,4 +114,91 @@
 	return 0;
 }
 
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Temporary stuff until i redo all the triangle generation stuff properly using AttribPointer etc
+//
+
+float4 current_colour = {.x=1.0,.y=1.0,.z=1.0,.w=1.0};
+float4 current_texcoord = {.x=0.0,.y=0.0,.z=0.0,.w=1.0};
+unsigned int current_texture = 0;
+
+/*15*/int imp_glBegin(unsigned int* from) {
+	unsigned int state = *from++;
+	if (current_state >= 0) {
+		// raise_error(ERROR_NESTED_GLBEGIN);
+	}
+	if (!imp_validate_state(state)) {
+		// raise_error(ERROR_GLBEGIN_INVALID_STATE);
+	} else {
+		current_state = state;
+	}
+	return 0;
+}
+
+// if we're only support GLES, the only important case is lines and i think
+// they should be handled seperately anyway
+/*16*/int imp_glEnd(unsigned int* from, Context* context) {
+	if (current_state < 0) {
+		// raise_error(ERROR_GLEND_WITHOUT_GLBEGIN);
+	} else {
+		imp_close_segment(context);
+	}
+	current_state = -1;
+	return 0;
+}
+
+/*17*/int imp_glVertex2(float* from, Context* context) {
+	float4 a = {.x=from[0],.y=from[1],.z=0.0f,.w=1.0f};
+	return imp_vertex(&from[2], a, context);
+}
+
+/*18*/int imp_glVertex3(float* from, Context* context) {
+	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=1.0f};
+	return imp_vertex(&from[3], a, context);
+}
+
+/*19*/int imp_glVertex4(float* from, Context* context) {
+	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=from[3]};
+	return imp_vertex(&from[4], a, context);
+}
+
+/*20*/int imp_glColor3(float* from, Context* context) {
+	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=1.0f};
+	current_colour = a;
+	return 0;
+}
+
+/*21*/int imp_glColor4(float* from, Context* context) {
+	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=from[3]};
+	current_colour = a;
+	return 0;
+}
+
+/*22*/int imp_glTexCoord2(float* from, Context* context) {
+	float4 a = {.x=from[0],.y=from[1],.z=0.0f,.w=1.0f};
+	current_texcoord = a;
+	return 0;
+}
+
+/*23*/int imp_glTexCoord3(float* from, Context* context) {
+	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=1.0f};
+	current_texcoord = a;
+	return 0;
+}
+
+/*24*/int imp_glTexCoord4(float* from, Context* context) {
+	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=from[3]};
+	current_texcoord = a;
+	return 0;
+}
+
+/*25*/int imp_old_glBindTexture(unsigned int* from, Context* context) {
+	unsigned int target = *from++;
+	unsigned int texture = *from++;
+	current_texture = texture;
+	return 0;
+}
 

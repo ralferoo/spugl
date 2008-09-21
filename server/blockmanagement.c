@@ -59,7 +59,27 @@ int blockManagementCreateRenderable(void* buffer, int width, int height, int str
 			result->stride = stride;
 			result->format = 0;
 			result->locks = 0;
-			printf("Renderable id %x is %x\n", id, buffer);
+
+			result->memoryBuffer = malloc(TRIANGLE_BUFFER_SIZE + 128 + 127);
+			result->cacheLine = (void*) ( ((unsigned int)result->memoryBuffer+127)&~127);
+			result->triangleBase = result->cacheLine + 128;
+
+			RenderableCacheLine* cacheLine = (RenderableCacheLine*) result->cacheLine;
+			memset(cacheLine, 0, 128);
+			cacheLine->chunkTriangleArray[0] = 0;
+			cacheLine->chunkStartArray[0] = 0;
+			cacheLine->chunkLengthArray[0] = 4096;
+			cacheLine->next = *_block_mgr_render_tasks;
+			cacheLine->chunksWaiting = 0x8000;
+			cacheLine->chunksFree = 0x7fff;
+			cacheLine->endTriangle = 0;
+			cacheLine->renderableBase = (unsigned long long) ( (unsigned long)result );
+
+			*_block_mgr_render_tasks = (unsigned long long) ( (unsigned long)cacheLine );
+
+			printf("Renderable id %x is %x, cache at %x, triangle base at %x\n",
+				id, buffer, cacheLine, result->triangleBase);
+
 			return id;
 		}
 	}
@@ -101,13 +121,12 @@ void blockManagementDebug()
 void *blockManagementInit() 
 {
 	_block_mgr_buffer = malloc(127 +
-				   128 +
 				   MAX_DATA_BUFFERS * ( sizeof(signed char)+sizeof(unsigned long long) ) +
 				   MAX_RENDERABLES * sizeof(Renderable) +
 				   sizeof(unsigned long long) );
 	void* _aligned = (void*) ((((unsigned int)_block_mgr_buffer)+127)&~127);
 
-	_block_mgr_lock_table = (signed char*) (_aligned + 128);
+	_block_mgr_lock_table = (signed char*) (_aligned + 0);
 	_block_mgr_ea_table = (unsigned long long*) (_block_mgr_lock_table+MAX_DATA_BUFFERS);
 	_block_mgr_renderables_table = (Renderable*) (_block_mgr_ea_table+MAX_DATA_BUFFERS);
 	_block_mgr_render_tasks = (unsigned long long*) (_block_mgr_renderables_table+MAX_RENDERABLES);
@@ -119,7 +138,7 @@ void *blockManagementInit()
 	memset(_block_mgr_lock_table, -1, MAX_DATA_BUFFERS);
 	memset(_block_mgr_ea_table, 0, MAX_DATA_BUFFERS*sizeof(long long));
 	memset(_block_mgr_renderables_table, 0, MAX_RENDERABLES*sizeof(Renderable));
-
+/*
 	RenderableCacheLine* cacheLine = (RenderableCacheLine*) _aligned;
 	memset(cacheLine, 0, 128);
 	cacheLine->chunkTriangleArray[0] = 0;
@@ -129,8 +148,9 @@ void *blockManagementInit()
 	cacheLine->chunksWaiting = 0x8000;
 	cacheLine->chunksFree = 0x7fff;
 	cacheLine->endTriangle = 5;
-
 	*_block_mgr_render_tasks = (unsigned long long) ( (unsigned long)cacheLine );
+*/
+	*_block_mgr_render_tasks = 0ULL;
 
 	blockManagementDebug();
 

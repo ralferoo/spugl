@@ -20,7 +20,7 @@
 #define NUMBER_OF_TILES_PER_CHUNK		7	// number of tiles an SPU can process at once
 #define CHUNK_DIVIDE_THRESHOLD			3	// only subdivide if we have less than this free
 							// i _think_ this*num_spus+1 <= 16
-
+struct __Renderable;
 extern unsigned int _SPUID;
 
 // handle cache line details
@@ -29,7 +29,7 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 // process a chunk of render work
 unsigned short process_render_chunk(unsigned short chunkStart, unsigned short chunkLength,
 				    unsigned short chunkTriangle, unsigned short endTriangle,
-				    unsigned long long triangleBase, unsigned long long chunkBase);
+				    unsigned long long triangleBase, struct __Renderable* renderable);
 
 typedef struct {
 	union {
@@ -55,7 +55,7 @@ typedef struct {
 // 96
 	unsigned long long	next;
 	unsigned long long	triangleBase;
-	unsigned long long	chunkBase;
+	unsigned long long	renderableBase;
 // 120
 	unsigned short	chunksWaiting;				// bitmask of chunks waiting to be rendered
 	unsigned short	chunksFree;				// bitmask of chunks not yet allocated
@@ -94,5 +94,7 @@ struct RenderableTarget {
 // 64
 	struct RenderableChunk 	chunks[0];
 };
+
+
 
 #endif // __SPU_SPUCONTEXT_H

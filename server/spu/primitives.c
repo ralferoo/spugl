@@ -2,7 +2,7 @@
  *
  * SPU GL - 3d rasterisation library for the PS3
  *
- * (c) 2008 Ranulf Doswell <dev@ranulf.net> 
+ * (c) 2008 Ranulf Doswell <dev@ranulf.net>
  *
  * This library may not be used or distributed without a licence, please
  * contact me for information if you wish to use it.
@@ -10,35 +10,18 @@
  ****************************************************************************/
 #include <stdio.h>
 #include <spu_mfcio.h>
-#include "fifo.h"
-#include "struct.h"
-#include "queue.h"
+
+#include "spucontext.h"
+#include "../connection.h"
+#include "../renderspu/render.h"
 
 //#define CHECK_STATE_TABLE
 
-/*
-typedef struct {
-	vec_float4	x,y,z,w;	// coords
-	vec_float4	r,g,b,a;	// primary colour
-	vec_float4	s,t,u,v;	// primary texture
-	vec_float4	A,dAdx,dAdy;	// weight information
-	vec_float4	minmax;		// bounding box (xmin,ymin,xmax,ymax)
-
-	u32 		texture;
-	void *		shader;
-	unsigned int dummy;
-} triangle;
-
-extern void _draw_imp_triangle(triangle* tri);
-*/
-
 extern float4 current_colour;
 extern float4 current_texcoord;
-extern u32 current_texture;
-extern _bitmap_image screen;
+extern unsigned int current_texture;
 
-extern SPU_CONTROL control;
-extern TextureDefinition* currentTexture;
+// extern TextureDefinition* currentTexture;
 
 static void imp_point()
 {
@@ -89,6 +72,7 @@ static const vec_float4 muls31y = {0.0f, 0.0f, 31.0f, 31.0f};
 
 //////////////////////////////////////////////////////////////////////////////
 
+/*
 extern void* linearColourFill(void* self, Block* block, ActiveBlock* active, int tag);
 extern void* textureMapFill(void* self, Block* block, ActiveBlock* active, int tag);
 extern void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active, int tag);
@@ -171,13 +155,14 @@ int triangleProducer(Triangle* tri, Block* block)
 
 	return bx | (by<<8);
 }
+*/
 
 #define FIXED_PREC 2
 
-static void imp_triangle(struct __TRIANGLE * triangle)
+static void imp_triangle(Triangle* triangle)
 {
 	// starting to rework using ints, mostly to avoid tearing issues (but also quicker)
-	
+
 	vec_int4 i_x = spu_convts(TRIx, FIXED_PREC);
 	vec_int4 i_y = spu_convts(TRIy, FIXED_PREC);
 
@@ -202,25 +187,25 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 		spu_mulo((vec_short8)spu_splats(spu_extract(i_x,0)),(vec_short8)i_area_dx),
 		spu_mulo((vec_short8)spu_splats(spu_extract(i_y,0)),(vec_short8)i_area_dy));
 
-	vec_uchar16 shuf_i_x = spu_slqwbyte(minimax_x, (u32)
+	vec_uchar16 shuf_i_x = spu_slqwbyte(minimax_x, (unsigned int)
 					spu_extract(spu_gather(spu_cmpgt(i_x, i_x_cw)), 0)&~1);
 
-	vec_uchar16 shuf_i_y = spu_slqwbyte(minimax_y, (u32)
+	vec_uchar16 shuf_i_y = spu_slqwbyte(minimax_y, (unsigned int)
 					spu_extract(spu_gather(spu_cmpgt(i_y, i_y_cw)), 0)&~1);
 
-	vec_int4 minmax_i = spu_shuffle(i_x, i_y, spu_or(minimax_add, 
+	vec_int4 minmax_i = spu_shuffle(i_x, i_y, spu_or(minimax_add,
 					spu_shuffle(shuf_i_x, shuf_i_y, minimax_merge)));
 
 //////
 //
 	vec_float4 t_vx_cw = spu_shuffle(TRIx, TRIx, shuffle_tri_cw);
 	vec_uint4 fcgt_x = spu_cmpgt(TRIx, t_vx_cw);	// all-ones if ax>bx, bx>cx, cx>ax, ???
-	u32 fcgt_bits_x = spu_extract(spu_gather(fcgt_x), 0) & ~1;
+	unsigned int fcgt_bits_x = spu_extract(spu_gather(fcgt_x), 0) & ~1;
 	vec_uchar16 shuf_x = spu_slqwbyte(minimax_x, fcgt_bits_x);
 
 	vec_float4 t_vy_cw = spu_shuffle(TRIy, TRIy, shuffle_tri_cw);
 	vec_uint4 fcgt_y = spu_cmpgt(TRIy, t_vy_cw);	// all-ones if ay>by, by>cy, cy>ay, ???
-	u32 fcgt_bits_y = spu_extract(spu_gather(fcgt_y), 0) & ~1;
+	unsigned int fcgt_bits_y = spu_extract(spu_gather(fcgt_y), 0) & ~1;
 	vec_uchar16 shuf_y = spu_slqwbyte(minimax_y, fcgt_bits_y);
 
 	vec_uchar16 shuf_minmax_base = spu_shuffle(shuf_x, shuf_y, minimax_merge);
@@ -254,17 +239,17 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	triangle->y = TRIy;
 	triangle->z = TRIz;
 	triangle->w = TRIw;
-	
+
 	triangle->r = TRIr;
 	triangle->g = TRIg;
 	triangle->b = TRIb;
 	triangle->a = TRIa;
-	
+
 	triangle->s = TRIs;
 	triangle->t = TRIt;
 	triangle->u = TRIu;
 	triangle->v = TRIv;
-	
+
 	triangle->A_dx = area_dx;
 	triangle->A_dy = area_dy;
 
@@ -280,7 +265,9 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 
 	vec_int4 minmax = spu_convts(minmax_,0);
 
-	vec_int4 mm_gt = { 0, 0, screen.width-32, screen.height-32 };
+	//vec_int4 mm_gt = { 0, 0, screen.width-32, screen.height-32 };
+	vec_int4 mm_gt = { 0, 0, 640-32, 480-32 };
+
 	vec_uint4 mm_cmp = spu_cmpgt(minmax,mm_gt);
 	vec_uint4 mm_inv = { -1, -1, 0, 0 };
 	vec_uint4 mm_sel = spu_xor(mm_cmp, mm_inv);
@@ -301,11 +288,11 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 	int block_right = spu_extract(minmax_block,2);
 	int block_bottom = spu_extract(minmax_block,3);
 
-	triangle->step = triangle->step_start = block_right - block_left;
-	triangle->cur_x = block_left;
-	triangle->cur_y = block_top;
-	triangle->block_left = block_left;
-	triangle->left = (block_bottom+1-block_top)*(block_right+1-block_left);
+//	triangle->step = triangle->step_start = block_right - block_left;
+//	triangle->cur_x = block_left;
+//	triangle->cur_y = block_top;
+//	triangle->block_left = block_left;
+//	triangle->left = (block_bottom+1-block_top)*(block_right+1-block_left);
 
 	triangle->A = spu_madd(spu_splats(spu_extract(minmax_block_topleft,0)),area_dx,
 	              spu_madd(spu_splats(spu_extract(minmax_block_topleft,1)),area_dy,
@@ -321,21 +308,21 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 
 /*
 	printf("%8.2f | %8.2f,%8.2f | %8.2f,%8.2f | +%8.2f,%8.2f\n",
-		spu_extract(base_area,0), spu_extract(area_dx,0), spu_extract(area_dy,0), 
-		spu_extract(area_dx,1), spu_extract(area_dy,1), 
+		spu_extract(base_area,0), spu_extract(area_dx,0), spu_extract(area_dy,0),
+		spu_extract(area_dx,1), spu_extract(area_dy,1),
 		spu_extract(area_dx,2), spu_extract(area_dy,2));
 	printf("%8x | %8x,%8x | %8x,%8x | %8x,%8x\n\n",
-		spu_extract(i_base_area,0), spu_extract(i_area_dx,0), spu_extract(i_area_dy,0), 
-		spu_extract(i_area_dx,1), spu_extract(i_area_dy,1), 
+		spu_extract(i_base_area,0), spu_extract(i_area_dx,0), spu_extract(i_area_dy,0),
+		spu_extract(i_area_dx,1), spu_extract(i_area_dy,1),
 		spu_extract(i_area_dx,2), spu_extract(i_area_dy,2));
-*/	
+*/
 
 ///////////////////////////////////////////
 
 	triangle->area = spu_rlmaska(
 			spu_madd((vec_short8)spu_splats(spu_extract(minmax_block_mask,0)),(vec_short8)i_area_dx,
-	       		spu_madd((vec_short8)spu_splats(spu_extract(minmax_block_mask,1)),(vec_short8)i_area_dy,
-	      		spu_sub(i_base_area, i_area_ofs))), -FIXED_PREC);
+			spu_madd((vec_short8)spu_splats(spu_extract(minmax_block_mask,1)),(vec_short8)i_area_dy,
+			spu_sub(i_base_area, i_area_ofs))), -FIXED_PREC);
 	triangle->area_dx = i_area_dx;
 	triangle->area_dy = i_area_dy;
 
@@ -344,11 +331,14 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 /*
 	printf("triangle using currentTexture %lx, id base %d, shift %x, mask %x, count %d\n",
 		currentTexture, currentTexture->tex_id_base, currentTexture->tex_y_shift,
-		currentTexture->tex_id_mask, currentTexture->users); 
+		currentTexture->tex_id_mask, currentTexture->users);
 */
 
-	triangle->texture = currentTexture;
-	currentTexture->users++;
+//	triangle->texture = currentTexture;
+//	currentTexture->users++;
+
+// TODO: MUST PUT BACK TEXTURE STUFF
+
 //	triangle->tex_id_base = currentTexture->tex_id_base;
 
 //	triangle->init_block = &linearColourFill;
@@ -361,7 +351,7 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 //
 //	triangle->init_block = &linearTextureMapFill;
 
-	triangle->init_block = &lessMulsLinearTextureMapFill;
+//	triangle->init_block = &lessMulsLinearTextureMapFill;
 
 //	triangle->init_block = &fastTextureMapFill;
 
@@ -370,9 +360,9 @@ static void imp_triangle(struct __TRIANGLE * triangle)
 // if the triangle is invisible (i.e. area<0) then leave the pointer in the
 // same place so that we re-use the triangle slot on the next triangle.
 
-	unsigned long triangle_is_visible_mask = spu_extract(fcgt_area, 0);
-	triangle->count = 1 & triangle_is_visible_mask;
-	triangle->produce = (void*)( ((u32)&triangleProducer) & triangle_is_visible_mask );
+//	unsigned long triangle_is_visible_mask = spu_extract(fcgt_area, 0);
+//	triangle->count = 1 & triangle_is_visible_mask;
+//	triangle->produce = (void*)( ((unsigned int)&triangleProducer) & triangle_is_visible_mask );
 
 //	printf("[%d] %f, %f -> %f\n", triangle->count, face_sum, tex_cover, tex_cover/face_sum);
 }
@@ -505,7 +495,7 @@ static inline void shuffle_in(vec_uchar16 inserter, float4 s, float4 col, float4
 	TRIv = spu_shuffle(TRIv, (vec_float4) tex.w, inserter);
 }
 
-void* imp_vertex(void* from, float4 in, struct __TRIANGLE * triangle)
+int imp_vertex(void* from, float4 in, Context* context)
 {
 #ifdef CHECK_STATE_TABLE
 	if (current_state < 0 ||
@@ -572,7 +562,7 @@ void* imp_vertex(void* from, float4 in, struct __TRIANGLE * triangle)
 			imp_line();
 			break;
 		case ADD_TRIANGLE2:
-			imp_triangle(triangle);
+			imp_triangle(context);
 
 			current_state = shuffle_map[current_state].next;
 			ins = shuffle_map[current_state].insert;
@@ -587,14 +577,14 @@ void* imp_vertex(void* from, float4 in, struct __TRIANGLE * triangle)
 
 			// fall through here
 		case ADD_TRIANGLE:
-			imp_triangle(triangle);
+			imp_triangle(context);
 			break;
 	}
 	current_state = shuffle_map[current_state].next;
 
 	return from;
 }
-	
+
 int imp_validate_state(int state)
 {
 	return state >= 0 &&
@@ -602,7 +592,7 @@ int imp_validate_state(int state)
 		  shuffle_map[state].insert == 0;
 }
 
-void imp_close_segment(struct __TRIANGLE * triangle)
+void imp_close_segment(Context* context)
 {
 	int end = shuffle_map[current_state].end;
 	if (end) {
@@ -613,8 +603,9 @@ void imp_close_segment(struct __TRIANGLE * triangle)
 				imp_line();
 				break;
 			case ADD_TRIANGLE:
-				imp_triangle(triangle);
+				imp_triangle(context);
 				break;
 		}
 	}
 }
+

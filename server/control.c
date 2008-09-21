@@ -71,7 +71,7 @@ void *main_program_thread(SPU_HANDLE context)
 	unsigned int entry_point = SPE_DEFAULT_ENTRY;
 	do {
 //		printf("restarting at %x\n", entry_point);
-		retval = spe_context_run(context->spe_ctx, &entry_point, 0, context->list, context->id, NULL);
+		retval = spe_context_run(context->spe_ctx, &entry_point, 0, context->list, (void*)(context->id), NULL);
 //		printf("exited at %x\n", entry_point);
 	} while (retval > 0);
 //	printf("retval = %d\n", retval);

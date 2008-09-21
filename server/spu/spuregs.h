@@ -2,7 +2,7 @@
  *
  * SPU GL - 3d rasterisation library for the PS3
  *
- * (c) 2008 Ranulf Doswell <dev@ranulf.net> 
+ * (c) 2008 Ranulf Doswell <dev@ranulf.net>
  *
  * This library may not be used or distributed without a licence, please
  * contact me for information if you wish to use it.
@@ -21,14 +21,12 @@
 // these registers might have been corrupted, however, I don't beleive we
 // do this anywhere.
 
-#include "struct.h"
-
 #ifndef __spuregs_h
 #define __spuregs_h
 
 #ifdef SPU_REGS
 #include <spu_intrinsics.h>
-register u32 ___foo asm ("80");
+register unsigned int ___foo asm ("80");
 
 // current triangle transformation state
 // -------------------------------------
@@ -77,7 +75,6 @@ register vec_float4	PROJ_w		asm ("118");
 
 
 
-
 /*
 static inline vec_int4 log2(vec_float4 a) {
 	qword ra = (qword) a;
@@ -87,6 +84,7 @@ static inline vec_int4 log2(vec_float4 a) {
 	return (vec_int4) t2;
 }
 */
+
 
 static inline vec_int4 log2_sqrt_clamp(vec_float4 a, vec_int4 adjust) {
 	qword ra = (qword) a;
@@ -135,7 +133,7 @@ static inline unsigned int cmp_eq(unsigned int a, unsigned int b) {
 	return spu_extract(rr, 0);
 }
 
-static inline unsigned int if_then_else(unsigned int c, 
+static inline unsigned int if_then_else(unsigned int c,
 		unsigned int a, unsigned int b) {
 	vec_int4 rr;
 	asm("selb %0,%1,%2,%3" : "=r" (rr) : "r" (b), "r" (a), "r" (c));
@@ -145,7 +143,7 @@ static inline unsigned int if_then_else(unsigned int c,
 	//vec_uint4 rr = spu_sel(bb, aa, cc);
 	return spu_extract(rr, 0);
 }
-	
+
 
 static inline int first_bit(unsigned int x) {
 	vec_int4 clz;
