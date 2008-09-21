@@ -216,6 +216,7 @@ disconnected:				handleDisconnect(connection);
 	sigaction(SIGHUP, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
 
+	printf("Killing SPU threads...\n");
 	_exit_spu_thread(thread);
 
 	for (int i=0; i<NUMBER_OF_RENDER_SPU_THREADS; i++)

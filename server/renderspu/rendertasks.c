@@ -140,7 +140,7 @@ printf("[%d] v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChun
 			printf("[%d] Atomic write failed, retring...\n", _SPUID);
 			continue;
 		}
-
+renderMoreTriangles:
 		// now, if we got here, then we have a successful lock on a chunk
 		endTriangle = process_render_chunk(chunkStart, chunkLength, chunkTriangle, endTriangle,
 					cache->triangleBase, cache->chunkBase);
@@ -154,6 +154,16 @@ printf("[%d] v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChun
 			spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
 			spu_readch(MFC_RdAtomicStat);
 
+			if (endTriangle != cache->endTriangle) {
+#ifdef TEST
+				printf("[%d] Goalposts moved from %d to %d, currently %d\n", _SPUID,
+					endTriangle, cache->endTriangle, chunkTriangle);
+#endif // TEST
+				chunkTriangle = endTriangle;
+				endTriangle = cache->endTriangle;
+				goto renderMoreTriangles;
+			}
+
 			cache->chunkTriangleArray[chunkToProcess] = endTriangle;
 			cache->chunksWaiting	|=    0x8000>>chunkToProcess;
 
@@ -162,14 +172,15 @@ printf("[%d] v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChun
 			unsigned short cLength = chunkLength;
 			unsigned int   cIndex = chunkToProcess;
 
-			int repeat;
+			// merge blocks for as long as possible
+			int continueMergingBlocks;
 			do {
 #ifdef TEST
 				debug_render_tasks(cache);
-#endif // TEST
 
 				printf("[%d] cStart=%d, cLength=%d, cIndex=%d\n",
 					_SPUID, cStart, cLength, cIndex);
+#endif // TEST
 
 				vec_ushort8 testStart = spu_splats( (unsigned short)(cStart+cLength) );
 				vec_ushort8 testEnd = spu_splats( cStart );
@@ -253,8 +264,8 @@ printf("[%d] v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChun
 #endif // TEST
 				}
 
-				repeat = spu_extract( spu_or(matchFollowing, matchPreceding), 0);
-			} while(repeat);
+				continueMergingBlocks = spu_extract( spu_or(matchFollowing, matchPreceding), 0);
+			} while(continueMergingBlocks);
 
 			// attempt the write
 			spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
