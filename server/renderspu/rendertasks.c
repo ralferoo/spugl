@@ -41,6 +41,8 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 	const vec_uchar16 SHUFFLE_GET_BUSY_WITH_ONES = (vec_uchar16) {	// get busy flag with ones in unused bytes
 		0xc0, 0xc0, 2, 3, 0xc0,0xc0,0xc0,0xc0, 0xc0,0xc0,0xc0,0xc0 };
 
+	const vec_uchar16 ZERO_BYTES = spu_splats(0);
+
 	char	sync_buffer[128+127];
 	void*	aligned_sync_buffer = (void*) ( ((unsigned long)sync_buffer+127) & ~127 );
 
@@ -83,12 +85,16 @@ printf("[%d] G1=%04x, G2=%04x, gather=%04x\n",
 
 		unsigned int chunkToProcess = spu_extract( spu_cntlz(v_mayprocess), 0 )-16;
 		unsigned int freeChunk = spu_extract( spu_cntlz(v_free), 0 )-16;
+
+		unsigned int numberOfFreeChunks = spu_extract( (vec_uint4)
+						spu_sumb(spu_cntb( (vec_uchar16) v_free ), ZERO_BYTES), 0);
+
 #ifdef TEST
-printf("[%d] v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChunk=%d, g=%04x\n",
+printf("[%d] wait=%04x, may=%04x, chunkToProcess=%d, free=%04x(%2d), freeChunk=%d, g=%04x\n",
 	_SPUID,
 	spu_extract(v_waiting, 0),
 	spu_extract(v_mayprocess, 0), chunkToProcess,
-	spu_extract(v_free, 0), freeChunk,
+	spu_extract(v_free, 0), numberOfFreeChunks, freeChunk,
 	spu_extract(doneTriangleGather,0) );
 #endif // TEST
 		if (!spu_extract(v_mayprocess, 0)) {
@@ -104,6 +110,34 @@ printf("[%d] v_wait=%04x, v_may=%04x, chunkToProcess=%d, v_free = %04x, freeChun
 		unsigned int chunkStart    	= cache->chunkStartArray   [chunkToProcess];
 		unsigned int chunkLength   	= cache->chunkLengthArray  [chunkToProcess];
 		unsigned int chunkTriangle	= cache->chunkTriangleArray[chunkToProcess];
+
+		if (numberOfFreeChunks > NUMBER_OF_CHUNK_SLOTS_TO_PRESERVE && chunkLength>NUMBER_OF_TILES_PER_CHUNK) {
+			vec_uint4 v_free2 = spu_andc(v_free, spu_splats( (unsigned int) (0x8000>>freeChunk) ));
+
+			unsigned int freeChunk2 = spu_extract( spu_cntlz(v_free2), 0 )-16;
+
+			vec_uint4 chunkBitFiddle = spu_splats( chunkStart ^ (chunkStart+chunkLength-1) );
+			unsigned int chunkBitShift = spu_extract(spu_cntlz(chunkBitFiddle), 0);
+			unsigned int chunkSplitSize = ((unsigned int) (1UL<<31)   ) >> chunkBitShift;
+			unsigned int chunkSplitMask = ((unsigned int)((1UL<<31)-1)) >> chunkBitShift;
+			unsigned int chunkBoundary = (chunkStart &~ (chunkSplitMask) ) + chunkSplitSize;
+
+			cache->chunkStartArray   [freeChunk2]	  = chunkBoundary;
+			cache->chunkLengthArray  [freeChunk2]	  = chunkStart + chunkLength - chunkBoundary;
+			cache->chunkTriangleArray[freeChunk2]	  = chunkTriangle;
+			cache->chunkLengthArray  [chunkToProcess] = chunkBoundary - chunkStart;
+			cache->chunksWaiting	|=    0x8000>>freeChunk2;
+			cache->chunksFree	&= ~( 0x8000>>freeChunk2 );
+#ifndef TEST
+			printf("[%d] Divided chunk %d at %d len %d, remainder chunk %d at %d len %d [%d]\n",
+				_SPUID,
+				chunkToProcess, chunkStart, chunkLength, freeChunk2,
+				cache->chunkStartArray [freeChunk2], cache->chunkLengthArray[freeChunk2],
+				chunkTriangle);
+			debug_render_tasks(cache);
+#endif // TEST
+			chunkLength = chunkBoundary - chunkStart;
+		}
 
 		if (spu_extract(v_free, 0) && chunkLength>NUMBER_OF_TILES_PER_CHUNK) {
 			// there's one spare slot to move remainder into, so split the chunk up

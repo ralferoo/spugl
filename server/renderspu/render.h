@@ -18,7 +18,7 @@
 #endif // SPU_REGS
 
 #define NUMBER_OF_TILES_PER_CHUNK		7	// number of tiles an SPU can process at once
-#define NUMBER_OF_CHUNK_SLOTS_TO_PRESERVE	6	// leave each SPU with a spare chunk to play with
+#define NUMBER_OF_CHUNK_SLOTS_TO_PRESERVE	9	// leave each SPU with a spare chunk to play with
 
 extern unsigned int _SPUID;
 
