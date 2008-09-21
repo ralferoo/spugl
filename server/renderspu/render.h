@@ -18,7 +18,8 @@
 #endif // SPU_REGS
 
 #define NUMBER_OF_TILES_PER_CHUNK		7	// number of tiles an SPU can process at once
-#define NUMBER_OF_CHUNK_SLOTS_TO_PRESERVE	9	// leave each SPU with a spare chunk to play with
+#define CHUNK_DIVIDE_THRESHOLD			3	// only subdivide if we have less than this free
+							// i _think_ this*num_spus+1 <= 16
 
 extern unsigned int _SPUID;
 

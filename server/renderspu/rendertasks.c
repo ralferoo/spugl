@@ -86,8 +86,8 @@ printf("[%d] G1=%04x, G2=%04x, gather=%04x\n",
 		unsigned int chunkToProcess = spu_extract( spu_cntlz(v_mayprocess), 0 )-16;
 		unsigned int freeChunk = spu_extract( spu_cntlz(v_free), 0 )-16;
 
-		unsigned int numberOfFreeChunks = spu_extract( (vec_uint4)
-						spu_sumb(spu_cntb( (vec_uchar16) v_free ), ZERO_BYTES), 0);
+		unsigned int numberOfWaitingChunks = spu_extract( (vec_uint4)
+						spu_sumb(spu_cntb( (vec_uchar16) v_mayprocess ), ZERO_BYTES), 0);
 
 #ifdef TEST
 printf("[%d] wait=%04x, may=%04x, chunkToProcess=%d, free=%04x(%2d), freeChunk=%d, g=%04x\n",
@@ -111,7 +111,33 @@ printf("[%d] wait=%04x, may=%04x, chunkToProcess=%d, free=%04x(%2d), freeChunk=%
 		unsigned int chunkLength   	= cache->chunkLengthArray  [chunkToProcess];
 		unsigned int chunkTriangle	= cache->chunkTriangleArray[chunkToProcess];
 
-		if (numberOfFreeChunks > NUMBER_OF_CHUNK_SLOTS_TO_PRESERVE && chunkLength>NUMBER_OF_TILES_PER_CHUNK) {
+		// This is failing because the blocks are ending up fragmented, probably simplest fix is
+		// for the next block to prefer to follow on from the block we just finished
+		//
+		// [4] Atomic write failed, retring...
+		// [4] Unable to split chunk 12 at 1192 len 856
+		// [4] DEBUG  0 - [W-] Start    0 Length  770 End  770 Triangle 5
+		// [4] DEBUG  1 - [W-] Start 1171 Length    7 End 1178 Triangle 5
+		// [4] DEBUG  2 - [W-] Start 2048 Length   42 End 2090 Triangle 5
+		// [4] DEBUG  3 - [W-] Start 1108 Length   56 End 1164 Triangle 5
+		// [4] DEBUG  4 - [W-] Start 1024 Length   49 End 1073 Triangle 5
+		// [4] DEBUG  5 - [W-] Start 1080 Length   21 End 1101 Triangle 5
+		// [4] DEBUG  6 - [W-] Start 3072 Length   42 End 3114 Triangle 5
+		// [4] DEBUG  7 - [--] Start 1101 Length    7 End 1108 Triangle 0
+		// [4] DEBUG  8 - [--] Start 1073 Length    7 End 1080 Triangle 0
+		// [4] DEBUG  9 - [--] Start 1178 Length    7 End 1185 Triangle 0
+		// [4] DEBUG 10 - [W-] Start 1185 Length    7 End 1192 Triangle 5
+		// [4] DEBUG 11 - [--] Start 1164 Length    7 End 1171 Triangle 0
+		// [4] DEBUG 12 - [W-] Start 1192 Length  856 End 2048 Triangle 0
+		// [4] DEBUG 13 - [W-] Start 2090 Length  982 End 3072 Triangle 0
+		// [4] DEBUG 14 - [W-] Start 3114 Length  982 End 4096 Triangle 0
+		// [4] DEBUG 15 - [W-] Start  770 Length  254 End 1024 Triangle 0
+		//
+		// Alternatively, instead of just splitting whenever we feel like it, instead we split
+		// another block only if we need it
+
+		if (numberOfWaitingChunks < CHUNK_DIVIDE_THRESHOLD &&
+		    chunkLength>NUMBER_OF_TILES_PER_CHUNK) {
 			vec_uint4 v_free2 = spu_andc(v_free, spu_splats( (unsigned int) (0x8000>>freeChunk) ));
 
 			unsigned int freeChunk2 = spu_extract( spu_cntlz(v_free2), 0 )-16;
@@ -129,8 +155,8 @@ printf("[%d] wait=%04x, may=%04x, chunkToProcess=%d, free=%04x(%2d), freeChunk=%
 			cache->chunksWaiting	|=    0x8000>>freeChunk2;
 			cache->chunksFree	&= ~( 0x8000>>freeChunk2 );
 #ifndef TEST
-			printf("[%d] Divided chunk %d at %d len %d, remainder chunk %d at %d len %d [%d]\n",
-				_SPUID,
+			printf("[%d] W=%d Divided chunk %d at %d len %d, remainder chunk %d at %d len %d [%d]\n",
+				_SPUID, numberOfWaitingChunks,
 				chunkToProcess, chunkStart, chunkLength, freeChunk2,
 				cache->chunkStartArray [freeChunk2], cache->chunkLengthArray[freeChunk2],
 				chunkTriangle);
