@@ -75,9 +75,11 @@
 	mfc_write_tag_mask(1<<0);						// tag 0
 	mfc_read_tag_status_all();						// wait for read
 
-	printf("Screen address: %llx, id %x, locks %d, size %dx%d, stride 0x%x, format %d\n",
+	printf("Screen address: %llx, id %x, locks %d, size %dx%d, stride 0x%x, format %d, cache line %llx\n",
 		renderable->ea, renderable->id, renderable->locks,
-		renderable->width, renderable->height, renderable->stride, renderable->format);
+		renderable->width, renderable->height, renderable->stride, renderable->format, renderable->cacheLine);
+
+	context->renderableCacheLine = renderable->cacheLine;
 
 	return 0;
 }
@@ -152,17 +154,17 @@ unsigned int current_texture = 0;
 
 /*17*/int imp_glVertex2(float* from, Context* context) {
 	float4 a = {.x=from[0],.y=from[1],.z=0.0f,.w=1.0f};
-	return imp_vertex(&from[2], a, context);
+	return imp_vertex(a, context);
 }
 
 /*18*/int imp_glVertex3(float* from, Context* context) {
 	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=1.0f};
-	return imp_vertex(&from[3], a, context);
+	return imp_vertex(a, context);
 }
 
 /*19*/int imp_glVertex4(float* from, Context* context) {
 	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=from[3]};
-	return imp_vertex(&from[4], a, context);
+	return imp_vertex(a, context);
 }
 
 /*20*/int imp_glColor3(float* from, Context* context) {

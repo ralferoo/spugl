@@ -82,6 +82,9 @@ typedef struct {
 } VertexShaderContext;
 
 typedef struct {
+	unsigned long long	renderableCacheLine;
+	unsigned long long	pad;
+
 	vec_float4   vertex_uniform_vectors[  NUM_VERTEX_UNIFORM_VECTORS];
 	vec_float4 fragment_uniform_vectors[NUM_FRAGMENT_UNIFORM_VECTORS];
 
@@ -255,7 +258,7 @@ extern void _init_buffers();
 
 
 extern int current_state;
-extern int imp_vertex(void* from, float4 in, Context* context);
+extern int imp_vertex(float4 in, Context* context);
 extern void imp_close_segment(Context* context);
 extern int imp_validate_state(int state);
 extern int has_finished();

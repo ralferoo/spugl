@@ -9,8 +9,8 @@
  *
  ***************************************************************************/
 
-#ifndef __SPU_SPUCONTEXT_H
-#define __SPU_SPUCONTEXT_H
+#ifndef __SPU_RENDER_H
+#define __SPU_RENDER_H
 
 #ifdef SPU_REGS
 #include <spu_mfcio.h>
@@ -97,4 +97,4 @@ struct RenderableTarget {
 
 
 
-#endif // __SPU_SPUCONTEXT_H
+#endif // __SPU_RENDER_H

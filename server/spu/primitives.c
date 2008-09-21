@@ -495,22 +495,46 @@ static inline void shuffle_in(vec_uchar16 inserter, float4 s, float4 col, float4
 	TRIv = spu_shuffle(TRIv, (vec_float4) tex.w, inserter);
 }
 
-int imp_vertex(void* from, float4 in, Context* context)
+int imp_vertex(float4 in, Context* context)
 {
 #ifdef CHECK_STATE_TABLE
 	if (current_state < 0 ||
 		  current_state >= sizeof(shuffle_map)/sizeof(shuffle_map[0])) {
 		raise_error(ERROR_VERTEX_INVALID_STATE);
-		return from;
+		return 0;
 		}
 #endif
 	int ins = shuffle_map[current_state].insert;
 #ifdef CHECK_STATE_TABLE
 	if (ins >= sizeof(shuffles)/sizeof(shuffles[0])) {
 		raise_error(ERROR_VERTEX_INVALID_SHUFFLE);
-		return from;
+		return 0;
 	}
 #endif
+
+	unsigned long long cache_ea = context->renderableCacheLine;
+	char cachebuffer[128+127];
+	RenderableCacheLine* cache = (RenderableCacheLine*) ( ((unsigned int)cachebuffer+127) & ~127 );
+
+	spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
+	spu_readch(MFC_RdAtomicStat);
+
+	vec_ushort8 v_writeptr		= spu_splats( cache->endTriangle );
+	vec_ushort8 v_readptr0		= cache->chunkTriangle[0];
+	vec_ushort8 v_readptr1		= cache->chunkTriangle[1];
+	vec_ushort8 v_testptr		= spu_add(v_writeptr, TRIANGLE_MAX_SIZE);
+	vec_ushort8 v_nextptr		= spu_add(v_writeptr, 2*TRIANGLE_MAX_SIZE);
+	vec_ushort8 v_endptr		= spu_splats(TRIANGLE_BUFFER_SIZE);
+
+	vec_ushort8 v_read0_gt_write	= spu_cmpgt(v_readptr0, v_writeptr);
+	vec_ushort8 v_read0_gt_test	= spu_cmpgt(v_readptr0, v_testptr);
+	vec_ushort8 v_read0_gt_next	= spu_cmpgt(v_readptr0, v_nextptr);
+
+	vec_ushort8 v_end_gt_test	= spu_cmpgt(v_endptr, v_testptr);
+	vec_ushort8 v_next_gt_test	= spu_cmpgt(v_nextptr, v_testptr);
+
+	// return 1; // retry triangle
+
 
 	vec_uchar16 inserter = shuffles[ins];
 
@@ -582,7 +606,7 @@ int imp_vertex(void* from, float4 in, Context* context)
 	}
 	current_state = shuffle_map[current_state].next;
 
-	return from;
+	return 0;
 }
 
 int imp_validate_state(int state)
