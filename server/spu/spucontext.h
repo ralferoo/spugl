@@ -182,6 +182,9 @@ struct __TEXTURE {
 
 // this holds a triangle, i.e. something that creates blocks to be rendered
 struct __TRIANGLE {
+	unsigned short	next_triangle;	// next pointer
+	unsigned short	pad[7];
+
 	vec_float4	x,y,z,w;	// coords
 	vec_float4	r,g,b,a;	// primary colour
 	vec_float4	s,t,u,v;	// primary texture

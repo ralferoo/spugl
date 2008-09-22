@@ -45,10 +45,36 @@ int main(int argc, char* argv[]) {
 	spuglNop();
 	spuglDrawContext(context);
 
-	spuglJump(start);
+	// spuglJump(start);
 
-	for (int i=0; i<120; i++) {
+
+	// NOTE THIS ISN'T A REAL OPENGL TRANSFORM!!!
+	GLfloat projectionMatrix[] = {
+		1.0,				0.0,				0.0,	0.0,
+		0.0,				1.0,				0.0,	0.0,
+		640.0f/420.0f,			360.0/420.0f,			1.0,	1.0/420.f,
+		(640.0f*-282.0f)/420.0f,	(360.f*-282.0f)/420.0f,		0.0,	-282.0f/420.f,
+	};
+	glLoadMatrixf(&projectionMatrix);
+
+
+	for (int i=0; i<1200; i++) {
 		spuglDrawContext(context);
+
+		glBegin(GL_TRIANGLES);
+				glTexCoord2f( 256, 256 );
+				glColor3ub(255, 255, 0);
+				glVertex3f(100, 100, 100);
+
+				glTexCoord2f( 256, 0 );
+				glColor3ub(255, 0, 0);
+				glVertex3f(100, 0, 100);
+
+				glTexCoord2f( 0, 0 );
+				glColor3ub(0, 0, 0);
+				glVertex3f(0, 0, 100);
+		glEnd();
+
 		spuglFlush(queue);
 		spuglWait(queue);
 		context = spuglFlip(queue);

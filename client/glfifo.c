@@ -180,6 +180,116 @@ GLAPI void GLAPIENTRY glVertexAttrib4f(const GLuint index, const GLfloat x, cons
 
 
 
+GLAPI void GLAPIENTRY glBegin(GLuint type)
+{
+	FIFO_PROLOGUE(2);
+	BEGIN_RING(FIFO_COMMAND_GL_BEGIN,1);
+	OUT_RING(type);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glEnd()
+{
+	FIFO_PROLOGUE(10);
+	BEGIN_RING(FIFO_COMMAND_GL_END,0);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glVertex2f (GLfloat x, GLfloat y)
+{
+	FIFO_PROLOGUE(10);
+	BEGIN_RING(FIFO_COMMAND_GL_VERTEX2,2);
+	OUT_RINGf(x);
+	OUT_RINGf(y);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glVertex3f (GLfloat x, GLfloat y, GLfloat z)
+{
+	FIFO_PROLOGUE(10);
+	BEGIN_RING(FIFO_COMMAND_GL_VERTEX3,3);
+	OUT_RINGf(x);
+	OUT_RINGf(y);
+	OUT_RINGf(z);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glColor3f (GLfloat r, GLfloat g, GLfloat b)
+{
+	FIFO_PROLOGUE(10);
+	BEGIN_RING(FIFO_COMMAND_GL_COLOR3,3);
+	OUT_RINGf(r);
+	OUT_RINGf(g);
+	OUT_RINGf(b);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glColor4f (GLfloat r, GLfloat g, GLfloat b, GLfloat a)
+{
+	FIFO_PROLOGUE(10);
+	BEGIN_RING(FIFO_COMMAND_GL_COLOR4,3);
+	OUT_RINGf(r);
+	OUT_RINGf(g);
+	OUT_RINGf(b);
+	OUT_RINGf(a);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glColor3ub (GLubyte r, GLubyte g, GLubyte b)
+{
+	FIFO_PROLOGUE(10);
+	BEGIN_RING(FIFO_COMMAND_GL_COLOR3,3);
+	OUT_RINGf(r/255.0);
+	OUT_RINGf(g/255.0);
+	OUT_RINGf(b/255.0);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glColor4ub (GLubyte r, GLubyte g, GLubyte b, GLubyte a)
+{
+	FIFO_PROLOGUE(10);
+	BEGIN_RING(FIFO_COMMAND_GL_COLOR4,4);
+	OUT_RINGf(r/255.0);
+	OUT_RINGf(g/255.0);
+	OUT_RINGf(b/255.0);
+	OUT_RINGf(a/255.0);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glTexCoord2f (GLfloat s, GLfloat t)
+{
+	FIFO_PROLOGUE(10);
+	BEGIN_RING(FIFO_COMMAND_GL_TEX_COORD2,2);
+	OUT_RINGf(s);
+	OUT_RINGf(t);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glTexCoord3f (GLfloat s, GLfloat t, GLfloat u)
+{
+	FIFO_PROLOGUE(10);
+	BEGIN_RING(FIFO_COMMAND_GL_TEX_COORD3,3);
+	OUT_RINGf(s);
+	OUT_RINGf(t);
+	OUT_RINGf(u);
+	FIFO_EPILOGUE();
+}
+
+GLAPI void GLAPIENTRY glTexCoord4f (GLfloat s, GLfloat t, GLfloat u, GLfloat v)
+{
+	FIFO_PROLOGUE(10);
+	BEGIN_RING(FIFO_COMMAND_GL_TEX_COORD4,4);
+	OUT_RINGf(s);
+	OUT_RINGf(t);
+	OUT_RINGf(u);
+	OUT_RINGf(v);
+	FIFO_EPILOGUE();
+}
+
+
+
+
+
 
 
 
@@ -278,112 +388,7 @@ GLAPI void GLAPIENTRY glFlush()
 	FIFO_EPILOGUE();
 	_flush_3d_driver(ctx);
 }
-
-GLAPI void GLAPIENTRY glBegin(GLuint type)
-{
-	FIFO_PROLOGUE(ctx,2);
-	BEGIN_RING(SPU_COMMAND_GL_BEGIN,1,0);
-	OUT_RING(type);
-	FIFO_EPILOGUE();
-}
-
-GLAPI void GLAPIENTRY glEnd()
-{
-	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_END,0,0);
-	FIFO_EPILOGUE();
-}
-
-GLAPI void GLAPIENTRY glVertex2f (GLfloat x, GLfloat y)
-{
-	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_VERTEX2,2,0);
-	OUT_RINGf(x);
-	OUT_RINGf(y);
-	FIFO_EPILOGUE();
-}
-
-GLAPI void GLAPIENTRY glVertex3f (GLfloat x, GLfloat y, GLfloat z)
-{
-	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_VERTEX3,3,0);
-	OUT_RINGf(x);
-	OUT_RINGf(y);
-	OUT_RINGf(z);
-	FIFO_EPILOGUE();
-}
-
-GLAPI void GLAPIENTRY glColor3f (GLfloat r, GLfloat g, GLfloat b)
-{
-	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_COLOR3,3,0);
-	OUT_RINGf(r);
-	OUT_RINGf(g);
-	OUT_RINGf(b);
-	FIFO_EPILOGUE();
-}
-
-GLAPI void GLAPIENTRY glColor4f (GLfloat r, GLfloat g, GLfloat b, GLfloat a)
-{
-	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_COLOR4,3,0);
-	OUT_RINGf(r);
-	OUT_RINGf(g);
-	OUT_RINGf(b);
-	OUT_RINGf(a);
-	FIFO_EPILOGUE();
-}
-
-GLAPI void GLAPIENTRY glColor3ub (GLubyte r, GLubyte g, GLubyte b)
-{
-	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_COLOR3,3,0);
-	OUT_RINGf(r/255.0);
-	OUT_RINGf(g/255.0);
-	OUT_RINGf(b/255.0);
-	FIFO_EPILOGUE();
-}
-
-GLAPI void GLAPIENTRY glColor4ub (GLubyte r, GLubyte g, GLubyte b, GLubyte a)
-{
-	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_COLOR4,4,0);
-	OUT_RINGf(r/255.0);
-	OUT_RINGf(g/255.0);
-	OUT_RINGf(b/255.0);
-	OUT_RINGf(a/255.0);
-	FIFO_EPILOGUE();
-}
-
-GLAPI void GLAPIENTRY glTexCoord2f (GLfloat s, GLfloat t)
-{
-	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_TEX_COORD2,2,0);
-	OUT_RINGf(s);
-	OUT_RINGf(t);
-	FIFO_EPILOGUE();
-}
-
-GLAPI void GLAPIENTRY glTexCoord3f (GLfloat s, GLfloat t, GLfloat u)
-{
-	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_TEX_COORD3,3,0);
-	OUT_RINGf(s);
-	OUT_RINGf(t);
-	OUT_RINGf(u);
-	FIFO_EPILOGUE();
-}
-
-GLAPI void GLAPIENTRY glTexCoord4f (GLfloat s, GLfloat t, GLfloat u, GLfloat v)
-{
-	FIFO_PROLOGUE(ctx,10);
-	BEGIN_RING(SPU_COMMAND_GL_TEX_COORD4,4,0);
-	OUT_RINGf(s);
-	OUT_RINGf(t);
-	OUT_RINGf(u);
-	OUT_RINGf(v);
-	FIFO_EPILOGUE();
-}
+EOF
 
 GLAPI void GLAPIENTRY glBindTexture(GLenum target, GLuint texture)
 {

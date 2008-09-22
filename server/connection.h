@@ -83,11 +83,11 @@ struct __ConnectionList {
 //
 // Structure of a rendering surface
 //
-// TRIANGLE_BUFFER_SIZE		size of triangle buffer ring buffer (max 64k)
+// TRIANGLE_BUFFER_SIZE		size of triangle buffer ring buffer (max 64k-3*TRIANGLE_MAX_SIZE-1)
 // TRIANGLE_MAX_SIZE		amount of memory to reserve in ring (max size of a triangle structure)
 
-#define TRIANGLE_BUFFER_SIZE	65536
-#define TRIANGLE_MAX_SIZE	256
+#define TRIANGLE_BUFFER_SIZE	0x900 //0xf00d //(65536-128)
+#define TRIANGLE_MAX_SIZE	512
 
 struct __Renderable {
 	unsigned long long	ea;

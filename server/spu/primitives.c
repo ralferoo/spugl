@@ -15,6 +15,22 @@
 #include "../connection.h"
 #include "../renderspu/render.h"
 
+#define DEBUG_VEC(x) __debug_vec(#x, (vec_ushort8) x)
+
+void __debug_vec(char* s, vec_ushort8 x)
+{
+	printf("%-20s %04x %04x %04x %04x %04x %04x %04x %04x\n", s,
+		spu_extract(x, 0),
+		spu_extract(x, 1),
+		spu_extract(x, 2),
+		spu_extract(x, 3),
+		spu_extract(x, 4),
+		spu_extract(x, 5),
+		spu_extract(x, 6),
+		spu_extract(x, 7) );
+}
+
+
 //#define CHECK_STATE_TABLE
 
 extern float4 current_colour;
@@ -159,7 +175,7 @@ int triangleProducer(Triangle* tri, Block* block)
 
 #define FIXED_PREC 2
 
-static void imp_triangle(Triangle* triangle)
+Triangle* imp_triangle(Triangle* triangle, Context* context)
 {
 	// starting to rework using ints, mostly to avoid tearing issues (but also quicker)
 
@@ -327,6 +343,10 @@ static void imp_triangle(Triangle* triangle)
 	triangle->area_dy = i_area_dy;
 
 ///////////////////////////////////////////
+
+	printf("triangle %x -> %x\n", triangle, triangle + 1);
+
+	return triangle + 1;
 
 /*
 	printf("triangle using currentTexture %lx, id base %d, shift %x, mask %x, count %d\n",
@@ -512,6 +532,10 @@ int imp_vertex(float4 in, Context* context)
 	}
 #endif
 
+	// read the current renderable cache line to ensure there is room for the triangle data
+	// in the cache line buffer; we do this by comparing against all 16 cache line blocks
+	// to make sure that extending the write pointer wouldn't clobber the data
+
 	unsigned long long cache_ea = context->renderableCacheLine;
 	char cachebuffer[128+127];
 	RenderableCacheLine* cache = (RenderableCacheLine*) ( ((unsigned int)cachebuffer+127) & ~127 );
@@ -519,22 +543,87 @@ int imp_vertex(float4 in, Context* context)
 	spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
 	spu_readch(MFC_RdAtomicStat);
 
+	// extendvalid = ( read<=write && test<end ) || ( read>write && test<read )
+	// extendvalid = ( read>write && read>test ) || ( read<=write && end>test )
+	// simplifies to	extendvalid = selb(end, read, read>write) > test
+	// or			extendvalid = selb(end>test, read>test, read>write)
+	// rewind = next >= end
+	// rewindvalid = read != 0
+	// valid = extendvalid && (!rewind || rewindvalid)
+	// 	 = extendvalid && (!rewind || !rewindinvalid)
+	// 	 = extendvalid && !(rewind && rewindinvalid)
+	// invalid = ! (extendvalid && !(rewind && rewindinvalid))
+	//         = (!extendvalid || (rewind && rewindinvalid))
+
 	vec_ushort8 v_writeptr		= spu_splats( cache->endTriangle );
 	vec_ushort8 v_readptr0		= cache->chunkTriangle[0];
 	vec_ushort8 v_readptr1		= cache->chunkTriangle[1];
-	vec_ushort8 v_testptr		= spu_add(v_writeptr, TRIANGLE_MAX_SIZE);
+	vec_ushort8 v_testptr		= spu_add(v_writeptr,   TRIANGLE_MAX_SIZE);
 	vec_ushort8 v_nextptr		= spu_add(v_writeptr, 2*TRIANGLE_MAX_SIZE);
-	vec_ushort8 v_endptr		= spu_splats(TRIANGLE_BUFFER_SIZE);
+	vec_ushort8 v_endptr		= spu_splats( (unsigned short)TRIANGLE_BUFFER_SIZE);
 
-	vec_ushort8 v_read0_gt_write	= spu_cmpgt(v_readptr0, v_writeptr);
-	vec_ushort8 v_read0_gt_test	= spu_cmpgt(v_readptr0, v_testptr);
-	vec_ushort8 v_read0_gt_next	= spu_cmpgt(v_readptr0, v_nextptr);
+	vec_ushort8 v_zero		= spu_splats( (unsigned short) 0 );
+	vec_uchar16 v_merger		= (vec_uchar16) { 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 };
 
-	vec_ushort8 v_end_gt_test	= spu_cmpgt(v_endptr, v_testptr);
-	vec_ushort8 v_next_gt_test	= spu_cmpgt(v_nextptr, v_testptr);
+	vec_ushort8 v_max0_test		= spu_sel( v_endptr, v_readptr0, spu_cmpgt( v_readptr0, v_writeptr ) );
+	vec_ushort8 v_max1_test		= spu_sel( v_endptr, v_readptr1, spu_cmpgt( v_readptr1, v_writeptr ) );
+	vec_ushort8 v_extend0_valid	= spu_cmpgt( v_max0_test, v_testptr );
+	vec_ushort8 v_extend1_valid	= spu_cmpgt( v_max1_test, v_testptr );
+	vec_ushort8 v_rewind0_invalid	= spu_cmpeq( v_readptr0, v_zero );
+	vec_ushort8 v_rewind1_invalid	= spu_cmpeq( v_readptr1, v_zero );
+	vec_ushort8 v_rewind8		= spu_cmpgt( v_nextptr, v_endptr );
 
-	// return 1; // retry triangle
+	vec_uchar16 v_extend_valid	= (vec_uchar16) spu_shuffle( v_extend0_valid, v_extend1_valid, v_merger );
+	vec_uchar16 v_rewind_invalid	= (vec_uchar16) spu_shuffle( v_rewind0_invalid, v_rewind1_invalid, v_merger );
+	vec_uchar16 v_rewind		= (vec_uchar16) v_rewind8;
 
+	//vec_uchar16 v_valid_rhs		= spu_orc( v_rewind_valid, v_rewind );
+	//vec_uchar16 v_invalid		= spu_nand( v_extend_valid, v_valid_rhs );
+	vec_uchar16 v_valid_rhs		= spu_and( v_rewind_invalid, v_rewind );
+	vec_uchar16 v_invalid		= spu_orc( v_valid_rhs, v_extend_valid );
+
+	vec_ushort8 v_free		= spu_promote( cache->chunksFree,1 );
+	vec_uint4   v_invalid_bits	= spu_andc( spu_gather( v_invalid ), (vec_uint4) v_free );
+
+/*
+	DEBUG_VEC( v_writeptr );
+	DEBUG_VEC( v_readptr0 );
+	DEBUG_VEC( v_readptr1 );
+	DEBUG_VEC( v_testptr );
+	DEBUG_VEC( v_nextptr );
+	DEBUG_VEC( v_endptr );
+	DEBUG_VEC( v_max0_test );
+	DEBUG_VEC( v_max1_test );
+	DEBUG_VEC( v_extend0_valid );
+	DEBUG_VEC( v_extend1_valid );
+	DEBUG_VEC( v_rewind0_invalid );
+	DEBUG_VEC( v_rewind1_invalid );
+	DEBUG_VEC( v_extend_valid );
+	DEBUG_VEC( v_rewind_invalid );
+	DEBUG_VEC( v_rewind );
+	DEBUG_VEC( v_valid_rhs );
+	DEBUG_VEC( v_invalid );
+	DEBUG_VEC( v_free );
+*/
+	DEBUG_VEC( v_invalid_bits );
+
+//	printf("\n");
+
+	// if any of the bits are invalid, then no can do
+	if ( spu_extract(v_invalid_bits, 0) ) {
+		printf("BUFFER FULL!!!\n\n");
+		return 1;
+	}
+
+	// this will happen on every vertex... so obviously quite slow; will need to move out!
+	char trianglebuffer[ 256 + TRIANGLE_MAX_SIZE ];
+	unsigned int offset = cache->endTriangle;
+	unsigned int extra = offset & 127;
+	unsigned long long trianglebase = cache->triangleBase + (offset & ~127);
+	Triangle* triangle = (Triangle*) (trianglebuffer+extra);
+	if (extra) {
+		spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebase), mfc_ea2l(trianglebase), 128, 0, MFC_GET_CMD);
+	}
 
 	vec_uchar16 inserter = shuffles[ins];
 
@@ -586,7 +675,8 @@ int imp_vertex(float4 in, Context* context)
 			imp_line();
 			break;
 		case ADD_TRIANGLE2:
-			imp_triangle(context);
+			// TODO: fix code for quad if it's worthwhile, will need to do buffer stuff twice...
+			// imp_triangle(context);
 
 			current_state = shuffle_map[current_state].next;
 			ins = shuffle_map[current_state].insert;
@@ -601,10 +691,52 @@ int imp_vertex(float4 in, Context* context)
 
 			// fall through here
 		case ADD_TRIANGLE:
-			imp_triangle(context);
+
+			// ensure DMA did actually complete
+			mfc_write_tag_mask(1<<0);
+			mfc_read_tag_status_all();
+
+			Triangle* endTriangle = imp_triangle(triangle, context);
+
+			if (endTriangle != triangle) {
+				int length = ( ((char*)endTriangle) - trianglebuffer + 127) & ~127;
+				unsigned short endTriangleBase = (((char*)endTriangle) - ((char*)triangle)) + offset;
+				vec_ushort8 v_new_end = spu_promote(endTriangleBase, 1);
+
+				// calculate genuine next pointer ( rewind==0 -> next, rewind!=0 -> 0 )
+				unsigned short next_pointer = spu_extract( spu_andc( v_new_end, v_rewind8 ), 1 );
+				triangle->next_triangle = next_pointer;
+
+				printf("len %x, endTriBase %x, next_pointer %x, ea %x:%08x len %x\n",
+					length, endTriangleBase, next_pointer,
+					mfc_ea2h(trianglebase), mfc_ea2l(trianglebase), length );
+
+				// DMA the triangle data out
+				spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebase), mfc_ea2l(trianglebase), length, 0, MFC_PUT_CMD);
+				mfc_write_tag_mask(1<<0);
+				mfc_read_tag_status_all();
+
+				// update the information in the cache line
+				for(;;) {
+					cache->endTriangle = next_pointer;
+					spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
+					unsigned int status = spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS;
+					if (!status)
+						break;
+
+					// cache is dirty and write failed, reload it and attempt the whole thing again again
+					spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
+					spu_readch(MFC_RdAtomicStat);
+				}
+
+			}
+			printf("done triangle\n");
+
 			break;
 	}
 	current_state = shuffle_map[current_state].next;
+
+	// now write all the changed data
 
 	return 0;
 }
@@ -627,7 +759,8 @@ void imp_close_segment(Context* context)
 				imp_line();
 				break;
 			case ADD_TRIANGLE:
-				imp_triangle(context);
+				// TODO: implement!
+				// imp_triangle(context);
 				break;
 		}
 	}

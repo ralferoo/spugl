@@ -75,9 +75,10 @@
 	mfc_write_tag_mask(1<<0);						// tag 0
 	mfc_read_tag_status_all();						// wait for read
 
-	printf("Screen address: %llx, id %x, locks %d, size %dx%d, stride 0x%x, format %d, cache line %llx\n",
+	printf("Screen address: %llx, id %x, locks %d, size %dx%d, stride 0x%x, format %d, cache line %x:%08x\n",
 		renderable->ea, renderable->id, renderable->locks,
-		renderable->width, renderable->height, renderable->stride, renderable->format, renderable->cacheLine);
+		renderable->width, renderable->height, renderable->stride, renderable->format,
+		mfc_ea2h(renderable->cacheLine), mfc_ea2l(renderable->cacheLine));
 
 	context->renderableCacheLine = renderable->cacheLine;
 

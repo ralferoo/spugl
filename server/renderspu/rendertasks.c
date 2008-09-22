@@ -192,7 +192,9 @@ printf("[%d] wait=%04x, may=%04x, chunkToProcess=%d, free=%04x(%2d), freeChunk=%
 		unsigned int status = spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS;
 		if (status) {
 			// cache is dirty and write failed, reload it and attempt the whole thing again again
+#ifdef TEST
 			printf("[%d] Atomic write failed, retring...\n", _SPUID);
+#endif // TEST
 			continue;
 		}
 
@@ -345,13 +347,16 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 		renderable->ea, renderable->id, renderable->locks,
 		renderable->width, renderable->height, renderable->stride, renderable->format);
 */
+
+/*
 	printf("[%d] Processing chunk at %d len %d, triangle %x to renderable %x\n",
 		_SPUID,
 		chunkStart, chunkLength, chunkTriangle, renderable->id);
+*/
 
 //	__asm("stop 0x2110\n\t.word 0");
 
-	return chunkTriangle+1;
-	//return endTriangle;
+	//return chunkTriangle+1;
+	return endTriangle;
 }
 

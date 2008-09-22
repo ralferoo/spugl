@@ -74,6 +74,7 @@ int blockManagementCreateRenderable(void* buffer, int width, int height, int str
 			cacheLine->chunksFree = 0x7fff;
 			cacheLine->endTriangle = 0;
 			cacheLine->renderableBase = (unsigned long long) ( (unsigned long)result );
+			cacheLine->triangleBase = result->cacheLine + 128;
 
 			*_block_mgr_render_tasks = (unsigned long long) ( (unsigned long)cacheLine );
 
