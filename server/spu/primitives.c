@@ -345,6 +345,9 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 ///////////////////////////////////////////
 
 	printf("triangle %x -> %x\n", triangle, triangle + 1);
+	DEBUG_VEC( triangle->A );
+	DEBUG_VEC( triangle->A_dx );
+	DEBUG_VEC( triangle->A_dy );
 
 	return triangle + 1;
 
@@ -604,14 +607,14 @@ int imp_vertex(float4 in, Context* context)
 	DEBUG_VEC( v_valid_rhs );
 	DEBUG_VEC( v_invalid );
 	DEBUG_VEC( v_free );
-*/
 	DEBUG_VEC( v_invalid_bits );
 
 //	printf("\n");
+*/
 
 	// if any of the bits are invalid, then no can do
 	if ( spu_extract(v_invalid_bits, 0) ) {
-		printf("BUFFER FULL!!!\n\n");
+//		printf("BUFFER FULL!!!\n\n");
 		return 1;
 	}
 
@@ -619,10 +622,10 @@ int imp_vertex(float4 in, Context* context)
 	char trianglebuffer[ 256 + TRIANGLE_MAX_SIZE ];
 	unsigned int offset = cache->endTriangle;
 	unsigned int extra = offset & 127;
-	unsigned long long trianglebase = cache->triangleBase + (offset & ~127);
+	unsigned long long trianglebuffer_ea = cache->triangleBase + (offset & ~127);
 	Triangle* triangle = (Triangle*) (trianglebuffer+extra);
 	if (extra) {
-		spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebase), mfc_ea2l(trianglebase), 128, 0, MFC_GET_CMD);
+		spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), 128, 0, MFC_GET_CMD);
 	}
 
 	vec_uchar16 inserter = shuffles[ins];
@@ -709,10 +712,10 @@ int imp_vertex(float4 in, Context* context)
 
 				printf("len %x, endTriBase %x, next_pointer %x, ea %x:%08x len %x\n",
 					length, endTriangleBase, next_pointer,
-					mfc_ea2h(trianglebase), mfc_ea2l(trianglebase), length );
+					mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), length );
 
 				// DMA the triangle data out
-				spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebase), mfc_ea2l(trianglebase), length, 0, MFC_PUT_CMD);
+				spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), length, 0, MFC_PUT_CMD);
 				mfc_write_tag_mask(1<<0);
 				mfc_read_tag_status_all();
 

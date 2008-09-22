@@ -15,6 +15,22 @@
 
 #include "render.h"
 #include "../connection.h"
+#include "../spu/spucontext.h"
+
+#define DEBUG_VEC(x) __debug_vec(#x, (vec_ushort8) x)
+
+void __debug_vec(char* s, vec_ushort8 x)
+{
+	printf("%-20s %04x %04x %04x %04x %04x %04x %04x %04x\n", s,
+		spu_extract(x, 0),
+		spu_extract(x, 1),
+		spu_extract(x, 2),
+		spu_extract(x, 3),
+		spu_extract(x, 4),
+		spu_extract(x, 5),
+		spu_extract(x, 6),
+		spu_extract(x, 7) );
+}
 
 void debug_render_tasks(RenderableCacheLine* cache)
 {
@@ -341,6 +357,28 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 				    unsigned short chunkTriangle, unsigned short endTriangle,
 				    unsigned long long triangleBase, Renderable* renderable)
 {
+
+	char trianglebuffer[ 256 + TRIANGLE_MAX_SIZE ];
+	unsigned int extra = chunkTriangle & 127;
+	unsigned long long trianglebuffer_ea = triangleBase + (chunkTriangle & ~127);
+	Triangle* triangle = (Triangle*) (trianglebuffer+extra);
+	unsigned int length = (extra + TRIANGLE_MAX_SIZE + 127) & ~127;
+	spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), length, 0, MFC_GET_CMD);
+
+	mfc_write_tag_mask(1<<0);
+	mfc_read_tag_status_all();
+
+	printf("[%d] Read triangle %x, next is %x\n", _SPUID, chunkTriangle, triangle->next_triangle);
+
+
+	DEBUG_VEC( triangle->A );
+	DEBUG_VEC( triangle->A_dx );
+	DEBUG_VEC( triangle->A_dy );
+	DEBUG_VEC( triangle->x );
+	DEBUG_VEC( triangle->y );
+	DEBUG_VEC( triangle->z );
+	DEBUG_VEC( triangle->w );
+
 /*
 	printf("[%d] Screen address: %llx, id %x, locks %d, size %dx%d, stride 0x%x, format %d\n",
 		_SPUID,
@@ -348,15 +386,14 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 		renderable->width, renderable->height, renderable->stride, renderable->format);
 */
 
-/*
 	printf("[%d] Processing chunk at %d len %d, triangle %x to renderable %x\n",
 		_SPUID,
 		chunkStart, chunkLength, chunkTriangle, renderable->id);
+/*
 */
 
 //	__asm("stop 0x2110\n\t.word 0");
 
-	//return chunkTriangle+1;
-	return endTriangle;
+	return triangle->next_triangle;
 }
 

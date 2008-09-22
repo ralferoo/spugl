@@ -17,7 +17,7 @@
 #include <spu_intrinsics.h>
 #endif // SPU_REGS
 
-#define NUMBER_OF_TILES_PER_CHUNK		7	// number of tiles an SPU can process at once
+#define NUMBER_OF_TILES_PER_CHUNK		7777	// number of tiles an SPU can process at once
 #define CHUNK_DIVIDE_THRESHOLD			3	// only subdivide if we have less than this free
 							// i _think_ this*num_spus+1 <= 16
 struct __Renderable;
