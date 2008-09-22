@@ -1,0 +1,120 @@
+New Shader
+----------
+
+The shader is obviously where the majority of the time is spent. Therefore,
+that should be most optimised and define its interface to the outside world
+(unless we are codegenning it...)
+
+
+Algorithm
+---------
+
+Current
+-------
+
+tri->A_dx holds Aa_dx, Ab_dx, Ac_dx
+tri->A_dy holds Aa_dy, Ab_dy, Ac_dy
+similarly with dx4,rdy,rdx
+
+(note, we're only using 3 of the 4 vectors)
+
+extract(what,tAa,tAb,tAc) = s(what_0)*tAa + s(what_1)*tAb + s(what_2)*tAc
+muls = [ 1.0, 2.0, 3.0, 4.0 ]
+
+tri->A    holds Aa   , Ab   , Ac   
+Aa = muls*Aa_dx + tri->A_0
+Ab = muls*Ab_dx + tri->A_1
+Ac = muls*Ac_dx + tri->A_2
+
+Now Aa,Ab,Ac hold a vector of 4 pixels worth of each,
+Aa_dx etc hold the appropriate thing splats out
+
+At end of each loop, we have:
+
+                 A += spu_sel( A_dx4, A_dy,sel);
+                Aa += spu_sel(Aa_dx4,Aa_dy,sel);
+                Ab += spu_sel(Ab_dx4,Ab_dy,sel);
+                Ac += spu_sel(Ac_dx4,Ac_dy,sel);
+
+                wA += spu_sel(wA_dx4,wA_dy,sel);
+                sA += spu_sel(sA_dx4,sA_dy,sel);
+                tA += spu_sel(tA_dx4,tA_dy,sel);
+                 k += spu_sel( k_dx4, k_dy,sel);
+
+which is a bit wasteful as each word of the additives are the same...
+
+Instead, if we have vectors (A,Aa,Ab,Ac) for each pixel also (wA,sA,tA,k)
+
+Currently, we have in the loop:
+
+                vec_uint4 uAa = (vec_uint4) Aa;
+                vec_uint4 uAb = (vec_uint4) Ab;
+                vec_uint4 uAc = (vec_uint4) Ac;
+                vec_uint4 allNeg = spu_and(spu_and(uAa,uAb),uAc);
+                vec_uint4 pixel = spu_rlmaska(allNeg,-31);
+                vec_uint4 bail = spu_orx(pixel);
+                if (__builtin_expect(spu_extract(bail,0),0)) {
+
+allNeg = -1 if Aa, Ab, Ac all negative (i.e. inside triangle)
+bail =-1 if any pixel inside triangle
+
+                        vec_float4 w = f1_0/wA;
+                        vec_int4 mipmap_real = log2_sqrt_clamp(k*w*w*w, adjust);                        // determine mipmap level
+                        vec_uint4 mipmap_clamp_sel = spu_cmpgt(max_mipmap,mipmap_real);
+                        vec_int4 mipmap = spu_sel(max_mipmap,mipmap_real,mipmap_clamp_sel);             // clamp mipmap between 0..max_mipmap
+
+                        vec_float4 tf_s = spu_mul(sA, w);
+                        vec_float4 tf_t = spu_mul(tA, w);
+
+                        vec_uint4 t_s = spu_convtu(tf_s,32);
+                        vec_uint4 t_t = spu_convtu(tf_t,32);
+
+
+
+SOA <--> AOS
+
+A a1 a2 a3 a4
+B b1 b2 b3 b4
+C c1 c2 c3 c4
+D d1 d2 d3 d4
+
+E a1 b1 a2 b2	A B
+F a3 b3 a4 b4	A B
+G c1 c2 d1 d2	C D
+H c3 c4 d3 d4	C D
+
+I a1 b1 c1 d1	E G
+J a2 b2 c2 d2	E G
+K a3 b3 c3 d3	F H
+L a4 b4 c4 d4	F H
+
+
+A new attempt, instead of:
+
+Weightings:
+                 A += spu_sel( A_dx4, A_dy,sel);
+                Aa += spu_sel(Aa_dx4,Aa_dy,sel);
+                Ab += spu_sel(Ab_dx4,Ab_dy,sel);
+                Ac += spu_sel(Ac_dx4,Ac_dy,sel);
+
+                wA += spu_sel(wA_dx4,wA_dy,sel);	// 1/z
+                sA += spu_sel(sA_dx4,sA_dy,sel);	// tex u
+                tA += spu_sel(tA_dx4,tA_dy,sel);	// tex v
+                 k += spu_sel( k_dx4, k_dy,sel);	// mipmap
+
+Have:
+		weightings += weightings_dx2
+
+		` A = spu_splats(weightings, 0) +  A_deltas
+		 Aa = spu_splats(weightings, 1) + Aa_deltas
+		 Ab = spu_splats(weightings, 1) + Ab_deltas
+		 Ac = spu_splats(weightings, 1) + Ac_deltas
+
+Or:
+		w_plus_dx = weightings + weightings_dx
+		w_plus_dy = weightings + weightings_dy
+		w_plus_dx_dy = weightings + weightings_dx + weightings_dy
+
+		want ( weightings, w_plus_dx, w_plus_dy, w_plus_dx_dy)
+
+	
