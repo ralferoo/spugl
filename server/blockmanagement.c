@@ -17,11 +17,74 @@
 #include <stdio.h>
 #include <string.h>
 
-static void*			_block_mgr_buffer	= NULL;
-static signed char*		_block_mgr_lock_table	= NULL;
-static unsigned long long*	_block_mgr_ea_table	= NULL;
+#include "renderspu/render.h"
+
+static void*			_block_mgr_buffer		= NULL;
+static signed char*		_block_mgr_lock_table		= NULL;
+static unsigned long long*	_block_mgr_ea_table		= NULL;
+static Renderable*		_block_mgr_renderables_table	= NULL;
+static unsigned long long*	_block_mgr_render_tasks		= NULL;
 
 #define BLOCK_ID_MASK (MAX_DATA_BUFFERS-1)
+
+unsigned long long* blockManagementGetRenderTasksPointer(void)
+{
+	return _block_mgr_render_tasks;
+}
+
+// TODO: there should be management around this, but currently it's only used for the framebuffer...
+Renderable* blockManagementGetRenderable(int id)
+{
+	if (id<0 || id>=MAX_RENDERABLES)
+		return NULL;
+
+	Renderable* result = _block_mgr_renderables_table + ( id & (MAX_RENDERABLES-1) );
+	if (result->id == id)
+		return result;
+
+	return NULL;
+}
+
+// TODO: there should be management around this, but currently it's only used for the framebuffer...
+int blockManagementCreateRenderable(void* buffer, int width, int height, int stride)
+{
+	for (int id=0; id<MAX_RENDERABLES; id++) {
+		Renderable* result = _block_mgr_renderables_table + id;
+		if (result->ea == 0ULL) {
+			id |= (rand() << 16) & (~MAX_RENDERABLES);
+			result->ea = (unsigned long long) ( (unsigned long)buffer );
+			result->id = id;
+			result->width = width;
+			result->height = height;
+			result->stride = stride;
+			result->format = 0;
+			result->locks = 0;
+
+			result->memoryBuffer = malloc(TRIANGLE_BUFFER_SIZE + 128 + 127);
+			result->cacheLine = (void*) ( ((unsigned int)result->memoryBuffer+127)&~127);
+			result->triangleBase = result->cacheLine + 128;
+
+			RenderableCacheLine* cacheLine = (RenderableCacheLine*) result->cacheLine;
+			memset(cacheLine, 0, 128);
+			cacheLine->chunkTriangleArray[0] = 0;
+			cacheLine->chunkStartArray[0] = 0;
+			cacheLine->chunkLengthArray[0] = 4096;
+			cacheLine->next = *_block_mgr_render_tasks;
+			cacheLine->chunksWaiting = 0x8000;
+			cacheLine->chunksFree = 0x7fff;
+			cacheLine->endTriangle = 0;
+			cacheLine->renderableBase = (unsigned long long) ( (unsigned long)result );
+
+			*_block_mgr_render_tasks = (unsigned long long) ( (unsigned long)cacheLine );
+
+			printf("Renderable id %x is %x, cache at %x, triangle base at %x\n",
+				id, buffer, cacheLine, result->triangleBase);
+
+			return id;
+		}
+	}
+	return -1;
+}
 
 void blockManagementDebug()
 {
@@ -57,12 +120,38 @@ void blockManagementDebug()
 // initialises the block management system
 void *blockManagementInit() 
 {
-	_block_mgr_buffer = malloc(127+MAX_DATA_BUFFERS*(sizeof(signed char)+sizeof(long long)));
-	_block_mgr_lock_table = (signed char*) ((((unsigned int)_block_mgr_buffer)+127)&~127);
+	_block_mgr_buffer = malloc(127 +
+				   MAX_DATA_BUFFERS * ( sizeof(signed char)+sizeof(unsigned long long) ) +
+				   MAX_RENDERABLES * sizeof(Renderable) +
+				   sizeof(unsigned long long) );
+	void* _aligned = (void*) ((((unsigned int)_block_mgr_buffer)+127)&~127);
+
+	_block_mgr_lock_table = (signed char*) (_aligned + 0);
 	_block_mgr_ea_table = (unsigned long long*) (_block_mgr_lock_table+MAX_DATA_BUFFERS);
+	_block_mgr_renderables_table = (Renderable*) (_block_mgr_ea_table+MAX_DATA_BUFFERS);
+	_block_mgr_render_tasks = (unsigned long long*) (_block_mgr_renderables_table+MAX_RENDERABLES);
+
+	void* _end = (void*) (_block_mgr_render_tasks+1);
+
+	// printf("Render tasks at %x, end buffer at %x\n", _block_mgr_render_tasks, _end);
 
 	memset(_block_mgr_lock_table, -1, MAX_DATA_BUFFERS);
 	memset(_block_mgr_ea_table, 0, MAX_DATA_BUFFERS*sizeof(long long));
+	memset(_block_mgr_renderables_table, 0, MAX_RENDERABLES*sizeof(Renderable));
+/*
+	RenderableCacheLine* cacheLine = (RenderableCacheLine*) _aligned;
+	memset(cacheLine, 0, 128);
+	cacheLine->chunkTriangleArray[0] = 0;
+	cacheLine->chunkStartArray[0] = 0;
+	cacheLine->chunkLengthArray[0] = 4096;
+	cacheLine->next = 0ULL;
+	cacheLine->chunksWaiting = 0x8000;
+	cacheLine->chunksFree = 0x7fff;
+	cacheLine->endTriangle = 5;
+	*_block_mgr_render_tasks = (unsigned long long) ( (unsigned long)cacheLine );
+*/
+	*_block_mgr_render_tasks = 0ULL;
+
 	blockManagementDebug();
 
 	return _block_mgr_lock_table;

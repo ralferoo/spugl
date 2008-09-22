@@ -28,6 +28,12 @@ void spuglDisconnect(int server);
 // waits until command queue has finished processing
 void spuglFlush(SPUGL_QUEUE buffer);
 
+// waits until frame flyback
+void spuglWait(SPUGL_QUEUE buffer);
+
+// flips the screen
+unsigned int spuglFlip(SPUGL_QUEUE buffer);
+
 // allocates/frees an OpenGL FIFO
 SPUGL_QUEUE spuglAllocateCommandQueue(int server, unsigned int size);
 void spuglFreeCommandQueue(SPUGL_QUEUE buffer);
@@ -44,5 +50,14 @@ SPUGL_QUEUE spuglSetCurrentContext(SPUGL_QUEUE newContext);
 
 // gets the current screen width and height
 void spuglScreenSize(int server, unsigned int* width, unsigned int* height);
+
+///////////////////////////////////
+//
+// defined in glfifo.c
+
+void spuglDrawContext(unsigned int target);
+void spuglJump(unsigned int target);
+void spuglNop(void);
+unsigned int spuglTarget();
 
 #endif // __SPUGL_CLIENT_H

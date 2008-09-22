@@ -30,6 +30,7 @@
 
 #include "../client/daemon.h"
 #include "framebuffer.h"
+#include "ppufuncs.h"
 
 #define PS3FB_IOCTL_SETMODE          _IOW('r',  1, int)
 #define PS3FB_IOCTL_GETMODE          _IOR('r',  2, int)
@@ -40,16 +41,14 @@ static struct __SPUGL_framebuffer screen = {
 struct __SPUGL_framebuffer* __SPUGL_SCREEN = NULL;
 
 static void switchMode(int gfxMode) {
-	int fd = open("/dev/console", O_NONBLOCK);
-	if (fd >= 0) {
+	if (screen.console_fd >= 0) {
 		if (gfxMode && screen.hasUnblankedScreen == 0) {
-			ioctl(fd, KDSETMODE, KD_GRAPHICS);
-			ioctl(fd, KDSETMODE, KD_TEXT);
+			ioctl(screen.console_fd, KDSETMODE, KD_GRAPHICS);
+			ioctl(screen.console_fd, KDSETMODE, KD_TEXT);
 			screen.hasUnblankedScreen = 1;
 		}
-		ioctl(fd, KDSETMODE, gfxMode ? KD_GRAPHICS : KD_TEXT);
+		ioctl(screen.console_fd, KDSETMODE, gfxMode ? KD_GRAPHICS : KD_TEXT);
 		ioctl(screen.fd, PS3FB_IOCTL_ON, 0);
-		close(fd);
 	} else {
 		printf("Warning: Cannot open /dev/console, so cannot change console mode.\n");
 	}
@@ -63,6 +62,8 @@ int Screen_open(void)
 	screen.fd = open("/dev/fb0", O_RDWR);
 	if (screen.fd < 0)
 		return 0;
+
+	screen.console_fd = open("/dev/console", O_NONBLOCK);
 
 	int vid = 0;
 
@@ -78,23 +79,33 @@ int Screen_open(void)
 		return 0;
 	}
 
-	screen.width	= res.xres - 2*res.xoff;
-	screen.height	= res.yres - 2*res.yoff;
-	screen.stride	= res.xres * 4;
-	screen.frame[0]	= (res.yoff * res.yres + res.xoff) * 4;
-	screen.frame[1] = screen.frame[0] + res.yoff * res.xoff * 4;
-	screen.mmap_size= res.num_frames * res.yres * res.xres * 4;
-	screen.mmap_base= mmap(0, screen.mmap_size, PROT_WRITE, MAP_SHARED, screen.fd, 0);
+	printf("Screen - %dx%d, border %dx%d\n", res.xres, res.yres, res.xoff, res.yoff);
+
+	screen.width		= res.xres - 2*res.xoff;
+	screen.height		= res.yres - 2*res.yoff;
+	screen.stride		= res.xres * 4;
+	screen.visible_frame	= (res.yoff * res.xres + res.xoff) * 4;
+	screen.draw_frame	= screen.visible_frame + res.yres * res.xres * 4;
+	screen.mmap_size	= res.num_frames * res.yres * res.xres * 4;
+	screen.mmap_base	= mmap(0, screen.mmap_size, PROT_WRITE, MAP_SHARED, screen.fd, 0);
+	screen.visible		= 0;
+	screen.draw_address	= screen.mmap_base + screen.draw_frame;
+
+	screen.renderable_id[1]	= blockManagementCreateRenderable(screen.mmap_base + screen.visible_frame,	screen.width, screen.height, screen.stride);
+	screen.renderable_id[0]	= blockManagementCreateRenderable(screen.mmap_base + screen.draw_frame,	screen.width, screen.height, screen.stride);
 
 	if (screen.mmap_base == NULL) {
 		close(screen.fd);
 		screen.fd = -1;
 		return 0;
 	}
-	memset(screen.mmap_base, 0, screen.mmap_size);
 
 	screen.hasUnblankedScreen = 0;
 	switchMode(1);
+	memset(screen.mmap_base, 0x80, screen.mmap_size);
+
+	//for (int q=0; q<screen.mmap_size; q++)
+	//	* ((char*)(screen.mmap_base+q)) = q * 0x10503;
 
 	if (ioctl(screen.fd, PS3FB_IOCTL_ON, 0) < 0) {
 		close(screen.fd);
@@ -110,6 +121,8 @@ int Screen_open(void)
 }
 
 void Screen_close(void) {
+	switchMode(0);
+
 	if (screen.fd >= 0) {
 		if (screen.mmap_base != NULL) {
 			ioctl(screen.fd, PS3FB_IOCTL_OFF, 0);
@@ -118,20 +131,29 @@ void Screen_close(void) {
 		close(screen.fd);
 		screen.fd = -1;
 	}
+	if (screen.console_fd >= 0) {
+		close(screen.console_fd);
+		screen.console_fd = -1;
+	}
 
-	switchMode(0);
 	__SPUGL_SCREEN = NULL;
 }
 
-int Screen_flip(int frame)
+unsigned int Screen_swap(void)
 {
 	if (screen.fd < 0)
 		return -1;
 
-	uint32_t showFrame = frame ? 0 : 1;
+	uint32_t showFrame = screen.visible ? 0 : 1;
+	screen.visible = showFrame;
 	ioctl(screen.fd, PS3FB_IOCTL_FSEL, (unsigned long)&showFrame);
 
-	return showFrame;
+	unsigned int f = screen.draw_frame;
+	screen.draw_frame = screen.visible_frame;
+	screen.visible_frame = f;
+	screen.draw_address = screen.mmap_base + screen.draw_frame;
+
+	return screen.renderable_id[showFrame];
 }
 
 void Screen_wait(void)

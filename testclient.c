@@ -17,7 +17,7 @@
 #include "client/fifodefs.h"
 
 #include "GL/gl.h"
-#include "GL/spugl.h"
+//#include "GL/spugl.h"
 
 int main(int argc, char* argv[]) {
 	int server = spuglConnect();
@@ -36,17 +36,25 @@ int main(int argc, char* argv[]) {
 	void* buffer = spuglAllocateBuffer(server, 204*1024*1024);
 	if (buffer==NULL) { printf("Out of memory\n"); exit(1); }
 
+	unsigned int context = spuglFlip(queue);
+
 	spuglSetCurrentContext(queue);
 	unsigned int start = spuglTarget();
 
 	glLoadIdentity();
 	spuglNop();
+	spuglDrawContext(context);
 
 	spuglJump(start);
 
-	spuglFlush(queue);
+	for (int i=0; i<120; i++) {
+		spuglDrawContext(context);
+		spuglFlush(queue);
+		spuglWait(queue);
+		context = spuglFlip(queue);
+	}
 
-	sleep(1);
+	//sleep(1);
 
 	spuglFreeBuffer(buffer);
 	spuglFreeCommandQueue(queue);

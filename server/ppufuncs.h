@@ -48,6 +48,13 @@ void		blockManagementBlockCountDispose(unsigned int id);
 // checks to see if a particular block ID can now be freed
 int		blockManagementTryFree(unsigned int id);
 
+// management for renderables
+Renderable* blockManagementGetRenderable(int id);
+int blockManagementCreateRenderable(void* buffer, int width, int height, int stride);
+
+// render tasks pointer; this holds the address of the first render task
+unsigned long long* blockManagementGetRenderTasksPointer(void);
+
 //////////////////////////////////////////////////////////////////////////////
 
 SPU_HANDLE _init_spu_thread(void* list, int master);

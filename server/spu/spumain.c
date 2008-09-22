@@ -28,6 +28,10 @@
 unsigned int eah_buffer_tables;
 unsigned int eal_buffer_lock_table;
 unsigned int eal_buffer_memory_table;
+unsigned int eal_renderables_table;
+unsigned int eal_render_tasks;
+
+unsigned int _SPUID;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -223,9 +227,15 @@ retry_unlock:
 }
 
 int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned long long env) {
+	_SPUID = (unsigned int) env;
+
 	eah_buffer_tables = (unsigned int)(program_data_ea >> 32);
 	eal_buffer_lock_table = (unsigned int)(program_data_ea & ~127);
 	eal_buffer_memory_table = eal_buffer_lock_table + MAX_DATA_BUFFERS;
+	eal_renderables_table = eal_buffer_memory_table + MAX_DATA_BUFFERS * sizeof(unsigned long long);
+	eal_render_tasks = eal_renderables_table + MAX_RENDERABLES * sizeof(Renderable);
+
+	printf("[%d] Main SPU thread started, render tasks at %x:%08x...\n", _SPUID, eah_buffer_tables, eal_render_tasks);
 
 	int i = 0;
 	for(;;) {

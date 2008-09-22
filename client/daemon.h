@@ -58,6 +58,8 @@ struct __SPUGL_request {
 #define SPUGLR_FREE_BUFFER		7
 #define SPUGLR_FLUSH			8
 #define SPUGLR_SCREEN_SIZE		9
+#define SPUGLR_SYNC			10
+#define SPUGLR_FLIP			11
 
 struct __SPUGL_reply {
 	union {
@@ -70,6 +72,9 @@ struct __SPUGL_reply {
 		struct {
 			unsigned int width, height;
 		} screensize;
+		struct {
+			unsigned int context;
+		} flip;
 		//struct {
 		//	unsigned char size[16];
 		//} pad;

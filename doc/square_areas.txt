@@ -1,0 +1,83 @@
+pixels		hex sizes	hex tiles
+
+720x480		2d0 1e0		16.8	f
+720x576		2d0 240		16.8	12
+1280x720	500 2d0		28	12
+1920x1080	780 438		3c	21.c
+
+worst case, 60x34 tiles = 2040 tiles
+
+128 byte cache line on atomic lock -> 1024 bits = 32*32
+
+Using 32 bytes -> 256 bits = 16*16, 4 render contexts
+
+Tile size 32x32 = 4k for colour data, 2/4k for Z-buffer = 8k per tile
+
+2x2 tiles = 32k of render buffer
+
+Also, 16 tiles of texture cache = 64k + extra, maybe could up this to 32
+
+if considering 4x4 tiles in one go, we have 128 bytes needed for full screen
+
+128 bytes * 128 = 16k
+
+
+Ideas for 128 byte cache line
+-----------------------------
+
+area_claimed		int * MAX_SPUS	what area each SPU is processing
+last_triangle_produced	byte		the ID of the last triangle drawn
+last_triangle_drawn	byte * MAX_AREA	the ID of the last tri drawn per area
+
+-------------------------------------
+
+spu_texture_cache	short * MAX_SPUS * MAX_CACHE
+
+-------------------------------------
+
+number_of_tiles		short			number of tiles
+tile_low		short * MAX_SPUS
+tile_high		short * MAX_SPUS	tiles currently being processed
+last_written_triangle	short			last triangle generated
+last_drawn_triangle	short			last triangle drawn entirely
+
+-------------------------------------
+
+valid_chunks		bit * MAX_CHUNKS	1 if renderer wants us to use
+in_progress		bit * MAX_CHUNKS	1 if actually being processed
+last_triangle_processed	short * MAX_CHUNKS	last triangle drawn in big tile
+
+chunk definition:
+screen pointer, target, tile offset
+
+triangle definition:
+target, data
+
+
+mah!
+
++---------------+---------------+---------------+---------------+---------------
+| *****   ***** | *****   ***** | *****   ***** | *****   ***** | *****   *****
+| *   *   *   * | *   *   *   * | *   *   *   * | *   *   *   * | *   *   *   *
+| *   *   *   * | *   *   *   * | *   *   *   * | *   *   *   * | *   *   *   *
+| *   * > *   * | *   * > *   * | *   * > *   * | *   * > *   * | *   * > *   *
++-^-----------V-+-^-----------V---^-----------V-+-^-----------V-+-^-----------V-
+| *****   ***** | *****   ***** | *****   ***** | *****   ***** | *****   *****
+|     *   *     |     *   *     |     *   *     |     *   *     |     *   *
+|     *   *     |     *   *     |     *   *     |     *   *     |     *   *
+| *****   ***** > *****   ***** > *****   ***** > *****   ***** > *****   *****
++---------------+---------------+---------------+---------------+---------------
+
+
+
+Triangle state
+--------------
+
+Context data (texture, destination, etc...)
+Starting parameters
+
+Triangle tile
+-------------
+
+Triangle state
+

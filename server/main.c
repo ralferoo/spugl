@@ -17,6 +17,7 @@
 #define __USE_GNU
 #include <poll.h>
 #include <fcntl.h>
+#include <time.h>
 
 #include <sys/mount.h>
 #include <sys/types.h>
@@ -30,6 +31,8 @@
 #include "connection.h"
 #include "ppufuncs.h"
 #include "framebuffer.h"
+
+#define NUMBER_OF_RENDER_SPU_THREADS 5
 
 #ifndef MNT_DETACH
 // not defined on my system for some reason :(
@@ -73,6 +76,8 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
+	srand(time(NULL));
+	void* blockManagementData = blockManagementInit();
 	if (!Screen_open()) {
 		syslog(LOG_ERR, "cannot open screen");
 		exit(1);
@@ -97,7 +102,11 @@ int main(int argc, char* argv[]) {
 	sigaction(SIGCHLD, &sa, NULL);
 	sigaction(SIGPIPE, &sa, NULL);
 
-	SPU_HANDLE thread = _init_spu_thread(blockManagementInit(), 1);
+	SPU_HANDLE thread = _init_spu_thread(blockManagementData, 1);
+
+	SPU_HANDLE renderThread[NUMBER_OF_RENDER_SPU_THREADS];
+	for (int i=0; i<NUMBER_OF_RENDER_SPU_THREADS; i++)
+		renderThread[i] = _init_spu_thread(blockManagementGetRenderTasksPointer(), 0);
 
 	syslog(LOG_INFO, "accepting connections");
 
@@ -176,6 +185,7 @@ disconnected:				handleDisconnect(connection);
 		// process other events
 		Connection* conn = list.first;
 		while (conn) {
+			// printf("process %08x\n", conn);
 			processOutstandingRequests(conn);
 			conn = conn->nextConnection;
 		}
@@ -206,7 +216,11 @@ disconnected:				handleDisconnect(connection);
 	sigaction(SIGHUP, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
 
+	printf("Killing SPU threads...\n");
 	_exit_spu_thread(thread);
+
+	for (int i=0; i<NUMBER_OF_RENDER_SPU_THREADS; i++)
+		_exit_spu_thread( renderThread[i] );
 
 	umount2(mountname, MNT_FORCE | MNT_DETACH);
 	rmdir(mountname);

@@ -269,7 +269,7 @@ BitmapImage _getScreen(char* dumpName)
 		_screen.image.width = _screen.res.xres - _screen.res.xoff*2;
 		_screen.image.height = _screen.res.yres - _screen.res.yoff*2;
 		_screen.image.bytes_per_line = _screen.res.xres * 4;
-		_screen.image.address = _MAKE_EA(_screen.current)
+		_screen.image.address = _MAKE_EA(_screen.current) +
 		    4*(_screen.res.xres * _screen.res.xoff + _screen.res.yoff);
 
 		printf("screen size is %dx%d pixels\n", _screen.image.width, _screen.image.height);
@@ -286,7 +286,7 @@ BitmapImage _getScreen(char* dumpName)
 BitmapImage _flipScreen(void)
 {
 	Screen_flip(&_screen);
-	_screen.image.address = _MAKE_EA(_screen.current)
+	_screen.image.address = _MAKE_EA(_screen.current) +
 	    4*(_screen.res.xres * _screen.res.xoff + _screen.res.yoff);
 	return &(_screen.image);
 }

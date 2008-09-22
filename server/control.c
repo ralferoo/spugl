@@ -28,6 +28,9 @@
 extern spe_program_handle_t spu_main_handle;
 spe_program_handle_t* spu_main_program = &spu_main_handle;
 
+extern spe_program_handle_t render_main_handle;
+spe_program_handle_t* render_main_program = &render_main_handle;
+
 struct __SPU_HANDLE {
 #ifdef USE_LIBSPE2
 	pthread_t thread;
@@ -38,6 +41,7 @@ struct __SPU_HANDLE {
 #endif
 	void* local_store;
 	void* list;
+	int id;
 };
 
 #ifdef USE_LIBSPE2
@@ -61,13 +65,13 @@ int my_callback(void *ls_base_tmp, unsigned int data) {
 	return 0;
 }
 
-void *spu_main_program_thread(SPU_HANDLE context)
+void *main_program_thread(SPU_HANDLE context)
 {
 	int retval;
 	unsigned int entry_point = SPE_DEFAULT_ENTRY;
 	do {
 //		printf("restarting at %x\n", entry_point);
-		retval = spe_context_run(context->spe_ctx, &entry_point, 0, context->list, NULL, NULL);
+		retval = spe_context_run(context->spe_ctx, &entry_point, 0, context->list, (void*)(context->id), NULL);
 //		printf("exited at %x\n", entry_point);
 	} while (retval > 0);
 //	printf("retval = %d\n", retval);
@@ -82,6 +86,9 @@ SPU_HANDLE _init_spu_thread(void* list, int master)
 	if (context == NULL)
 		return NULL;
 
+	static int id = 0;
+	context->id = id++;
+
 	//context->master = master;
 	context->list = list;
 
@@ -89,12 +96,13 @@ SPU_HANDLE _init_spu_thread(void* list, int master)
 
 #ifdef USE_LIBSPE2
 	context->spe_ctx = spe_context_create(SPE_EVENTS_ENABLE|SPE_MAP_PS, NULL);
-	spe_program_load(context->spe_ctx, spu_main_program);
+	spe_program_load(context->spe_ctx, master ? spu_main_program : render_main_program);
 
-	int retval = pthread_create(&context->thread, NULL, (void*)&spu_main_program_thread, context);
+	int retval = pthread_create(&context->thread, NULL, (void*)&main_program_thread, context);
 	if (retval) {
 #else
-	context->spe_id = spe_create_thread(0, spu_main_program, context->list, NULL, -1, 0);
+	context->spe_id = spe_create_thread(0, master ? spu_main_program : render_main_program,
+							context->list, context->id, -1, 0);
 	if (context->spe_id==0) {
 #endif
 		free(context);
