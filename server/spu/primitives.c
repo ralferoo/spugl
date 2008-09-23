@@ -15,8 +15,18 @@
 #include "../connection.h"
 #include "../renderspu/render.h"
 
+#define DEBUG_VEC4(x) __debug_vec4(#x, (vec_uint4) x)
 #define DEBUG_VEC8(x) __debug_vec8(#x, (vec_ushort8) x)
 #define DEBUG_VECf(x) __debug_vecf(#x, (vec_float4) x)
+
+void __debug_vec4(char* s, vec_uint4 x)
+{
+	printf("%-20s %08x   %08x   %08x   %08x\n", s,
+		spu_extract(x, 0),
+		spu_extract(x, 1),
+		spu_extract(x, 2),
+		spu_extract(x, 3) );
+}
 
 void __debug_vec8(char* s, vec_ushort8 x)
 {
@@ -69,6 +79,15 @@ static const vec_uchar16 shuffle_tri_cw = {
 static const vec_uchar16 shuffle_tri_ccw = {
 	SEL_A2 SEL_A0 SEL_A1 SEL_00
 };
+static const vec_uchar16 shuffle_1st_word_pad = {
+	SEL_A0 SEL_00 SEL_00 SEL_00
+};
+static const vec_uchar16 shuffle_2nd_word_pad = {
+	SEL_A1 SEL_00 SEL_00 SEL_00
+};
+static const vec_uchar16 shuffle_3rd_word_pad = {
+	SEL_A2 SEL_00 SEL_00 SEL_00
+};
 
 static const vec_uchar16 minimax_x = {
 0xff,0xff, 0x00,0x08, 0x08,0x04, 0x00,0x04, 0x04,0x00, 0x04,0x08, 0x08,0x00, 0xff,0xff,
@@ -105,122 +124,68 @@ extern void* linearTextureMapFill(void* self, Block* block, ActiveBlock* active,
 extern void* fastTextureMapFill(void* self, Block* block, ActiveBlock* active, int tag);
 extern void* lessMulsLinearTextureMapFill(void* self, Block* block, ActiveBlock* active, int tag);
 
-int dummyProducer(Triangle* tri, Block* block)
-{
-	static int id = 0;
-	static int a = 3;
-	if (tri->left<0) {
-		tri->left = //(a%47)+1;
-		a+=19;
-		printf("new dummy producer, initialising left to %d\n", tri->left);
-	}
-	if (tri->left>0) {
-		tri->left--;
-		tri->count++;
-		printf("dummy producer t:%x b:%x c:%d id:%d\n", tri, block, tri->count, id);
-		block->process = tri->init_block;
-		block->triangle = tri;
-		block->bx = id++;
-		return 1;
-	} else {
-		tri->count--;
-		printf("dummy finished producer t:%x b:%x c:%d\n", tri, block, tri->count);
-		return 0;
-	}
-}
-
-
 //////////////////////////////////////////////////////////////////////////////
 
-int triangleProducer(Triangle* tri, Block* block)
-{
-	vec_int4 area = tri->area;
-	vec_int4 a_dx = tri->area_dx;
-	vec_int4 a_dy = tri->area_dy;
-
-	vec_float4 A = tri->A;
-	vec_float4 A_dx32 = tri->A_dx32;
-	vec_float4 A_dy32 = tri->A_dy32;
-	vec_float4 blockA_dy = tri->blockA_dy;
-	int bx = tri->cur_x, by = tri->cur_y, block_left=tri->block_left;
-	vec_int4 step = spu_splats((int)tri->step);
-	vec_int4 step_start = spu_splats((int)tri->step_start);
-
-	block->process = tri->init_block;
-	block->bx = bx;
-	block->by = by;
-	block->triangle = tri;
-	block->A=A;
-	block->left=32*8;
-	tri->count++;
-
-	vec_uint4 step_eq0 = spu_cmpeq(step,spu_splats(0));
-	vec_float4 A_d32 = spu_sel(A_dx32,A_dy32,step_eq0);
-	A += A_d32;
-
-	bx = if_then_else(spu_extract(step_eq0,0), block_left, bx+1);
-	by = if_then_else(spu_extract(step_eq0,0), by+1, by);
-	vec_int4 t_step = spu_add(step, spu_splats(-1));
-	step = spu_sel(t_step, step_start, step_eq0);
-
-	unsigned int left = tri->left;
-	left--;
-
-	tri->cur_x = bx;
-	tri->cur_y = by;
-	tri->step = spu_extract(step,0);
-	tri->left = left;
-	tri->A = A;
-
-	if (left==0) {
-		tri->count--;
-		tri->produce = 0;
-	}
-
-	control.blocks_produced_count++;
-
-	return bx | (by<<8);
-}
 */
 
 #define FIXED_PREC 2
 
 Triangle* imp_triangle(Triangle* triangle, Context* context)
 {
-	// starting to rework using ints, mostly to avoid tearing issues (but also quicker)
+	// rework: the new hope... :)
+	//
+	// note, this is done assuming input coordinates +-4095 in both x and y axes
+	// and for the total_dx, total_dy to be based on 2048 subdivisions
 
-	vec_int4 i_x = spu_convts(TRIx, FIXED_PREC);
-	vec_int4 i_y = spu_convts(TRIy, FIXED_PREC);
+	// it might seem odd doing the convts and then a shift right, but the reason is
+	// to get the "free" clamping done by convts. format: S_1_12.2_16 (i.e. sign,
+	// 1 "spare" bit, 12 before point, 2 after point, 16 junk
+	vec_int4 x = spu_rlmaska(spu_convts(TRIx, 31-12), -1);
+	vec_int4 y = spu_rlmaska(spu_convts(TRIy, 31-12), -1);
 
-	vec_int4 i_x_cw = spu_shuffle(i_x, i_x, shuffle_tri_cw);
-	vec_int4 i_y_cw = spu_shuffle(i_y, i_y, shuffle_tri_cw);
+	// calculate the gradients, format: S_13.2_16
+	vec_int4 dy = spu_sub(	spu_shuffle(x,x, shuffle_tri_cw),
+				spu_shuffle(x,x, shuffle_tri_ccw) ); // x: cw-ccw
 
-	vec_int4 i_x_ccw = spu_shuffle(i_x, i_x, shuffle_tri_ccw);
-	vec_int4 i_y_ccw = spu_shuffle(i_y, i_y, shuffle_tri_ccw);
+	vec_int4 dx = spu_sub(	spu_shuffle(y,y, shuffle_tri_ccw),
+				spu_shuffle(y,y, shuffle_tri_cw) ); // y: ccw-cw
 
-	// i_face_sum = x0(y2-y1)+x1(y0-y2)+y2(y1-y0)
-	vec_int4 i_face_mul = spu_mulo((vec_short8)i_x, (vec_short8)spu_sub(i_y_ccw, i_y_cw));
-	int i_face_sum = spu_extract(i_face_mul, 0) +
-			 spu_extract(i_face_mul, 1) +
-			 spu_extract(i_face_mul, 2);
-	vec_int4 i_base_area = spu_insert(i_face_sum, spu_splats(0), 0);
-	vec_uint4 i_fcgt_area = spu_cmpgt(spu_splats(0), i_base_area);
+	// calculate the total area of the triangle, format: 3 * S_2_25.4 -> S_27.4
+	vec_int4 total_v = spu_mule( (vec_short8)x, (vec_short8)dx );
+	vec_int4 total = spu_add( spu_add(
+					spu_shuffle(total_v,total_v,shuffle_1st_word_pad),
+					spu_shuffle(total_v,total_v,shuffle_2nd_word_pad)),
+					spu_shuffle(total_v,total_v,shuffle_3rd_word_pad));
 
-	vec_int4 i_area_dx = spu_sub(i_y_ccw, i_y_cw); // cy -> by
-	vec_int4 i_area_dy = spu_sub(i_x_cw, i_x_ccw); // bx -> cx
+	// calculate initial offset, format: 2 * S_2_25.4 -> S_1_26.4
+	vec_int4 offset = spu_add(
+				spu_mule((vec_short8)spu_splats(spu_extract(x,0)), (vec_short8)dx),
+				spu_mule((vec_short8)spu_splats(spu_extract(y,0)), (vec_short8)dy));
 
-	vec_int4 i_area_ofs = spu_add(
-		spu_mulo((vec_short8)spu_splats(spu_extract(i_x,0)),(vec_short8)i_area_dx),
-		spu_mulo((vec_short8)spu_splats(spu_extract(i_y,0)),(vec_short8)i_area_dy));
+	// calculate base, format: 5 * S_2_25.4 -> S_28.4 (ERROR!)
+	// TODO: There is a potential overflow here, should really (optionally check for it and )
+	// TODO: shift total, offset, dx and dy by 1 to handle this case
+	vec_int4 triA = spu_sub(total, offset);
 
-	vec_uchar16 shuf_i_x = spu_slqwbyte(minimax_x, (unsigned int)
-					spu_extract(spu_gather(spu_cmpgt(i_x, i_x_cw)), 0)&~1);
+	// calculate deltas, format: S_3_24.4
+	vec_int4 triAdx = spu_rlmaska(dx, -16+2+11); // -16 remove crap, +2=match precision
+	vec_int4 triAdy = spu_rlmaska(dy, -16+2+11); // +11=2048 subdiv
 
-	vec_uchar16 shuf_i_y = spu_slqwbyte(minimax_y, (unsigned int)
-					spu_extract(spu_gather(spu_cmpgt(i_y, i_y_cw)), 0)&~1);
+	// calculate whether we do in fact have a visible triangle
+	vec_uint4 valid = (vec_uint4) spu_rlmaska(total, -31);
+	if (!spu_extract(valid,0))
+		return triangle;
 
-	vec_int4 minmax_i = spu_shuffle(i_x, i_y, spu_or(minimax_add,
-					spu_shuffle(shuf_i_x, shuf_i_y, minimax_merge)));
+/*
+	DEBUG_VEC4(total);
+	DEBUG_VEC4(triA);
+	DEBUG_VEC4(triAdx);
+	DEBUG_VEC4(triAdy);
+*/
+
+	triangle->area = triA;
+	triangle->area_dx = triAdx;
+	triangle->area_dy = triAdy;
 
 //////
 //
@@ -280,11 +245,30 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 	DEBUG_VEC8( i_area_dy );
 	DEBUG_VEC8( i_area_ofs );
 
-	DEBUG_VECf( area_dx );
-	DEBUG_VECf( area_dy );
 	DEBUG_VECf( area_ofs );
 	DEBUG_VECf( base_area );
+*/
+	DEBUG_VEC8( fcgt_area );
 	DEBUG_VECf( start_A );
+	DEBUG_VECf( area_dx );
+	DEBUG_VECf( area_dy );
+
+/*
+	vec_float4 cv_total = spu_convtf(total, 4);
+	vec_float4 cv_total_v = spu_convtf(total_v, 4);
+	vec_float4 cv_offset = spu_convtf(offset, 4);
+	DEBUG_VECf( cv_total_v );
+	DEBUG_VECf( cv_total );
+	DEBUG_VECf( cv_offset );
+*/
+	vec_float4 cv_A = spu_convtf(triA, 4);
+	vec_float4 cv_Adx = spu_convtf(triAdx, 15);
+	vec_float4 cv_Ady = spu_convtf(triAdy, 15);
+	DEBUG_VECf( cv_A );
+	DEBUG_VECf( cv_Adx );
+	DEBUG_VECf( cv_Ady );
+
+/*
 */
 
 	triangle->x = TRIx;
@@ -302,8 +286,11 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 	triangle->u = TRIu;
 	triangle->v = TRIv;
 
-	triangle->A_dx = area_dx;
-	triangle->A_dy = area_dy;
+	return triangle+1;
+
+
+//	triangle->A_dx = area_dx;
+//	triangle->A_dy = area_dy;
 
 
 	vec_float4 v_t_cw = spu_shuffle(TRIt, TRIt, shuffle_tri_cw);
@@ -348,6 +335,7 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 
 //	DEBUG_VEC8( minmax_block_mask );
 
+/*
 	triangle->A = ((
 		      // spu_madd(spu_splats(spu_extract(minmax_block_topleft,0)),area_dx,
 	              // spu_madd(spu_splats(spu_extract(minmax_block_topleft,1)),area_dy,
@@ -360,6 +348,7 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 				            spu_extract(minmax_block_topleft,0));
 	triangle->A_dy32 = spu_nmsub(pixels_wide,area_dx,spu_mul(muls32,area_dy));
 	triangle->A_dx4 = spu_mul(muls4,area_dx);
+*/
 
 /*
 	printf("%8.2f | %8.2f,%8.2f | %8.2f,%8.2f | +%8.2f,%8.2f\n",
@@ -374,32 +363,7 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 
 ///////////////////////////////////////////
 
-	triangle->area = spu_rlmaska(
-			spu_madd((vec_short8)spu_splats(spu_extract(minmax_block_mask,0)),(vec_short8)i_area_dx,
-			spu_madd((vec_short8)spu_splats(spu_extract(minmax_block_mask,1)),(vec_short8)i_area_dy,
-			spu_sub(i_base_area, i_area_ofs))), -FIXED_PREC);
-	triangle->area_dx = i_area_dx;
-	triangle->area_dy = i_area_dy;
-
-///////////////////////////////////////////
-
-/*
-	printf("triangle %x -> %x\n", triangle, triangle + 1);
-	DEBUG_VECf( triangle->A );
-	DEBUG_VECf( triangle->A_dx );
-	DEBUG_VECf( triangle->A_dy );
-*/
-
 	return triangle + 1;
-
-/*
-	printf("triangle using currentTexture %lx, id base %d, shift %x, mask %x, count %d\n",
-		currentTexture, currentTexture->tex_id_base, currentTexture->tex_y_shift,
-		currentTexture->tex_id_mask, currentTexture->users);
-*/
-
-//	triangle->texture = currentTexture;
-//	currentTexture->users++;
 
 // TODO: MUST PUT BACK TEXTURE STUFF
 
@@ -424,7 +388,7 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 // if the triangle is invisible (i.e. area<0) then leave the pointer in the
 // same place so that we re-use the triangle slot on the next triangle.
 
-//	unsigned long triangle_is_visible_mask = spu_extract(fcgt_area, 0);
+	unsigned long triangle_is_visible_mask = spu_extract(fcgt_area, 0);
 //	triangle->count = 1 & triangle_is_visible_mask;
 //	triangle->produce = (void*)( ((unsigned int)&triangleProducer) & triangle_is_visible_mask );
 

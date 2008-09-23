@@ -17,8 +17,18 @@
 #include "../connection.h"
 #include "../spu/spucontext.h"
 
+#define DEBUG_VEC4(x) __debug_vec4(#x, (vec_uint4) x)
 #define DEBUG_VEC8(x) __debug_vec8(#x, (vec_ushort8) x)
 #define DEBUG_VECf(x) __debug_vecf(#x, (vec_float4) x)
+
+void __debug_vec4(char* s, vec_uint4 x)
+{
+	printf("[%d] %-20s %08x   %08x   %08x   %08x\n", _SPUID, s,
+		spu_extract(x, 0),
+		spu_extract(x, 1),
+		spu_extract(x, 2),
+		spu_extract(x, 3) );
+}
 
 void __debug_vec8(char* s, vec_ushort8 x)
 {
@@ -385,9 +395,9 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 	printf("[%d] Read triangle %x, next is %x\n", _SPUID, chunkTriangle, triangle->next_triangle);
 
 
-	DEBUG_VECf( triangle->A );
-	DEBUG_VECf( triangle->A_dx );
-	DEBUG_VECf( triangle->A_dy );
+	DEBUG_VEC4( triangle->area );
+	DEBUG_VEC4( triangle->area_dx );
+	DEBUG_VEC4( triangle->area_dy );
 /*
 	DEBUG_VEC8( triangle->x );
 	DEBUG_VEC8( triangle->y );

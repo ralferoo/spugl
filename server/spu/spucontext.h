@@ -185,14 +185,16 @@ struct __TRIANGLE {
 	unsigned short	next_triangle;	// next pointer
 	unsigned short	pad[7];
 
+	vec_int4	area, area_dx, area_dy;
+
+
+
 	vec_float4	x,y,z,w;	// coords
 	vec_float4	r,g,b,a;	// primary colour
 	vec_float4	s,t,u,v;	// primary texture
 
-	vec_uint4	area, area_dx, area_dy;
-
-	vec_float4	A,A_dx,A_dy;	// weight information
-	vec_float4	A_dx4,A_dx32,A_dy32,blockA_dy;		// block init values
+//	vec_float4	A,A_dx,A_dy;	// weight information
+//	vec_float4	A_dx4,A_dx32,A_dy32,blockA_dy;		// block init values
 
 //	TriangleHandler*	produce;
 //	BlockHandler*	init_block;
