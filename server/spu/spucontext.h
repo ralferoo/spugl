@@ -182,12 +182,16 @@ struct __TEXTURE {
 
 // this holds a triangle, i.e. something that creates blocks to be rendered
 struct __TRIANGLE {
-	unsigned short	next_triangle;	// next pointer
-	unsigned short	pad[7];
-
-	vec_int4	area, area_dx, area_dy;
-
-
+	// overlap next_triangle pointer with last word of area as that's not used for anything
+	union {
+		struct {
+			vec_int4	area, area_dx, area_dy;
+		};
+		struct {
+			unsigned short	pad[7];
+			unsigned short	next_triangle;	// next pointer
+		};
+	};
 
 	vec_float4	x,y,z,w;	// coords
 	vec_float4	r,g,b,a;	// primary colour
@@ -198,10 +202,7 @@ struct __TRIANGLE {
 
 //	TriangleHandler*	produce;
 //	BlockHandler*	init_block;
-	TextureDefinition*	texture;
-
-	vec_uchar16	tex_base_lo;	// together these hold the mipmap base id
-	vec_uchar16	tex_base_hi; 	// texture block ids (to guarantee unique)
+//	TextureDefinition*	texture;
 
 //		 short	left;		// count of blocks left to produce
 //	unsigned short	count;		// count of blocks that still have reference

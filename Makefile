@@ -259,6 +259,8 @@ clean:
 	rm -f textures/*.o
 	rm -f spugld spugld.debug testclient testclient64 spugl-*/*.o spugl.a spugl.a32 spugl.a64
 	rm -f server/*.o client/*.o client/*.o32 client/*.o64
+	rm -f server/spu/*.0 client/spu/*.0
+	rm -f server/renderspu/*.0 client/renderspu/*.0
 	rm -f .depend_*
 
 # gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h

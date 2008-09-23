@@ -61,10 +61,11 @@ int blockManagementCreateRenderable(void* buffer, int width, int height, int str
 			result->locks = 0;
 
 			result->memoryBuffer = malloc(TRIANGLE_BUFFER_SIZE + 128 + 127);
-			result->cacheLine = (void*) ( ((unsigned int)result->memoryBuffer+127)&~127);
-			result->triangleBase = result->cacheLine + 128;
 
-			RenderableCacheLine* cacheLine = (RenderableCacheLine*) result->cacheLine;
+			RenderableCacheLine* cacheLine = (RenderableCacheLine*)
+						( ((unsigned int)result->memoryBuffer+127)&~127);
+			result->cacheLine = (unsigned long long) ( (unsigned long)cacheLine );
+
 			memset(cacheLine, 0, 128);
 			cacheLine->chunkTriangleArray[0] = 0;
 			cacheLine->chunkStartArray[0] = 0;

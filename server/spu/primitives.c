@@ -187,80 +187,7 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 	triangle->area_dx = triAdx;
 	triangle->area_dy = triAdy;
 
-//////
-//
-	vec_float4 t_vx_cw = spu_shuffle(TRIx, TRIx, shuffle_tri_cw);
-	vec_uint4 fcgt_x = spu_cmpgt(TRIx, t_vx_cw);	// all-ones if ax>bx, bx>cx, cx>ax, ???
-	unsigned int fcgt_bits_x = spu_extract(spu_gather(fcgt_x), 0) & ~1;
-	vec_uchar16 shuf_x = spu_slqwbyte(minimax_x, fcgt_bits_x);
-
-	vec_float4 t_vy_cw = spu_shuffle(TRIy, TRIy, shuffle_tri_cw);
-	vec_uint4 fcgt_y = spu_cmpgt(TRIy, t_vy_cw);	// all-ones if ay>by, by>cy, cy>ay, ???
-	unsigned int fcgt_bits_y = spu_extract(spu_gather(fcgt_y), 0) & ~1;
-	vec_uchar16 shuf_y = spu_slqwbyte(minimax_y, fcgt_bits_y);
-
-	vec_uchar16 shuf_minmax_base = spu_shuffle(shuf_x, shuf_y, minimax_merge);
-	vec_uchar16 shuf_minmax = spu_or(shuf_minmax_base, minimax_add);
-	vec_float4 minmax_ = spu_shuffle(TRIx, TRIy, shuf_minmax);
-
-	vec_float4 v_x_cw = spu_shuffle(TRIx, TRIx, shuffle_tri_cw);
-	vec_float4 v_x_ccw = spu_shuffle(TRIx, TRIx, shuffle_tri_ccw);
-
-	vec_float4 v_y_cw = spu_shuffle(TRIy, TRIy, shuffle_tri_cw);
-	vec_float4 v_y_ccw = spu_shuffle(TRIy, TRIy, shuffle_tri_ccw);
-
-	vec_float4 area_dx = spu_sub(v_y_ccw, v_y_cw); // cy -> by
-	vec_float4 area_dy = spu_sub(v_x_cw, v_x_ccw); // bx -> cx
-
-	// vec_float4 v_by_to_cy = spu_sub(v_y_ccw, v_y_cw);
-
-	vec_float4 face_mul = spu_mul(TRIx, area_dx /*v_by_to_cy*/ );
-	float face_sum = spu_extract(face_mul, 0) +
-			 spu_extract(face_mul, 1) +
-			 spu_extract(face_mul, 2);
-
-	vec_float4 cast_zero = (vec_float4) {0.0f, 0.0f, 0.0f, 0.0f};
-	vec_float4 base_area = spu_insert(face_sum, cast_zero, 0);
-	vec_uint4 fcgt_area = spu_cmpgt(cast_zero, base_area);
-
-	vec_float4 area_ofs = spu_madd(spu_splats(spu_extract(TRIx,0)),area_dx,
-			spu_mul(spu_splats(spu_extract(TRIy,0)),area_dy));
-
-	vec_int4   ia_dx = spu_convts(area_dx, 2);
-	vec_int4   ia_dy = spu_convts(area_dy, 2);
-	vec_int4   ia_ofs = spu_convts(area_ofs, 2);
-
-//	printf("TRIx %8.4f area_dx %08.4f TRIy %8.4f area_dy %8.4f\n",
-//			spu_extract(TRIx,0),area_dx,
-//			spu_extract(TRIy,0),area_dy);
-
-	vec_float4 start_A = spu_sub(base_area, area_ofs);
-
 /*
-	DEBUG_VEC8( ia_dx );
-	DEBUG_VEC8( ia_dy );
-	DEBUG_VEC8( ia_ofs );
-
-	DEBUG_VEC8( i_area_dx );
-	DEBUG_VEC8( i_area_dy );
-	DEBUG_VEC8( i_area_ofs );
-
-	DEBUG_VECf( area_ofs );
-	DEBUG_VECf( base_area );
-*/
-	DEBUG_VEC8( fcgt_area );
-	DEBUG_VECf( start_A );
-	DEBUG_VECf( area_dx );
-	DEBUG_VECf( area_dy );
-
-/*
-	vec_float4 cv_total = spu_convtf(total, 4);
-	vec_float4 cv_total_v = spu_convtf(total_v, 4);
-	vec_float4 cv_offset = spu_convtf(offset, 4);
-	DEBUG_VECf( cv_total_v );
-	DEBUG_VECf( cv_total );
-	DEBUG_VECf( cv_offset );
-*/
 	vec_float4 cv_A = spu_convtf(triA, 4);
 	vec_float4 cv_Adx = spu_convtf(triAdx, 15);
 	vec_float4 cv_Ady = spu_convtf(triAdy, 15);
@@ -268,7 +195,6 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 	DEBUG_VECf( cv_Adx );
 	DEBUG_VECf( cv_Ady );
 
-/*
 */
 
 	triangle->x = TRIx;
@@ -287,83 +213,6 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 	triangle->v = TRIv;
 
 	return triangle+1;
-
-
-//	triangle->A_dx = area_dx;
-//	triangle->A_dy = area_dy;
-
-
-	vec_float4 v_t_cw = spu_shuffle(TRIt, TRIt, shuffle_tri_cw);
-	vec_float4 v_t_ccw = spu_shuffle(TRIt, TRIt, shuffle_tri_ccw);
-
-	vec_float4 v_bt_to_ct = spu_sub(v_t_cw, v_t_ccw); // deliberately change sign...
-
-	////////////////////////////////
-	//
-	// clip minmax to screen boundary
-
-	vec_int4 minmax = spu_convts(minmax_,0);
-
-	//vec_int4 mm_gt = { 0, 0, screen.width-32, screen.height-32 };
-	vec_int4 mm_gt = { 0, 0, 640-32, 480-32 };
-
-	vec_uint4 mm_cmp = spu_cmpgt(minmax,mm_gt);
-	vec_uint4 mm_inv = { -1, -1, 0, 0 };
-	vec_uint4 mm_sel = spu_xor(mm_cmp, mm_inv);
-	minmax = spu_sel(minmax, mm_gt, mm_sel);
-
-	vec_int4 minmax_block = spu_rlmaska(minmax,-5);
-	vec_int4 minmax_block_mask = minmax & spu_splats(~31);
-	vec_float4 minmax_block_topleft = spu_convtf(minmax_block_mask,0);
-/*
-	printf("minmax %d %d %d %d\n",
-		spu_extract(minmax,0),
-		spu_extract(minmax,1),
-		spu_extract(minmax,2),
-		spu_extract(minmax,3));
-*/
-	int block_left = spu_extract(minmax_block,0);
-	int block_top = spu_extract(minmax_block,1);
-	int block_right = spu_extract(minmax_block,2);
-	int block_bottom = spu_extract(minmax_block,3);
-
-//	triangle->step = triangle->step_start = block_right - block_left;
-//	triangle->cur_x = block_left;
-//	triangle->cur_y = block_top;
-//	triangle->block_left = block_left;
-//	triangle->left = (block_bottom+1-block_top)*(block_right+1-block_left);
-
-//	DEBUG_VEC8( minmax_block_mask );
-
-/*
-	triangle->A = ((
-		      // spu_madd(spu_splats(spu_extract(minmax_block_topleft,0)),area_dx,
-	              // spu_madd(spu_splats(spu_extract(minmax_block_topleft,1)),area_dy,
-		      spu_sub(base_area, area_ofs)));
-
-	triangle->blockA_dy = spu_madd(mulsn28,area_dx,area_dy);
-	triangle->A_dx32 = spu_mul(muls32,area_dx);
-
-	vec_float4 pixels_wide = spu_splats(spu_extract(minmax_block_topleft,2) -
-				            spu_extract(minmax_block_topleft,0));
-	triangle->A_dy32 = spu_nmsub(pixels_wide,area_dx,spu_mul(muls32,area_dy));
-	triangle->A_dx4 = spu_mul(muls4,area_dx);
-*/
-
-/*
-	printf("%8.2f | %8.2f,%8.2f | %8.2f,%8.2f | +%8.2f,%8.2f\n",
-		spu_extract(base_area,0), spu_extract(area_dx,0), spu_extract(area_dy,0),
-		spu_extract(area_dx,1), spu_extract(area_dy,1),
-		spu_extract(area_dx,2), spu_extract(area_dy,2));
-	printf("%8x | %8x,%8x | %8x,%8x | %8x,%8x\n\n",
-		spu_extract(i_base_area,0), spu_extract(i_area_dx,0), spu_extract(i_area_dy,0),
-		spu_extract(i_area_dx,1), spu_extract(i_area_dy,1),
-		spu_extract(i_area_dx,2), spu_extract(i_area_dy,2));
-*/
-
-///////////////////////////////////////////
-
-	return triangle + 1;
 
 // TODO: MUST PUT BACK TEXTURE STUFF
 
@@ -388,7 +237,7 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 // if the triangle is invisible (i.e. area<0) then leave the pointer in the
 // same place so that we re-use the triangle slot on the next triangle.
 
-	unsigned long triangle_is_visible_mask = spu_extract(fcgt_area, 0);
+//	unsigned long triangle_is_visible_mask = spu_extract(fcgt_area, 0);
 //	triangle->count = 1 & triangle_is_visible_mask;
 //	triangle->produce = (void*)( ((unsigned int)&triangleProducer) & triangle_is_visible_mask );
 
