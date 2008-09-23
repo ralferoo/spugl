@@ -200,33 +200,26 @@ server/render_main.handle.spe: $(RENDER_DRIVER_TARGETS) Makefile
 #
 # New style dependency checking
 
-.depend_ppu: .gen $(PPU_SRCS)
-	@echo Regenerating $@
+.depend_ppu: $(PPU_SRCS)
 	@makedepend -f- -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(PPU_SRCS) -DUSERLAND_$(USERLAND)_BITS >$@
 
-.depend_o32: .gen $(CLIENT_LIB_TARGETS_C)
-	@echo Regenerating $@
+.depend_o32: $(CLIENT_LIB_TARGETS_C)
 	@makedepend -f- -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(CLIENT_LIB_TARGETS_C) -o.o32 -DUSERLAND_$(USERLAND)_BITS >$@
 
-.depend_o64: .gen $(CLIENT_LIB_TARGETS_C)
-	@echo Regenerating $@
+.depend_o64: $(CLIENT_LIB_TARGETS_C)
 	@makedepend -f- -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(CLIENT_LIB_TARGETS_C) -o.o64 -DUSERLAND_$(USERLAND)_BITS >$@
 
-.depend_daemon: .gen $(DAEMON_TARGETS)
-	@echo Regenerating $@
+.depend_daemon: $(DAEMON_TARGETS_C)
 	@makedepend -f- -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(DAEMON_TARGETS_C) >$@
 
-.depend_spu: .gen $(SPU_SRCS)
-	@echo Regenerating $@
+.depend_spu: $(SPU_SRCS)
 	@makedepend -f- -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.0 $(SPU_SRCS) -DSPU_REGS -DUSERLAND_$(USERLAND)_BITS >$@
 	@for i in $(SPU_OBJS) ; do grep $$i:.*spuregs.h $@ >/dev/null || [ ! -f `basename $$i .0`.c ] || ( echo ERROR: $$i does not refer to spuregs.h && false) ; done
 
-.depend_spudriver: .gen $(SPU_SRCS)
-	@echo Regenerating $@
+.depend_spudriver: $(SPU_SRCS)
 	@makedepend -f- -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.0 $(SPU_DRIVER_SOURCES) -DSPU_REGS -DUSERLAND_$(USERLAND)_BITS >$@
 
-.depend_renderdriver: .gen $(RENDER_DRIVER_SRCS)
-	@echo Regenerating $@
+.depend_renderdriver: $(RENDER_DRIVER_SRCS)
 	@makedepend -f- -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.0 $(RENDER_DRIVER_SOURCES) -DSPU_REGS -DUSERLAND_$(USERLAND)_BITS >$@
 
 ###############################################################################
