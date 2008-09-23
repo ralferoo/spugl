@@ -15,9 +15,10 @@
 #include "../connection.h"
 #include "../renderspu/render.h"
 
-#define DEBUG_VEC(x) __debug_vec(#x, (vec_ushort8) x)
+#define DEBUG_VEC8(x) __debug_vec8(#x, (vec_ushort8) x)
+#define DEBUG_VECf(x) __debug_vecf(#x, (vec_float4) x)
 
-void __debug_vec(char* s, vec_ushort8 x)
+void __debug_vec8(char* s, vec_ushort8 x)
 {
 	printf("%-20s %04x %04x %04x %04x %04x %04x %04x %04x\n", s,
 		spu_extract(x, 0),
@@ -28,6 +29,15 @@ void __debug_vec(char* s, vec_ushort8 x)
 		spu_extract(x, 5),
 		spu_extract(x, 6),
 		spu_extract(x, 7) );
+}
+
+void __debug_vecf(char* s, vec_float4 x)
+{
+	printf("%-20s %11.3f %11.3f %11.3f %11.3f\n", s,
+		spu_extract(x, 0),
+		spu_extract(x, 1),
+		spu_extract(x, 2),
+		spu_extract(x, 3) );
 }
 
 
@@ -234,9 +244,12 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 	vec_float4 v_y_cw = spu_shuffle(TRIy, TRIy, shuffle_tri_cw);
 	vec_float4 v_y_ccw = spu_shuffle(TRIy, TRIy, shuffle_tri_ccw);
 
-	vec_float4 v_by_to_cy = spu_sub(v_y_ccw, v_y_cw);
+	vec_float4 area_dx = spu_sub(v_y_ccw, v_y_cw); // cy -> by
+	vec_float4 area_dy = spu_sub(v_x_cw, v_x_ccw); // bx -> cx
 
-	vec_float4 face_mul = spu_mul(TRIx, v_by_to_cy);
+	// vec_float4 v_by_to_cy = spu_sub(v_y_ccw, v_y_cw);
+
+	vec_float4 face_mul = spu_mul(TRIx, area_dx /*v_by_to_cy*/ );
 	float face_sum = spu_extract(face_mul, 0) +
 			 spu_extract(face_mul, 1) +
 			 spu_extract(face_mul, 2);
@@ -245,11 +258,34 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 	vec_float4 base_area = spu_insert(face_sum, cast_zero, 0);
 	vec_uint4 fcgt_area = spu_cmpgt(cast_zero, base_area);
 
-	vec_float4 area_dx = spu_sub(v_y_ccw, v_y_cw); // cy -> by
-	vec_float4 area_dy = spu_sub(v_x_cw, v_x_ccw); // bx -> cx
-
 	vec_float4 area_ofs = spu_madd(spu_splats(spu_extract(TRIx,0)),area_dx,
 			spu_mul(spu_splats(spu_extract(TRIy,0)),area_dy));
+
+	vec_int4   ia_dx = spu_convts(area_dx, 2);
+	vec_int4   ia_dy = spu_convts(area_dy, 2);
+	vec_int4   ia_ofs = spu_convts(area_ofs, 2);
+
+//	printf("TRIx %8.4f area_dx %08.4f TRIy %8.4f area_dy %8.4f\n",
+//			spu_extract(TRIx,0),area_dx,
+//			spu_extract(TRIy,0),area_dy);
+
+	vec_float4 start_A = spu_sub(base_area, area_ofs);
+
+/*
+	DEBUG_VEC8( ia_dx );
+	DEBUG_VEC8( ia_dy );
+	DEBUG_VEC8( ia_ofs );
+
+	DEBUG_VEC8( i_area_dx );
+	DEBUG_VEC8( i_area_dy );
+	DEBUG_VEC8( i_area_ofs );
+
+	DEBUG_VECf( area_dx );
+	DEBUG_VECf( area_dy );
+	DEBUG_VECf( area_ofs );
+	DEBUG_VECf( base_area );
+	DEBUG_VECf( start_A );
+*/
 
 	triangle->x = TRIx;
 	triangle->y = TRIy;
@@ -310,8 +346,11 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 //	triangle->block_left = block_left;
 //	triangle->left = (block_bottom+1-block_top)*(block_right+1-block_left);
 
-	triangle->A = spu_madd(spu_splats(spu_extract(minmax_block_topleft,0)),area_dx,
-	              spu_madd(spu_splats(spu_extract(minmax_block_topleft,1)),area_dy,
+//	DEBUG_VEC8( minmax_block_mask );
+
+	triangle->A = ((
+		      // spu_madd(spu_splats(spu_extract(minmax_block_topleft,0)),area_dx,
+	              // spu_madd(spu_splats(spu_extract(minmax_block_topleft,1)),area_dy,
 		      spu_sub(base_area, area_ofs)));
 
 	triangle->blockA_dy = spu_madd(mulsn28,area_dx,area_dy);
@@ -344,10 +383,12 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 
 ///////////////////////////////////////////
 
+/*
 	printf("triangle %x -> %x\n", triangle, triangle + 1);
-	DEBUG_VEC( triangle->A );
-	DEBUG_VEC( triangle->A_dx );
-	DEBUG_VEC( triangle->A_dy );
+	DEBUG_VECf( triangle->A );
+	DEBUG_VECf( triangle->A_dx );
+	DEBUG_VECf( triangle->A_dy );
+*/
 
 	return triangle + 1;
 
@@ -589,25 +630,25 @@ int imp_vertex(float4 in, Context* context)
 	vec_uint4   v_invalid_bits	= spu_andc( spu_gather( v_invalid ), (vec_uint4) v_free );
 
 /*
-	DEBUG_VEC( v_writeptr );
-	DEBUG_VEC( v_readptr0 );
-	DEBUG_VEC( v_readptr1 );
-	DEBUG_VEC( v_testptr );
-	DEBUG_VEC( v_nextptr );
-	DEBUG_VEC( v_endptr );
-	DEBUG_VEC( v_max0_test );
-	DEBUG_VEC( v_max1_test );
-	DEBUG_VEC( v_extend0_valid );
-	DEBUG_VEC( v_extend1_valid );
-	DEBUG_VEC( v_rewind0_invalid );
-	DEBUG_VEC( v_rewind1_invalid );
-	DEBUG_VEC( v_extend_valid );
-	DEBUG_VEC( v_rewind_invalid );
-	DEBUG_VEC( v_rewind );
-	DEBUG_VEC( v_valid_rhs );
-	DEBUG_VEC( v_invalid );
-	DEBUG_VEC( v_free );
-	DEBUG_VEC( v_invalid_bits );
+	DEBUG_VEC8( v_writeptr );
+	DEBUG_VEC8( v_readptr0 );
+	DEBUG_VEC8( v_readptr1 );
+	DEBUG_VEC8( v_testptr );
+	DEBUG_VEC8( v_nextptr );
+	DEBUG_VEC8( v_endptr );
+	DEBUG_VEC8( v_max0_test );
+	DEBUG_VEC8( v_max1_test );
+	DEBUG_VEC8( v_extend0_valid );
+	DEBUG_VEC8( v_extend1_valid );
+	DEBUG_VEC8( v_rewind0_invalid );
+	DEBUG_VEC8( v_rewind1_invalid );
+	DEBUG_VEC8( v_extend_valid );
+	DEBUG_VEC8( v_rewind_invalid );
+	DEBUG_VEC8( v_rewind );
+	DEBUG_VEC8( v_valid_rhs );
+	DEBUG_VEC8( v_invalid );
+	DEBUG_VEC8( v_free );
+	DEBUG_VEC8( v_invalid_bits );
 
 //	printf("\n");
 */
@@ -636,10 +677,10 @@ int imp_vertex(float4 in, Context* context)
 
 	vec_float4 vin = {in.x, in.y, in.z, in.w }; // this should be parameter format!
 
-	vec_float4 matres = spu_madd(spu_splats(in.x), PROJ_x,
-			    spu_madd(spu_splats(in.y), PROJ_y,
-			    spu_madd(spu_splats(in.z), PROJ_z,
-			    spu_mul (spu_splats(in.w), PROJ_w))));
+	vec_float4 matres = spu_madd(spu_splats(in.x), context->modelview_matrix_x,
+			    spu_madd(spu_splats(in.y), context->modelview_matrix_y,
+			    spu_madd(spu_splats(in.z), context->modelview_matrix_z,
+			    spu_mul (spu_splats(in.w), context->modelview_matrix_w))));
 
 	float recip = 1.0f/spu_extract(matres,3);
 	vec_float4 vrecip = spu_splats(recip);
@@ -659,6 +700,10 @@ int imp_vertex(float4 in, Context* context)
 	printf("old: %8.4f %8.4f %8.4f %8.4f\n\n", s_old.x, s_old.y, s_old.z, s_old.w);
 */
 
+/*
+	printf(" in: %8.4f %8.4f %8.4f %8.4f\n", in.x, in.y, in.z, in.w);
+	printf("out: %8.4f %8.4f %8.4f %8.4f\n", sa.x, sa.y, sa.z, sa.w);
+*/
 	float4 c= current_colour;
 	float4 col = {.x=c.x*recip, .y = c.y*recip, .z = c.z*recip, .w = c.w*recip};
 	float4 t = current_texcoord;

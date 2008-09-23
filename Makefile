@@ -976,4 +976,5 @@ server/renderspu/rendertasks.0: /usr/include/bits/libio-ldbl.h
 server/renderspu/rendertasks.0: /usr/include/bits/stdio_lim.h
 server/renderspu/rendertasks.0: /usr/include/bits/sys_errlist.h
 server/renderspu/rendertasks.0: /usr/include/bits/stdio-ldbl.h
-server/renderspu/rendertasks.0: server/renderspu/render.h
+server/renderspu/rendertasks.0: server/renderspu/render.h server/connection.h
+server/renderspu/rendertasks.0: server/spu/spucontext.h server/spu/spuregs.h

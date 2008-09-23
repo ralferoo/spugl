@@ -17,11 +17,12 @@
 #include "../connection.h"
 #include "../spu/spucontext.h"
 
-#define DEBUG_VEC(x) __debug_vec(#x, (vec_ushort8) x)
+#define DEBUG_VEC8(x) __debug_vec8(#x, (vec_ushort8) x)
+#define DEBUG_VECf(x) __debug_vecf(#x, (vec_float4) x)
 
-void __debug_vec(char* s, vec_ushort8 x)
+void __debug_vec8(char* s, vec_ushort8 x)
 {
-	printf("%-20s %04x %04x %04x %04x %04x %04x %04x %04x\n", s,
+	printf("[%d] %-20s %04x %04x %04x %04x %04x %04x %04x %04x\n", _SPUID, s,
 		spu_extract(x, 0),
 		spu_extract(x, 1),
 		spu_extract(x, 2),
@@ -31,6 +32,19 @@ void __debug_vec(char* s, vec_ushort8 x)
 		spu_extract(x, 6),
 		spu_extract(x, 7) );
 }
+
+void __debug_vecf(char* s, vec_float4 x)
+{
+	printf("[%d] %-20s %11.3f %11.3f %11.3f %11.3f\n", _SPUID, s,
+		spu_extract(x, 0),
+		spu_extract(x, 1),
+		spu_extract(x, 2),
+		spu_extract(x, 3) );
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 void debug_render_tasks(RenderableCacheLine* cache)
 {
@@ -371,13 +385,15 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 	printf("[%d] Read triangle %x, next is %x\n", _SPUID, chunkTriangle, triangle->next_triangle);
 
 
-	DEBUG_VEC( triangle->A );
-	DEBUG_VEC( triangle->A_dx );
-	DEBUG_VEC( triangle->A_dy );
-	DEBUG_VEC( triangle->x );
-	DEBUG_VEC( triangle->y );
-	DEBUG_VEC( triangle->z );
-	DEBUG_VEC( triangle->w );
+	DEBUG_VECf( triangle->A );
+	DEBUG_VECf( triangle->A_dx );
+	DEBUG_VECf( triangle->A_dy );
+/*
+	DEBUG_VEC8( triangle->x );
+	DEBUG_VEC8( triangle->y );
+	DEBUG_VEC8( triangle->z );
+	DEBUG_VEC8( triangle->w );
+*/
 
 /*
 	printf("[%d] Screen address: %llx, id %x, locks %d, size %dx%d, stride 0x%x, format %d\n",
