@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
 		640.0f/420.0f,			360.0/420.0f,			1.0,	1.0/420.f,
 		(640.0f*-282.0f)/420.0f,	(360.f*-282.0f)/420.0f,		0.0,	-282.0f/420.f,
 	};
-	glLoadMatrixf(&projectionMatrix);
+	glLoadMatrixf(projectionMatrix);
 
 
 	for (int i=0; i<1200; i++) {
@@ -88,4 +88,3 @@ int main(int argc, char* argv[]) {
 
 	exit(0);
 }
-
