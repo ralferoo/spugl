@@ -378,7 +378,7 @@ renderMoreTriangles:
 }
 
 void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushort8 i,
-		vec_uint4 b, vec_uint4 n,
+		vec_uint4 base, vec_uint4 baseadd,
 		int type)
 {
 	vec_uint4 Ar = spu_add(A, Adx);
@@ -389,7 +389,7 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushor
 
 	if (!outside) {
 		i = spu_rlmask(i, -1);
-		n = spu_rlmask(n, -2);
+		baseadd = spu_rlmask(baseadd, -2);
 		if (spu_extract(i, 1)) {
 			vec_uint4 hdx = spu_rlmaska(Adx, -1);
 			vec_uint4 hdy = spu_rlmaska(Ady, -1);
@@ -441,16 +441,17 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushor
 			vec_uint4 dyD	 = spu_sel( hdy, Ady_hdy, bit0);
 			vec_uint4 addD	 = spu_and( im, andm );
 
-			vec_uint4 newb  = spu_add(b,n);
+			vec_uint4 newbase  = spu_add(base, spu_rlmaskqwbyte(baseadd, -4));
+			vec_uint4 baseend  = spu_add(base,baseadd);
 
-			subdivide(startA, dxA, dyA, spu_add(y,addA), i, spu_splats(spu_extract(newb,0)), n, type^0xf0);
-			subdivide(startB, dxB, dyB, spu_add(y,addB), i, spu_splats(spu_extract(newb,1)), n, type);
-			subdivide(startC, dxC, dyC, spu_add(y,addC), i, spu_splats(spu_extract(newb,2)), n, type);
-			subdivide(startD, dxD, dyD, spu_add(y,addD), i, spu_splats(spu_extract(newb,3)), n, type^0x0f);
+			subdivide(startA, dxA, dyA, spu_add(y,addA), i, spu_splats(spu_extract(newbase,0)), baseadd, type^0xf0);
+			subdivide(startB, dxB, dyB, spu_add(y,addB), i, spu_splats(spu_extract(newbase,1)), baseadd, type);
+			subdivide(startC, dxC, dyC, spu_add(y,addC), i, spu_splats(spu_extract(newbase,2)), baseadd, type);
+			subdivide(startD, dxD, dyD, spu_add(y,addD), i, spu_splats(spu_extract(newbase,3)), baseadd, type^0x0f);
 
 		} else {
 			printf("block %4x %08x %d,%d\n",
-				spu_extract(b,0),
+				spu_extract(base,0),
 				spu_extract(y, 0),
 				spu_extract(y,0) >> 16,
 				spu_extract(y,0) & 0xffff);
@@ -480,9 +481,9 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 	vec_uint4 Adx = triangle->area_dx;
 	vec_uint4 Ady = triangle->area_dy;
 
-	int w = 256;
+	int w = 64;
 	vec_uint4 Amask = {0, 0, 0, -1};
-	vec_uint4 bdelta = { 0, w*w, 2*w*w, 3*w*w };
+	vec_uint4 bdelta = { w*w, 2*w*w, 3*w*w, 4*w*w };
 	subdivide(spu_or(A,Amask), Adx, Ady, spu_splats(0), spu_splats((unsigned short)w), spu_splats(0), bdelta, 0);
 
 /*
