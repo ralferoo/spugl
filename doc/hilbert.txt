@@ -1,0 +1,14 @@
+			Production rules for Hilbert curve
+			----------------------------------
+
+             A       B       C       D		->	ABCD
+
+type 0:      0       y       x+y     x		->	1003
+type 1:      0       x       x+y     y		->	0112
+type 2:      x+y     x       0       y		->	3221
+type 3:      x+y     y       0       x		->	2330
+
+Productions from type T are (T^1),T,T,(T^3)
+
+A and C rules are decided by bit 1 of T
+B and D rules are deicded by (bit 1 of T) ^ (bit 0 of T)
