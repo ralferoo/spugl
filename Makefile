@@ -24,7 +24,8 @@ LIBSPE2 = -DUSE_LIBSPE2
 USERLAND = 32
 #USERLAND = 64
 
-PPUPREFIX =
+PPUPREFIX = $(shell ppu-gcc -v 2>/dev/null && echo ppu- || echo )
+#PPUPREFIX =
 #PPUPREFIX = ppu-
 
 PPUAR = $(PPUPREFIX)ar
