@@ -24,12 +24,19 @@ LIBSPE2 = -DUSE_LIBSPE2
 USERLAND = 32
 #USERLAND = 64
 
-PPUCC = gcc
+PPUPREFIX = ppu-
+
+PPUAR = $(PPUPREFIX)ar
+PPUEMBEDSPU = $(PPUPREFIX)embedspu
+PPUSTRIP = $(PPUPREFIX)strip
+
+PPUCC = $(PPUPREFIX)gcc
 PPUCCFLAGS = -c -ggdb $(LIBSPE2) -I. -Wno-trigraphs -std=gnu99
 PPUCCFLAGSARCH =-m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS
 
 NEWSPUCC = cellgcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -I/usr/include
-SPUCC = spu-gcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -fpic -I.
+SPUCC = spu-gcc
+SPUCCFLAGSARCH = -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -fpic -I.
 SPUCCFLAGS = -O6 -DSPU_REGS
 
 TEXTURES_C := $(wildcard textures/*.c)
@@ -84,25 +91,25 @@ client64:	testclient64 .FORCE
 
 spugld:	spugld.debug
 	cp $< $@
-	strip $@
+	$(PPUSTRIP) $@
 
 spugld.debug:	$(DAEMON_TARGETS) $(SPU_DRIVER_HNDL) $(RENDER_DRIVER_HNDL)
-	gcc -m$(USERLAND) -o $@ $(DAEMON_TARGETS) $(SPU_DRIVER_HNDL) $(RENDER_DRIVER_HNDL) $(LIBS)
+	$(PPUCC) -m$(USERLAND) -o $@ $(DAEMON_TARGETS) $(SPU_DRIVER_HNDL) $(RENDER_DRIVER_HNDL) $(LIBS)
 
 testclient:	$(CLIENT_TARGETS32)
-	gcc -m32 -o $@ $(CLIENT_TARGETS32)
+	$(PPUCC) -m32 -o $@ $(CLIENT_TARGETS32)
 
 testclient64:	$(CLIENT_TARGETS64)
-	gcc -m64 -o $@ $(CLIENT_TARGETS64)
+	$(PPUCC) -m64 -o $@ $(CLIENT_TARGETS64)
 
 spugl.a32:	$(CLIENT_LIB_TARGETS32)
-	ar -r $@ $(CLIENT_LIB_TARGETS32)
+	$(PPUAR) -r $@ $(CLIENT_LIB_TARGETS32)
 
 spugl.a64:	$(CLIENT_LIB_TARGETS64)
-	ar -r $@ $(CLIENT_LIB_TARGETS64)
+	$(PPUAR) -r $@ $(CLIENT_LIB_TARGETS64)
 
 test:	$(PPU_TEST_OBJS) $(SPU_HNDL)
-	gcc -m$(USERLAND) -o test $(PPU_TEST_OBJS) $(SPU_HNDL) $(LIBDIRS) $(LIBS)
+	$(PPUCC) -m$(USERLAND) -o test $(PPU_TEST_OBJS) $(SPU_HNDL) $(LIBDIRS) $(LIBS)
 
 texmap.sqf:	test
 	strip $<
@@ -117,7 +124,7 @@ client/spuglver.h: .git
 	./version.sh
 
 test.static:	$(PPU_TEST_OBJS) $(SPU_HNDL)
-	gcc -m$(USERLAND) -o test.static $(PPU_TEST_OBJS) $(SPU_HNDL) $(LIBS) -static
+	$(PPUCC) -m$(USERLAND) -o test.static $(PPU_TEST_OBJS) $(SPU_HNDL) $(LIBS) -static
 
 run:	test
 	./test
@@ -185,15 +192,15 @@ gen_spu_command_table.h: .gen
 	@touch .gen
 
 spu_3d.handle.spe: $(SPU_OBJS) Makefile
-	$(SPUCC) $(SPU_OBJS) -o spu_3d.handle.spe
+	$(SPUCC) $(SPUCCFLAGSARCH) $(SPU_OBJS) -o spu_3d.handle.spe
 	spu-strip spu_3d.handle.spe
 
 server/spu_main.handle.spe: $(SPU_DRIVER_TARGETS) Makefile
-	$(SPUCC) $(SPU_DRIVER_TARGETS) -o server/spu_main.handle.spe
+	$(SPUCC) $(SPUCCFLAGSARCH) $(SPU_DRIVER_TARGETS) -o server/spu_main.handle.spe
 	spu-strip server/spu_main.handle.spe
 
 server/render_main.handle.spe: $(RENDER_DRIVER_TARGETS) Makefile
-	$(SPUCC) $(RENDER_DRIVER_TARGETS) -o server/render_main.handle.spe
+	$(SPUCC) $(SPUCCFLAGSARCH) $(RENDER_DRIVER_TARGETS) -o server/render_main.handle.spe
 	spu-strip server/render_main.handle.spe
 
 ###############################################################################
@@ -233,16 +240,16 @@ server/render_main.handle.spe: $(RENDER_DRIVER_TARGETS) Makefile
 # SPU rules
 
 %.s: %.c
-	$(SPUCC) $(SPUCCFLAGS) -c -S $< -o $*.s
+	$(SPUCC) $(SPUCCFLAGSARCH) $(SPUCCFLAGS) -c -S $< -o $*.s
 
 %.0: %.c
-	$(SPUCC) $(SPUCCFLAGS) -c $< -o $*.0
+	$(SPUCC) $(SPUCCFLAGSARCH) $(SPUCCFLAGS) -c $< -o $*.0
 
 %.0: %.s
-	$(SPUCC) $(SPUCCFLAGS) -c $< -o $*.0
+	$(SPUCC) $(SPUCCFLAGSARCH) $(SPUCCFLAGS) -c $< -o $*.0
 
 %.handle.o$(USERLAND): %.handle.spe
-	embedspu `basename $*_handle` $*.handle.spe $*.handle.o$(USERLAND)
+	$(PPUEMBEDSPU) `basename $*_handle` $*.handle.spe $*.handle.o$(USERLAND)
 
 ### BUILD-ONLY-END ###
 
