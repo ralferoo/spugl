@@ -123,3 +123,33 @@ B 4-15				-F
 
 etc...
 
+---------------------------------------------------------------------
+
+If we have 2 free blocks, a block n..(n+l-1) @ t, target triangle T, we
+can split up so we have:
+
+n..(n+x-1) @ t+1
+(n+x)..(n+y-1) @ T
+(n+y)..(n+l-1) @ t
+
+If we have 1 free block, a block n..(n+l-1) @ t, target triangle T, we
+can split up so we have:
+
+n..(n+x-1) @ T
+(n+x)..(n+l-1) @ t
+
+or
+
+n..(n+x-1) @ t
+(n+x)..(n+l-1) @ T
+
+If we have no free blocks, a block n..(n+x-1) @ t1 and
+a block (n+x)..(n+l-1) @ t2, we can join the edge:
+
+n..(n+y-1) @ t1
+(n+y)..(n+l-1) @ t2
+
+where y>x if t1>t2, i.e. process start of block 2 to block 1's level
+where y<x if t1<t2, i.e. process end of block 1 to block 2's level
+
+
