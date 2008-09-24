@@ -11,6 +11,8 @@
 test
 #source dist
 *.tar.gz
+#dependency
+.depend*
 #outputs
 spugld
 spugld.debug
@@ -22,6 +24,7 @@ testclient64
 version.txt
 #symlink to spu includes
 z
+hilbert
 #junk
 Makefile.bak
 nohup.out
