@@ -1,0 +1,125 @@
+The cacheline holds 16 entries plus a target triangle ID, for each entry:
+
+start of block
+length of block
+current triangle ID
+waiting flag
+free flag
+
+Starts with a single block, 0+4096 on triangle 0, waiting, not free:
+
+B 0	   0	4096	0000	W-
+B 1-15				-F
+
+The idea then is that one of the SPU processes first grabs the first waiting
+block, splitting it first if there aren't enough waiting tasks (<3
+including this one)
+
+B 0	   0	2048	0000	--
+B 1	2048	2048	0000	W-
+B 2-15				 -F
+
+So now the block the SPU wants to process is 0+2048
+
+As this is more bigger than the maximum number to process at once, we
+split it (this bit to be changed...)
+
+B 0	   0	  16	0000	--
+B 1	2048	2048	0000	W-
+B 2	  16	2032	0000	W-
+B 3-15				-F
+
+When we've processed this, we end up with:
+
+B 0	   0	  16	0001	W-
+B 1	2048	2048	0000	W-
+B 2	  16	2032	0000	W-
+B 3-15				-F
+
+We then try to merge the blocks with the same triangle number:
+
+B 0	   0	  16	0001	W-
+B 1				F-
+B 2	  16	4080	0000	W-
+B 3-15				-F
+
+We then repeat the loop, however because block 0 already has the
+current highest triangle number, we ignore it for now...
+
+First of all, split the block again and claim the first half:
+
+B 0	   0	  16	0001	W-
+B 1	2048	2048	0000	W-
+B 2	  16	2032	0000	--
+B 3-15				-F
+
+As this is more bigger than the maximum number to process at once, we
+split it (this bit to be changed...)
+
+B 0	   0	  16	0001	W-
+B 1	2048	2048	0000	W-
+B 2	  16	  16	0000	--
+B 3	  32	2016	0000	W-
+B 4-15				-F
+
+In the course of processing this, an extra triangle becomes available
+so we continue processing this block to completion:
+
+B 0	   0	  16	0001	W-
+B 1	2048	2048	0000	W-
+B 2	  16	  16	0002	W-
+B 3	  32	2016	0000	W-
+B 4-15				-F
+
+Merging blocks again produces:
+
+B 0	   0	  16	0001	W-
+B 1				F-
+B 2	  16	  16	0002	W-
+B 3	  32	4064	0000	W-
+B 4-15				-F
+
+Now, we take the first waiting block which isn't at the end triangle,
+so in this case block 0:
+
+B 0	   0	  16	0001	--
+B 1				F-
+B 2	  16	  16	0002	W-
+B 3	  32	4064	0000	W-
+B 4-15				-F
+
+As the block is the same size as our maximum to process at once, we just
+process it without splitting. After processing, we end up with:
+
+B 0	   0	  16	0002	W-
+B 1				F-
+B 2	  16	  16	0002	W-
+B 3	  32	4064	0000	W-
+B 4-15				-F
+
+The merging process this time takes the two smaller blocks:
+
+B 0	   0	  32	0002	W-
+B 1				F-
+B 2				F-
+B 3	  32	4064	0000	W-
+B 4-15				-F
+
+We then grab, split and beging to process block 3:
+
+B 0	   0	  32	0002	W-
+B 1	2048	2048	0000	W-
+B 2	  48	2000	0000	W-
+B 3	  32	  16	0000	--
+B 4-15				-F
+
+In the course of this processing, the end triangle goes up to 3:
+
+B 0	   0	  32	0002	W-
+B 1	2048	2048	0000	W-
+B 2	  48	2000	0000	W-
+B 3	  32	  16	0003	W-
+B 4-15				-F
+
+etc...
+
