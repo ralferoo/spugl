@@ -24,7 +24,8 @@ LIBSPE2 = -DUSE_LIBSPE2
 USERLAND = 32
 #USERLAND = 64
 
-PPUPREFIX = ppu-
+PPUPREFIX =
+#PPUPREFIX = ppu-
 
 PPUAR = $(PPUPREFIX)ar
 PPUEMBEDSPU = $(PPUPREFIX)embedspu
@@ -207,33 +208,34 @@ server/render_main.handle.spe: $(RENDER_DRIVER_TARGETS) Makefile
 #
 # New style dependency checking
 
-.depend_ppu: $(PPU_SRCS)
-	@makedepend -f- -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(PPU_SRCS) -DUSERLAND_$(USERLAND)_BITS >$@
+client/%.d: client/%.c
+	@$(SHELL) -ec '$(PPUCC) $(PPUCCFLAGSARCH) $(PPUCCFLAGS) -MM $< \
+		| sed '\''s|\($*\)\.o[ :]*|client/\1.o32 client/\1.o64 $@ : |g'\'' >$@ ; \
+		[ -s $@ ] || rm -f $@'
 
-.depend_o32: $(CLIENT_LIB_TARGETS_C)
-	@makedepend -f- -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(CLIENT_LIB_TARGETS_C) -o.o32 -DUSERLAND_$(USERLAND)_BITS >$@
+server/%.d: server/%.c
+	@$(SHELL) -ec '$(PPUCC) $(PPUCCFLAGSARCH) $(PPUCCFLAGS) -MM $< \
+		| sed '\''s|\($*\)\.o[ :]*|server/\1.o $@ : |g'\'' >$@ ; \
+		[ -s $@ ] || rm -f $@'
 
-.depend_o64: $(CLIENT_LIB_TARGETS_C)
-	@makedepend -f- -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(CLIENT_LIB_TARGETS_C) -o.o64 -DUSERLAND_$(USERLAND)_BITS >$@
+server/spu/%.d: server/spu/%.c
+	@$(SHELL) -ec '$(PPUCC) $(PPUCCFLAGSARCH) $(PPUCCFLAGS) -MM $< \
+		| sed '\''s|\($*\)\.o[ :]*|server/spu/\1.o $@ : |g'\'' >$@ ; \
+		[ -s $@ ] || rm -f $@'
 
-.depend_daemon: $(DAEMON_TARGETS_C)
-	@makedepend -f- -I/usr/lib/gcc/spu/4.0.2/include/  -I. $(DAEMON_TARGETS_C) >$@
-
-.depend_spu: $(SPU_SRCS)
-	@makedepend -f- -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.0 $(SPU_SRCS) -DSPU_REGS -DUSERLAND_$(USERLAND)_BITS >$@
-	@for i in $(SPU_OBJS) ; do grep $$i:.*spuregs.h $@ >/dev/null || [ ! -f `basename $$i .0`.c ] || ( echo ERROR: $$i does not refer to spuregs.h && false) ; done
-
-.depend_spudriver: $(SPU_SRCS)
-	@makedepend -f- -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.0 $(SPU_DRIVER_SOURCES) -DSPU_REGS -DUSERLAND_$(USERLAND)_BITS >$@
-
-.depend_renderdriver: $(RENDER_DRIVER_SRCS)
-	@makedepend -f- -I/usr/lib/gcc/spu/4.0.2/include/ -I. -o.0 $(RENDER_DRIVER_SOURCES) -DSPU_REGS -DUSERLAND_$(USERLAND)_BITS >$@
+server/renderspu/%.d: server/renderspu/%.c
+	@$(SHELL) -ec '$(PPUCC) $(PPUCCFLAGSARCH) $(PPUCCFLAGS) -MM $< \
+		| sed '\''s|\($*\)\.o[ :]*|server/renderspu/\1.o $@ : |g'\'' >$@ ; \
+		[ -s $@ ] || rm -f $@'
 
 ###############################################################################
 #
 # include the generated dependencies
 
--include .depend_ppu .depend_o32 .depend_o64 .depend_daemon .depend_spu .depend_spudriver .depend_renderdriver
+-include $(CLIENT_LIB_TARGETS_C:.c=.d)
+-include $(DAEMON_TARGETS_C:.c=.d)
+-include $(SPU_DRIVER_SOURCES:.c=.d)
+-include $(RENDER_DRIVER_SOURCES:.c=.d)
 
 ###############################################################################
 #
@@ -269,7 +271,7 @@ clean:
 	rm -f server/*.o client/*.o client/*.o32 client/*.o64
 	rm -f server/spu/*.0 client/spu/*.0
 	rm -f server/renderspu/*.0 client/renderspu/*.0
-	rm -f .depend_*
+	rm -f *.d server/*.d server/spu/*.d server/renderspu/*.d client/*.d
 
 # gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h
 
