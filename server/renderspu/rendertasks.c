@@ -390,7 +390,7 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushor
 	if (!outside) {
 		i = spu_rlmask(i, -1);
 		n = spu_rlmask(n, -2);
-		if (spu_extract(i, 1)) { //i & 0xffff0000) {
+		if (spu_extract(i, 1)) {
 			vec_uint4 hdx = spu_rlmaska(Adx, -1);
 			vec_uint4 hdy = spu_rlmaska(Ady, -1);
 
