@@ -153,3 +153,38 @@ where y>x if t1>t2, i.e. process start of block 2 to block 1's level
 where y<x if t1<t2, i.e. process end of block 1 to block 2's level
 
 
+
+----------------------------------------------------------------------
+
+size<=NUM_PER_CHUNK
+	process to end triangle as simple case
+
+free>0
+	mark as busy, reserve the other block
+	chunkTriangle is triangle to test for
+	scan for first subblock that needs drawing
+	if found:
+		s  = start of original block
+		s' = start of subblock to process
+		e = s' + NUM_TILES_PER_BLOCK (limit by end of orig block)
+		mark reserved block as waiting e->end of orig block,
+			keeping chunkTriangle untouched
+		render block s' -> e-1 for this triangle
+		re-check number of free blocks, if one free:
+			mark s -> s'-1 as waiting, up to next
+			reserve another block
+			render s' -> e-1 for all tris up to endTriangle
+			mark s -> e-1 as waiting, up to endTriangle
+		else:
+			mark s -> e-1 as waiting, up to next
+	else no subblock:
+		update chunkTriangle to next triangle
+		if chunkTriangle != endTriangle:
+			repeat with same block
+		else:
+			set the whole block to endTriangle
+			unreserve other block
+
+free == 0, find two adjacent blocks both waiting
+	if chunkTriangles are equal, join blocks together
+
