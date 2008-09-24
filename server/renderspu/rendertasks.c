@@ -377,25 +377,34 @@ renderMoreTriangles:
 	} // while (cache_ea) - process current cache line
 }
 
-void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, int x, int y, int i)
+void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, int x, int y, int i, int b, int n)
 {
 	vec_uint4 Ar = spu_add(A, Adx);
 	vec_uint4 Ab = spu_add(A, Ady);
 	vec_uint4 Abr = spu_add(Ar, Ady);
-	unsigned int outside = spu_extract(spu_orx(spu_rlmaska(spu_nor( spu_or(A,Ar), spu_or(Ab,Abr) ), -31)),0);
+	unsigned int outside = spu_extract(spu_orx(spu_rlmaska(
+					spu_nor( spu_or(A,Ar), spu_or(Ab,Abr) ), -31)),0);
 
 	if (!outside) {
 		i >>= 1;
+		n >>= 2;
 		if (i) {
 			vec_uint4 hdx = spu_rlmaska(Adx, -1);
 			vec_uint4 hdy = spu_rlmaska(Ady, -1);
 
-			subdivide( A, hdx, hdy, x, y, i);
-			subdivide( spu_add(A,hdx), spu_sub(Adx,hdx), hdy, x+i, y, i);
-			subdivide( spu_add(A,hdy), hdx, spu_sub(Ady,hdy), x, y+i, i);
-			subdivide( spu_add(spu_add(A,hdx),hdy), spu_sub(Adx,hdx), spu_sub(Ady,hdy), x+i, y+i, i);
+			vec_uint4 A_hdx 	= spu_add(A,     hdx);
+			vec_uint4 A_hdy		= spu_add(A,     hdy);
+			vec_uint4 A_hdx_hdy	= spu_add(A_hdx, hdy);
+
+			vec_uint4 Adx_hdx	= spu_sub(Adx,hdx);
+			vec_uint4 Ady_hdy	= spu_sub(Ady,hdy);
+
+			subdivide( A,		hdx,		hdy, 		x,	y,	i, b,	  n);
+			subdivide( A_hdx,	Adx_hdx,	hdy,		x+i,	y,	i, b+n,	  n);
+			subdivide( A_hdy,	hdx,		Ady_hdy,	x,	y+i,	i, b+2*n, n);
+			subdivide( A_hdx_hdy,	Adx_hdx,	Ady_hdy,	x+i,	y+i,	i, b+3*n, n);
 		} else {
-			printf("block (%d,%d)\n", x,y);
+			printf("block %4x (%d,%d)\n", b, x,y);
 		}
 	}
 }
@@ -427,7 +436,7 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 	vec_uint4 Adx = triangle->area_dx;
 	vec_uint4 Ady = triangle->area_dy;
 
-	subdivide(spu_or(A,Amask), Adx, Ady, 0, 0, 32);
+	subdivide(spu_or(A,Amask), Adx, Ady, 0, 0, 32, 0, 32*32);
 
 /*
 	DEBUG_VEC8( triangle->x );
