@@ -358,18 +358,18 @@ const static vec_uchar16 shuffles[] = {
 };
 
 static inline void shuffle_in(vec_uchar16 inserter, float4 s, float4 col, float4 tex) {
-	TRIx = spu_shuffle(TRIx, (vec_float4) s.x, inserter);
-	TRIy = spu_shuffle(TRIy, (vec_float4) s.y, inserter);
-	TRIz = spu_shuffle(TRIz, (vec_float4) s.z, inserter);
-	TRIw = spu_shuffle(TRIw, (vec_float4) s.w, inserter);
-	TRIr = spu_shuffle(TRIr, (vec_float4) col.x, inserter);
-	TRIg = spu_shuffle(TRIg, (vec_float4) col.y, inserter);
-	TRIb = spu_shuffle(TRIb, (vec_float4) col.z, inserter);
-	TRIa = spu_shuffle(TRIa, (vec_float4) col.w, inserter);
-	TRIs = spu_shuffle(TRIs, (vec_float4) tex.x, inserter);
-	TRIt = spu_shuffle(TRIt, (vec_float4) tex.y, inserter);
-	TRIu = spu_shuffle(TRIu, (vec_float4) tex.z, inserter);
-	TRIv = spu_shuffle(TRIv, (vec_float4) tex.w, inserter);
+	TRIx = spu_shuffle(TRIx, (vec_float4) spu_promote(s.x,0), inserter);
+	TRIy = spu_shuffle(TRIy, (vec_float4) spu_promote(s.y,0), inserter);
+	TRIz = spu_shuffle(TRIz, (vec_float4) spu_promote(s.z,0), inserter);
+	TRIw = spu_shuffle(TRIw, (vec_float4) spu_promote(s.w,0), inserter);
+	TRIr = spu_shuffle(TRIr, (vec_float4) spu_promote(col.x,0), inserter);
+	TRIg = spu_shuffle(TRIg, (vec_float4) spu_promote(col.y,0), inserter);
+	TRIb = spu_shuffle(TRIb, (vec_float4) spu_promote(col.z,0), inserter);
+	TRIa = spu_shuffle(TRIa, (vec_float4) spu_promote(col.w,0), inserter);
+	TRIs = spu_shuffle(TRIs, (vec_float4) spu_promote(tex.x,0), inserter);
+	TRIt = spu_shuffle(TRIt, (vec_float4) spu_promote(tex.y,0), inserter);
+	TRIu = spu_shuffle(TRIu, (vec_float4) spu_promote(tex.z,0), inserter);
+	TRIv = spu_shuffle(TRIv, (vec_float4) spu_promote(tex.w,0), inserter);
 }
 
 int imp_vertex(float4 in, Context* context)

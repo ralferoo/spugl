@@ -86,7 +86,7 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 	const vec_uchar16 SHUFFLE_GET_BUSY_WITH_ONES = (vec_uchar16) {	// get busy flag with ones in unused bytes
 		0xc0, 0xc0, 2, 3, 0xc0,0xc0,0xc0,0xc0, 0xc0,0xc0,0xc0,0xc0 };
 
-	const vec_uchar16 ZERO_BYTES = spu_splats(0);
+	const vec_uchar16 ZERO_BYTES = (vec_uchar16) spu_splats(0);
 
 	char	sync_buffer[128+127];
 	void*	aligned_sync_buffer = (void*) ( ((unsigned long)sync_buffer+127) & ~127 );
@@ -476,14 +476,14 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 	printf("[%d] Read triangle %x, next is %x\n", _SPUID, chunkTriangle, triangle->next_triangle);
 
 
-	vec_uint4 A   = triangle->area;
-	vec_uint4 Adx = triangle->area_dx;
-	vec_uint4 Ady = triangle->area_dy;
+	vec_uint4 A   = (vec_uint4) triangle->area;
+	vec_uint4 Adx = (vec_uint4) triangle->area_dx;
+	vec_uint4 Ady = (vec_uint4) triangle->area_dy;
 
 	int w = 256;
 	vec_uint4 Amask = {0, 0, 0, -1};
 	vec_uint4 bdelta = { 0, w*w, 2*w*w, 3*w*w };
-	subdivide(spu_or(A,Amask), Adx, Ady, spu_splats(0), spu_splats((unsigned short)w), spu_splats(0), bdelta, 0);
+	subdivide(spu_or(A,Amask), Adx, Ady, spu_splats(0U), spu_splats((unsigned short)w), spu_splats(0U), bdelta, 0);
 
 /*
 	printf("[%d] Screen address: %llx, id %x, locks %d, size %dx%d, stride 0x%x, format %d\n",
