@@ -377,7 +377,7 @@ renderMoreTriangles:
 	} // while (cache_ea) - process current cache line
 }
 
-void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, int x, int y, int i, int b, int n,
+void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, int x, vec_uint4 y, int i, int b, int n,
 		vec_uint4 delta, vec_uchar16 choice, int type)
 {
 	vec_uint4 Ar = spu_add(A, Adx);
@@ -390,6 +390,22 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, int x, int y, int i, i
 	vec_uchar16 shufchoose = (vec_uchar16) { 0,8,12,4,   0,4,12,8,   12,4,0,8,   12,8,0,4 };
 	vec_uchar16 shuf_left = (vec_uchar16) { 0,0,0,0, 1,1,1,1, 2,2,2,2, 3,3,3,3 };
 	vec_uchar16 shuf_right = (vec_uchar16) { 0,0,0,0, 1,1,1,1, 2,2,2,2, 3,3,3,3 };
+
+
+/*
+		char buffer[64];
+		memset(buffer, ' ', 64);
+		buffer[ spu_extract( spu_cntlz(spu_promote(i, 0)), 0) ] = '#';
+		buffer[17] = 0;
+
+			printf("%spos %08x+%08x   type %4x   outside %x   block %04x+%04x\n",
+				buffer+5,
+				spu_extract(y,0),
+				i,
+				type,
+				outside & 1,
+				b,n);
+*/
 
 	if (!outside) {
 		i >>= 1;
@@ -405,12 +421,6 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, int x, int y, int i, i
 			vec_uint4 Adx_hdx	= spu_sub(Adx,hdx);
 			vec_uint4 Ady_hdy	= spu_sub(Ady,hdy);
 
-			printf("pos %03d,%03d+%03d   block %04x+%04x   choice %x%x%x%x\n", x,y,i, b,n,
-				spu_extract(choice,0),
-				spu_extract(choice,4),
-				spu_extract(choice,8),
-				spu_extract(choice,12));
-
 			// type & 0xf0 = bit 0 of type (&1)
 			// type & 0x0f = bit 1 of type (&2)
 			//
@@ -425,36 +435,47 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, int x, int y, int i, i
 			vec_uint4 bit0 = spu_maskw( type>>4 );
 			vec_uint4 bitp = spu_xor( bit0, bit1 );
 
+			vec_uint4 andm = spu_xor( spu_promote(0xffff0000, 0), bitp);
+			vec_uint4 im   = spu_promote(i,0);
+
 			// A
 			vec_uint4 startA = spu_sel( A, A_hdx_hdy, bit1);
 			vec_uint4 dxA	 = spu_sel( hdx, Adx_hdx, bit1);
 			vec_uint4 dyA	 = spu_sel( hdy, Ady_hdy, bit1);
-
-			// B
-			vec_uint4 startB = spu_sel( A_hdy, A_hdx, bitp);
-			vec_uint4 dxB	 = spu_sel( hdx, Adx_hdx, bitp);
-			vec_uint4 dyB	 = spu_sel( Ady_hdy, hdy, bitp);
+			vec_uint4 addA	 = spu_and( im, bit1 );
 
 			// C
 			vec_uint4 startC = spu_sel( A_hdx_hdy, A, bit1);
 			vec_uint4 dxC	 = spu_sel( Adx_hdx, hdx, bit1);
 			vec_uint4 dyC	 = spu_sel( Ady_hdy, hdy, bit1);
-			int xA		 = x + i &~ spu_extract(bit1, 0);
-			int yA		 = y + i &~ spu_extract(bit1, 0);
+			vec_uint4 addC	 = spu_andc( im, bit1 );
+
+			// B
+			vec_uint4 startB = spu_sel( A_hdy, A_hdx, bitp);
+			vec_uint4 dxB	 = spu_sel( hdx, Adx_hdx, bitp);
+			vec_uint4 dyB	 = spu_sel( Ady_hdy, hdy, bitp);
+			vec_uint4 addB	 = spu_andc( im, andm );
 
 			// D
 			vec_uint4 startD = spu_sel( A_hdx, A_hdy, bitp);
 			vec_uint4 dxD	 = spu_sel( Adx_hdx, hdx, bitp);
 			vec_uint4 dyD	 = spu_sel( hdy, Ady_hdy, bitp);
+			vec_uint4 addD	 = spu_and( im, andm );
 
+			subdivide( startA, dxA, dyA, x, spu_add(y, addA), i, b    , n, delta, choice, type^0xf0);
+			subdivide( startB, dxB, dyB, x, spu_add(y, addB), i, b+n  , n, delta, choice, type);
+			subdivide( startC, dxC, dyC, x, spu_add(y, addC), i, b+n*2, n, delta, choice, type);
+			subdivide( startD, dxD, dyD, x, spu_add(y, addD), i, b+n*3, n, delta, choice, type^0xff);
 
-
-			subdivide( A,		hdx,		hdy, 		x,	y,	i, b,	  n, delta, spu_xor(choice, spu_splats((unsigned char)4)), type^0xf0);
-			subdivide( A_hdx,	Adx_hdx,	hdy,		x+(i&0xffff0000),	y,	i, b+n,	  n, delta, choice, type);
-			subdivide( A_hdx_hdy,	Adx_hdx,	Ady_hdy,	x+i,	y,	i, b+2*n, n, delta, choice, type);
-			subdivide( A_hdy,	hdx,		Ady_hdy,	x+(i&0xffff),	y,	i, b+3*n, n, delta, spu_xor(choice, spu_splats((unsigned char)12)), type^0xf);
+//			subdivide( A,		hdx,		hdy, 		x,	spu_add(y, addA),	i, b,	  n, delta, spu_xor(choice, spu_splats((unsigned char)4)), type^0xf0);
+//			subdivide( A_hdx,	Adx_hdx,	hdy,		x+(i&0xffff0000),	spu_add(y, addB),	i, b+n,	  n, delta, choice, type);
+//			subdivide( A_hdx_hdy,	Adx_hdx,	Ady_hdy,	x+i,	spu_add(y, addC),	i, b+2*n, n, delta, choice, type);
+//			subdivide( A_hdy,	hdx,		Ady_hdy,	x+(i&0xffff),	spu_add(y, addD),	i, b+3*n, n, delta, spu_xor(choice, spu_splats((unsigned char)12)), type^0xf);
 		} else {
-			printf("block %4x %08x\n", b, x);
+			printf("block %4x %08x %08x %d,%d\n",
+				b, x, spu_extract(y, 0),
+				spu_extract(y,0) >> 16,
+				spu_extract(y,0) & 0xffff);
 		}
 	}
 }
@@ -489,7 +510,10 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 	vec_uint4 delta = (vec_uint4) { 0, 0x1000, 0x10000000, 0x10001000 };
 	vec_uchar16 choice  = (vec_uchar16) {
 		4,5,6,7,   0,1,2,3,   0,1,2,3,   12,13,14,15 };
-	subdivide(spu_or(A,Amask), Adx, Ady, 0, 0, 64 * 0x10001, 0, 64*64, delta, choice, 0);
+
+	int w = 2048;
+	subdivide(spu_or(A,Amask), Adx, Ady, 0, spu_splats(0), w * 0x10001, 0, w*w, delta, choice, 0);
+
 /*
 	DEBUG_VEC8( triangle->x );
 	DEBUG_VEC8( triangle->y );
