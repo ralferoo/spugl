@@ -408,14 +408,13 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushor
 			//
 			// type 0:	0	y	x+y	x
 			// type 1:	0	x	x+y	y
-			// type 2:	x+y	x	0	y
-			// type 3:	x+y	y	0	x
+			// type 2:	x+y	y	0	x
+			// type 3:	x+y	x	0	y
 
 			vec_uint4 bit1 = spu_maskw( type );
 			vec_uint4 bit0 = spu_maskw( type>>4 );
-			vec_uint4 bitp = spu_xor( bit0, bit1 );
 
-			vec_uint4 andm = spu_xor( spu_promote(0xffff0000, 0), bitp);
+			vec_uint4 andm = spu_xor( spu_promote(0xffff0000, 0), bit0);
 			vec_uint4 im   = (vec_uint4) i;
 
 			// A
@@ -425,9 +424,9 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushor
 			vec_uint4 addA	 = spu_and( im, bit1 );
 
 			// B
-			vec_uint4 startB = spu_sel( A_hdy, A_hdx, bitp);
-			vec_uint4 dxB	 = spu_sel( hdx, Adx_hdx, bitp);
-			vec_uint4 dyB	 = spu_sel( Ady_hdy, hdy, bitp);
+			vec_uint4 startB = spu_sel( A_hdy, A_hdx, bit0);
+			vec_uint4 dxB	 = spu_sel( hdx, Adx_hdx, bit0);
+			vec_uint4 dyB	 = spu_sel( Ady_hdy, hdy, bit0);
 			vec_uint4 addB	 = spu_andc( im, andm );
 
 			// C
@@ -437,9 +436,9 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushor
 			vec_uint4 addC	 = spu_andc( im, bit1 );
 
 			// D
-			vec_uint4 startD = spu_sel( A_hdx, A_hdy, bitp);
-			vec_uint4 dxD	 = spu_sel( Adx_hdx, hdx, bitp);
-			vec_uint4 dyD	 = spu_sel( hdy, Ady_hdy, bitp);
+			vec_uint4 startD = spu_sel( A_hdx, A_hdy, bit0);
+			vec_uint4 dxD	 = spu_sel( Adx_hdx, hdx, bit0);
+			vec_uint4 dyD	 = spu_sel( hdy, Ady_hdy, bit0);
 			vec_uint4 addD	 = spu_and( im, andm );
 
 			vec_uint4 newb  = spu_add(b,n);
@@ -447,7 +446,7 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushor
 			subdivide(startA, dxA, dyA, spu_add(y,addA), i, spu_splats(spu_extract(newb,0)), n, type^0xf0);
 			subdivide(startB, dxB, dyB, spu_add(y,addB), i, spu_splats(spu_extract(newb,1)), n, type);
 			subdivide(startC, dxC, dyC, spu_add(y,addC), i, spu_splats(spu_extract(newb,2)), n, type);
-			subdivide(startD, dxD, dyD, spu_add(y,addD), i, spu_splats(spu_extract(newb,3)), n, type^0xff);
+			subdivide(startD, dxD, dyD, spu_add(y,addD), i, spu_splats(spu_extract(newb,3)), n, type^0x0f);
 
 		} else {
 			printf("block %4x %08x %d,%d\n",
@@ -481,7 +480,7 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 	vec_uint4 Adx = triangle->area_dx;
 	vec_uint4 Ady = triangle->area_dy;
 
-	int w = 32;
+	int w = 256;
 	vec_uint4 Amask = {0, 0, 0, -1};
 	vec_uint4 bdelta = { 0, w*w, 2*w*w, 3*w*w };
 	subdivide(spu_or(A,Amask), Adx, Ady, spu_splats(0), spu_splats((unsigned short)w), spu_splats(0), bdelta, 0);
