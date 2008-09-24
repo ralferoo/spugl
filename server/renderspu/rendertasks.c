@@ -377,6 +377,29 @@ renderMoreTriangles:
 	} // while (cache_ea) - process current cache line
 }
 
+void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, int x, int y, int i)
+{
+	vec_uint4 Ar = spu_add(A, Adx);
+	vec_uint4 Ab = spu_add(A, Ady);
+	vec_uint4 Abr = spu_add(Ar, Ady);
+	unsigned int outside = spu_extract(spu_orx(spu_rlmaska(spu_nor( spu_or(A,Ar), spu_or(Ab,Abr) ), -31)),0);
+
+	if (!outside) {
+		i >>= 1;
+		if (i) {
+			vec_uint4 hdx = spu_rlmaska(Adx, -1);
+			vec_uint4 hdy = spu_rlmaska(Ady, -1);
+
+			subdivide( A, hdx, hdy, x, y, i);
+			subdivide( spu_add(A,hdx), spu_sub(Adx,hdx), hdy, x+i, y, i);
+			subdivide( spu_add(A,hdy), hdx, spu_sub(Ady,hdy), x, y+i, i);
+			subdivide( spu_add(spu_add(A,hdx),hdy), spu_sub(Adx,hdx), spu_sub(Ady,hdy), x+i, y+i, i);
+		} else {
+			printf("block (%d,%d)\n", x,y);
+		}
+	}
+}
+
 unsigned short process_render_chunk(unsigned short chunkStart, unsigned short chunkLength,
 				    unsigned short chunkTriangle, unsigned short endTriangle,
 				    unsigned long long triangleBase, Renderable* renderable)
@@ -394,10 +417,18 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 
 	printf("[%d] Read triangle %x, next is %x\n", _SPUID, chunkTriangle, triangle->next_triangle);
 
+//	DEBUG_VEC4( triangle->area );
+//	DEBUG_VEC4( triangle->area_dx );
+//	DEBUG_VEC4( triangle->area_dy );
 
-	DEBUG_VEC4( triangle->area );
-	DEBUG_VEC4( triangle->area_dx );
-	DEBUG_VEC4( triangle->area_dy );
+	vec_uint4 Amask = {0, 0, 0, -1}; //{-1, -1, -1, 0};
+
+	vec_uint4 A   = triangle->area,mask;
+	vec_uint4 Adx = triangle->area_dx;
+	vec_uint4 Ady = triangle->area_dy;
+
+	subdivide(spu_or(A,Amask), Adx, Ady, 0, 0, 32);
+
 /*
 	DEBUG_VEC8( triangle->x );
 	DEBUG_VEC8( triangle->y );
