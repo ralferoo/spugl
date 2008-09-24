@@ -32,7 +32,7 @@
 #include "ppufuncs.h"
 #include "framebuffer.h"
 
-#define NUMBER_OF_RENDER_SPU_THREADS 1
+#define NUMBER_OF_RENDER_SPU_THREADS 5
 
 #ifndef MNT_DETACH
 // not defined on my system for some reason :(

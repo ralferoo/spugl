@@ -78,6 +78,9 @@ char __renderable_base_buffer[ 256 + sizeof(Renderable) ] __attribute__((__align
 unsigned long long currentRenderableBaseAddress = ~0ULL;
 Renderable* currentRenderableBase;
 
+void mergeBlock( RenderableCacheLine* cache, unsigned short cStart, unsigned short cLength, unsigned int cIndex,
+			vec_ushort8 testTri );
+
 void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_render_tasks)
 {
 	const vec_uchar16 SHUFFLE_MERGE_BYTES = (vec_uchar16) {	// merge lo bytes from unsigned shorts (array)
@@ -115,13 +118,6 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 			(vec_uchar16) spu_cmpeq(testTriangle, cache->chunkTriangle[1]),
 			SHUFFLE_MERGE_BYTES) );
 		// doneTriangleGather, rightmost 16 bits of word 0 set if triangle done
-#ifdef TEST
-printf("[%d] G1=%04x, G2=%04x, gather=%04x\n",
-	_SPUID,
-	spu_extract(spu_gather(spu_cmpeq(testTriangle, cache->chunkTriangle[0])),0),
-	spu_extract(spu_gather(spu_cmpeq(testTriangle, cache->chunkTriangle[1])),0),
-	spu_extract(doneTriangleGather,0) );
-#endif // TEST
 		vec_uint4 v_waiting = spu_splats( (unsigned int)cache->chunksWaiting );
 		vec_uint4 v_free = spu_splats( (unsigned int)cache->chunksFree );
 
@@ -134,22 +130,15 @@ printf("[%d] G1=%04x, G2=%04x, gather=%04x\n",
 		unsigned int numberOfWaitingChunks = spu_extract( (vec_uint4)
 						spu_sumb(spu_cntb( (vec_uchar16) v_mayprocess ), ZERO_BYTES), 0);
 
-#ifdef TEST
-printf("[%d] wait=%04x, may=%04x, chunkToProcess=%d, free=%04x(%2d), freeChunk=%d, g=%04x\n",
-	_SPUID,
-	spu_extract(v_waiting, 0),
-	spu_extract(v_mayprocess, 0), chunkToProcess,
-	spu_extract(v_free, 0), numberOfFreeChunks, freeChunk,
-	spu_extract(doneTriangleGather,0) );
-#endif // TEST
 		if (!spu_extract(v_mayprocess, 0)) {
 			// nothing to process, try the next cache line in the rendering tasks list
-#ifdef TEST
-			debug_render_tasks(cache);
-#endif // TEST
 			cache_ea = cache->next;
 			continue;
 		}
+
+		// calculate possible second free chunk
+		vec_uint4 v_free2 = spu_andc(v_free, spu_splats( (unsigned int) (0x8000>>freeChunk) ));
+		unsigned int freeChunk2 = spu_extract( spu_cntlz(v_free2), 0 )-16;
 
 		// read in the renderable's information
 		unsigned long long renderableBase = cache->renderableBase;
@@ -171,12 +160,9 @@ printf("[%d] wait=%04x, may=%04x, chunkToProcess=%d, free=%04x(%2d), freeChunk=%
 		unsigned int chunkLength   	= cache->chunkLengthArray  [chunkToProcess];
 		unsigned int chunkTriangle	= cache->chunkTriangleArray[chunkToProcess];
 
+		// split block up if possible
 		if (numberOfWaitingChunks < CHUNK_DIVIDE_THRESHOLD &&
 		    chunkLength>NUMBER_OF_TILES_PER_CHUNK) {
-			vec_uint4 v_free2 = spu_andc(v_free, spu_splats( (unsigned int) (0x8000>>freeChunk) ));
-
-			unsigned int freeChunk2 = spu_extract( spu_cntlz(v_free2), 0 )-16;
-
 			vec_uint4 chunkBitFiddle = spu_splats( chunkStart ^ (chunkStart+chunkLength-1) );
 			unsigned int chunkBitShift = spu_extract(spu_cntlz(chunkBitFiddle), 0);
 			unsigned int chunkSplitSize = ((unsigned int) (1UL<<31)   ) >> chunkBitShift;
@@ -199,6 +185,21 @@ printf("[%d] wait=%04x, may=%04x, chunkToProcess=%d, free=%04x(%2d), freeChunk=%
 #endif // TEST
 			chunkLength = chunkBoundary - chunkStart;
 		}
+
+/*
+		// we can process this chunk without using any other chunks
+		if (chunkLength <= NUMBER_OF_TILES_PER_CHUNK) {
+			// reserve the chunk, abort if can't write data
+			cache->chunksWaiting	&= ~( 0x8000>>chunkToProcess );
+			spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
+			if (spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS)
+				continue;
+
+			printf("Processing small chunk %d+%d current triangle %x\n",
+					chunkStart, chunkLength, chunkTriangle);
+		}
+*/
+
 
 		if (spu_extract(v_free, 0) && chunkLength>NUMBER_OF_TILES_PER_CHUNK) {
 			// there's one spare slot to move remainder into, so split the chunk up
@@ -275,100 +276,7 @@ renderMoreTriangles:
 			unsigned short cLength = chunkLength;
 			unsigned int   cIndex = chunkToProcess;
 
-			// merge blocks for as long as possible
-			int continueMergingBlocks;
-			do {
-#ifdef TEST
-				debug_render_tasks(cache);
-
-				printf("[%d] cStart=%d, cLength=%d, cIndex=%d\n",
-					_SPUID, cStart, cLength, cIndex);
-#endif // TEST
-
-				vec_ushort8 testStart = spu_splats( (unsigned short)(cStart+cLength) );
-				vec_ushort8 testEnd = spu_splats( cStart );
-
-				vec_uint4 testTriangleGather = spu_gather( (vec_uchar16) spu_shuffle(
-					(vec_uchar16) spu_cmpeq(testTri, cache->chunkTriangle[0]),
-					(vec_uchar16) spu_cmpeq(testTri, cache->chunkTriangle[1]),
-					SHUFFLE_MERGE_BYTES) );
-
-				vec_uint4 testStartGather = spu_gather( (vec_uchar16) spu_shuffle(
-					(vec_uchar16) spu_cmpeq(testStart, cache->chunkStart[0]),
-					(vec_uchar16) spu_cmpeq(testStart, cache->chunkStart[1]),
-					SHUFFLE_MERGE_BYTES) );
-
-				vec_uint4 testEndGather = spu_gather( (vec_uchar16) spu_shuffle(
-					(vec_uchar16) spu_cmpeq(testEnd,
-							spu_add(cache->chunkLength[0], cache->chunkStart[0])),
-					(vec_uchar16) spu_cmpeq(testEnd,
-							spu_add(cache->chunkLength[1], cache->chunkStart[1])),
-					SHUFFLE_MERGE_BYTES) );
-
-				vec_uint4 testWaiting = spu_splats( (unsigned int)cache->chunksWaiting );
-				vec_uint4 matchMask = spu_and(testWaiting, testTriangleGather);
-
-				vec_uint4 matchFollowing = spu_and( testStartGather, matchMask );
-				vec_uint4 matchPreceding   = spu_and( testEndGather, matchMask );
-
-#ifdef TEST
-				printf("[%d] Join tests: W: %04x T: %04x S:%04x %c E:%04x %c tS:%d tE:%d\n",
-					_SPUID,
-					spu_extract(testWaiting, 0),
-					spu_extract(testTriangleGather, 0),
-					spu_extract(testStartGather, 0), spu_extract(matchFollowing,0) ? '*' : ' ',
-					spu_extract(testEndGather, 0),   spu_extract(matchPreceding,0) ? '*' : ' ',
-					spu_extract(testStart, 0),
-					spu_extract(testEnd, 0));
-#endif // TEST
-
-				if (spu_extract(matchFollowing,0)) {
-					unsigned int otherIndex = spu_extract( spu_cntlz(matchFollowing), 0 )-16;
-#ifdef TEST
-					printf("[%d] Merging %d with following %d, %d+%d and %d+%d\n",
-						_SPUID,
-						cIndex, otherIndex,
-						cache->chunkStartArray[cIndex],
-						cache->chunkLengthArray[cIndex],
-						cache->chunkStartArray[otherIndex],
-						cache->chunkLengthArray[otherIndex]);
-#endif // TEST
-
-					cache->chunksWaiting &= ~( 0x8000>>otherIndex );
-					cache->chunksFree    |=    0x8000>>otherIndex;
-					cache->chunkLengthArray[cIndex] += cache->chunkLengthArray[otherIndex];
-					cLength = cache->chunkLengthArray[cIndex];
-
-#ifdef TEST
-					debug_render_tasks(cache);
-#endif // TEST
-				}
-
-				if (spu_extract(matchPreceding,0)) {
-					unsigned int otherIndex = spu_extract( spu_cntlz(matchPreceding), 0 )-16;
-#ifdef TEST
-					printf("[%d] Merging preceding %d with %d, %d+%d and %d+%d\n",
-						_SPUID,
-						otherIndex, cIndex,
-						cache->chunkStartArray[otherIndex],
-						cache->chunkLengthArray[otherIndex],
-						cache->chunkStartArray[cIndex],
-						cache->chunkLengthArray[cIndex]);
-#endif // TEST
-
-					cache->chunksWaiting &= ~( 0x8000>>cIndex );
-					cache->chunksFree    |=    0x8000>>cIndex;
-					cache->chunkLengthArray[otherIndex] += cache->chunkLengthArray[cIndex];
-					cIndex = otherIndex;
-					cStart = cache->chunkStartArray[cIndex];
-
-#ifdef TEST
-					debug_render_tasks(cache);
-#endif // TEST
-				}
-
-				continueMergingBlocks = spu_extract( spu_or(matchFollowing, matchPreceding), 0);
-			} while(continueMergingBlocks);
+			mergeBlock( cache, cStart, cLength, cIndex, testTri );
 
 			// attempt the write
 			spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
@@ -376,6 +284,113 @@ renderMoreTriangles:
 		} while (status);
 	} // while (cache_ea) - process current cache line
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void mergeBlock( RenderableCacheLine* cache, unsigned short cStart, unsigned short cLength, unsigned int cIndex,
+			vec_ushort8 testTri )
+{
+	const vec_uchar16 SHUFFLE_MERGE_BYTES = (vec_uchar16) {	// merge lo bytes from unsigned shorts (array)
+		1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 };
+
+
+	// merge blocks for as long as possible
+	int continueMergingBlocks;
+	do {
+#ifdef TEST
+		debug_render_tasks(cache);
+
+		printf("[%d] cStart=%d, cLength=%d, cIndex=%d\n",
+			_SPUID, cStart, cLength, cIndex);
+#endif // TEST
+
+		vec_ushort8 testStart = spu_splats( (unsigned short)(cStart+cLength) );
+		vec_ushort8 testEnd = spu_splats( cStart );
+
+		vec_uint4 testTriangleGather = spu_gather( (vec_uchar16) spu_shuffle(
+			(vec_uchar16) spu_cmpeq(testTri, cache->chunkTriangle[0]),
+			(vec_uchar16) spu_cmpeq(testTri, cache->chunkTriangle[1]),
+			SHUFFLE_MERGE_BYTES) );
+
+		vec_uint4 testStartGather = spu_gather( (vec_uchar16) spu_shuffle(
+			(vec_uchar16) spu_cmpeq(testStart, cache->chunkStart[0]),
+			(vec_uchar16) spu_cmpeq(testStart, cache->chunkStart[1]),
+			SHUFFLE_MERGE_BYTES) );
+
+		vec_uint4 testEndGather = spu_gather( (vec_uchar16) spu_shuffle(
+			(vec_uchar16) spu_cmpeq(testEnd,
+					spu_add(cache->chunkLength[0], cache->chunkStart[0])),
+			(vec_uchar16) spu_cmpeq(testEnd,
+					spu_add(cache->chunkLength[1], cache->chunkStart[1])),
+			SHUFFLE_MERGE_BYTES) );
+
+		vec_uint4 testWaiting = spu_splats( (unsigned int)cache->chunksWaiting );
+		vec_uint4 matchMask = spu_and(testWaiting, testTriangleGather);
+
+		vec_uint4 matchFollowing = spu_and( testStartGather, matchMask );
+		vec_uint4 matchPreceding   = spu_and( testEndGather, matchMask );
+
+#ifdef TEST
+		printf("[%d] Join tests: W: %04x T: %04x S:%04x %c E:%04x %c tS:%d tE:%d\n",
+			_SPUID,
+			spu_extract(testWaiting, 0),
+			spu_extract(testTriangleGather, 0),
+			spu_extract(testStartGather, 0), spu_extract(matchFollowing,0) ? '*' : ' ',
+			spu_extract(testEndGather, 0),   spu_extract(matchPreceding,0) ? '*' : ' ',
+			spu_extract(testStart, 0),
+			spu_extract(testEnd, 0));
+#endif // TEST
+
+		if (spu_extract(matchFollowing,0)) {
+			unsigned int otherIndex = spu_extract( spu_cntlz(matchFollowing), 0 )-16;
+#ifdef TEST
+			printf("[%d] Merging %d with following %d, %d+%d and %d+%d\n",
+				_SPUID,
+				cIndex, otherIndex,
+				cache->chunkStartArray[cIndex],
+				cache->chunkLengthArray[cIndex],
+				cache->chunkStartArray[otherIndex],
+				cache->chunkLengthArray[otherIndex]);
+#endif // TEST
+
+			cache->chunksWaiting &= ~( 0x8000>>otherIndex );
+			cache->chunksFree    |=    0x8000>>otherIndex;
+			cache->chunkLengthArray[cIndex] += cache->chunkLengthArray[otherIndex];
+			cLength = cache->chunkLengthArray[cIndex];
+
+#ifdef TEST
+			debug_render_tasks(cache);
+#endif // TEST
+		}
+
+		if (spu_extract(matchPreceding,0)) {
+			unsigned int otherIndex = spu_extract( spu_cntlz(matchPreceding), 0 )-16;
+#ifdef TEST
+			printf("[%d] Merging preceding %d with %d, %d+%d and %d+%d\n",
+				_SPUID,
+				otherIndex, cIndex,
+				cache->chunkStartArray[otherIndex],
+				cache->chunkLengthArray[otherIndex],
+				cache->chunkStartArray[cIndex],
+				cache->chunkLengthArray[cIndex]);
+#endif // TEST
+
+			cache->chunksWaiting &= ~( 0x8000>>cIndex );
+			cache->chunksFree    |=    0x8000>>cIndex;
+			cache->chunkLengthArray[otherIndex] += cache->chunkLengthArray[cIndex];
+			cIndex = otherIndex;
+			cStart = cache->chunkStartArray[cIndex];
+
+#ifdef TEST
+			debug_render_tasks(cache);
+#endif // TEST
+		}
+
+		continueMergingBlocks = spu_extract( spu_or(matchFollowing, matchPreceding), 0);
+	} while(continueMergingBlocks);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushort8 i,
 		vec_uint4 base, vec_uint4 baseadd,
@@ -458,6 +473,8 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushor
 		}
 	}
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 unsigned short process_render_chunk(unsigned short chunkStart, unsigned short chunkLength,
 				    unsigned short chunkTriangle, unsigned short endTriangle,

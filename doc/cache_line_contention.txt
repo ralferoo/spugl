@@ -186,5 +186,32 @@ free>0
 			unreserve other block
 
 free == 0, find two adjacent blocks both waiting
-	if chunkTriangles are equal, join blocks together
+	if chunkTriangles are equal, join blocks together freeing a block
+	otherwise, we're aiming to shift the boundary...
+	mark both as busy
+	select the one with the "lowest" chunkTriangle
+	if the other block ("highest" chunkTriangle) is before it:
+		scan for the first subblock that needs drawing
+		if there is none:
+			update that block's chunkTriangle
+			if still different:
+				repeat
+			else:
+				join blocks together, free other
+		else:
+			s  = start of original block
+			s' = start of subblock to process
+			e = s' + NUM_TILES_PER_BLOCK (limit by end of orig blk)
+			if next tri == other's chunkTriangle:
+				shift the boundary, releasing the other
+				render s' -> e-1
 
+
+
+
+#		if spare block and next != endTriangle
+#			mark s -> s'-1 as waiting up to next
+#			reserve it, creating s' -> e-1
+#			process as in size<=NUM
+#		else:
+#			process
