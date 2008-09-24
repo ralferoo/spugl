@@ -377,7 +377,8 @@ renderMoreTriangles:
 	} // while (cache_ea) - process current cache line
 }
 
-void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, int i, int b, int n,
+void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushort8 i,
+		vec_uint4 b, vec_uint4 n,
 		int type)
 {
 	vec_uint4 Ar = spu_add(A, Adx);
@@ -387,9 +388,9 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, int i, in
 					spu_nor( spu_or(A,Ar), spu_or(Ab,Abr) ), -31)),0);
 
 	if (!outside) {
-		i >>= 1;
-		n >>= 2;
-		if (i & 0xffff0000) {
+		i = spu_rlmask(i, -1);
+		n = spu_rlmask(n, -2);
+		if (spu_extract(i, 1)) { //i & 0xffff0000) {
 			vec_uint4 hdx = spu_rlmaska(Adx, -1);
 			vec_uint4 hdy = spu_rlmaska(Ady, -1);
 
@@ -415,7 +416,7 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, int i, in
 			vec_uint4 bitp = spu_xor( bit0, bit1 );
 
 			vec_uint4 andm = spu_xor( spu_promote(0xffff0000, 0), bitp);
-			vec_uint4 im   = spu_promote(i,0);
+			vec_uint4 im   = (vec_uint4) i;
 
 			// A
 			vec_uint4 startA = spu_sel( A, A_hdx_hdy, bit1);
@@ -441,14 +442,17 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, int i, in
 			vec_uint4 dyD	 = spu_sel( hdy, Ady_hdy, bitp);
 			vec_uint4 addD	 = spu_and( im, andm );
 
-			subdivide( startA, dxA, dyA, spu_add(y, addA), i, b    , n, type^0xf0);
-			subdivide( startB, dxB, dyB, spu_add(y, addB), i, b+n  , n, type);
-			subdivide( startC, dxC, dyC, spu_add(y, addC), i, b+n*2, n, type);
-			subdivide( startD, dxD, dyD, spu_add(y, addD), i, b+n*3, n, type^0xff);
+			vec_uint4 newb  = spu_add(b,n);
+
+			subdivide( startA, dxA, dyA, spu_add(y, addA), i, spu_splats(spu_extract(newb,0)), n, type^0xf0);
+			subdivide( startB, dxB, dyB, spu_add(y, addB), i, spu_splats(spu_extract(newb,1)), n, type);
+			subdivide( startC, dxC, dyC, spu_add(y, addC), i, spu_splats(spu_extract(newb,2)), n, type);
+			subdivide( startD, dxD, dyD, spu_add(y, addD), i, spu_splats(spu_extract(newb,3)), n, type^0xff);
 
 		} else {
 			printf("block %4x %08x %d,%d\n",
-				b, spu_extract(y, 0),
+				spu_extract(b,0),
+				spu_extract(y, 0),
 				spu_extract(y,0) >> 16,
 				spu_extract(y,0) & 0xffff);
 		}
@@ -472,14 +476,15 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 
 	printf("[%d] Read triangle %x, next is %x\n", _SPUID, chunkTriangle, triangle->next_triangle);
 
-	vec_uint4 Amask = {0, 0, 0, -1}; //{-1, -1, -1, 0};
 
-	vec_uint4 A   = triangle->area,mask;
+	vec_uint4 A   = triangle->area;
 	vec_uint4 Adx = triangle->area_dx;
 	vec_uint4 Ady = triangle->area_dy;
 
 	int w = 32;
-	subdivide(spu_or(A,Amask), Adx, Ady, spu_splats(0), w * 0x10001, 0, w*w, 0);
+	vec_uint4 Amask = {0, 0, 0, -1};
+	vec_uint4 bdelta = { 0, w*w, 2*w*w, 3*w*w };
+	subdivide(spu_or(A,Amask), Adx, Ady, spu_splats(0), spu_splats((unsigned short)w), spu_splats(0), bdelta, 0);
 
 /*
 	printf("[%d] Screen address: %llx, id %x, locks %d, size %dx%d, stride 0x%x, format %d\n",
