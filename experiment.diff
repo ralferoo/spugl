@@ -1,0 +1,263 @@
+diff --git a/client/spuglver.h b/client/spuglver.h
+index 2e5d067..aeda126 100644
+--- a/client/spuglver.h
++++ b/client/spuglver.h
+@@ -14,7 +14,7 @@
+ 
+ #define VERSION_MAJOR 0
+ #define VERSION_MINOR 2
+-#define VERSION_REVISION 99
+-#define VERSION_STRING "0.2.99"
++#define VERSION_REVISION 100
++#define VERSION_STRING "0.2.100"
+ 
+ #endif // __SPUGL_VER_H
+diff --git a/server/blockmanagement.c b/server/blockmanagement.c
+index c51bd83..9200a0a 100644
+--- a/server/blockmanagement.c
++++ b/server/blockmanagement.c
+@@ -69,7 +69,8 @@ int blockManagementCreateRenderable(void* buffer, int width, int height, int str
+ 			memset(cacheLine, 0, 128);
+ 			cacheLine->chunkTriangleArray[0] = 0;
+ 			cacheLine->chunkStartArray[0] = 0;
+-			cacheLine->chunkLengthArray[0] = 4096;
++			cacheLine->chunkNextArray[0] = 0;
++			//cacheLine->chunkLengthArray[0] = 4096;
+ 			cacheLine->next = *_block_mgr_render_tasks;
+ 			cacheLine->chunksWaiting = 0x8000;
+ 			cacheLine->chunksFree = 0x7fff;
+diff --git a/server/renderspu/render.h b/server/renderspu/render.h
+index fd5b89f..6d6a01e 100644
+--- a/server/renderspu/render.h
++++ b/server/renderspu/render.h
+@@ -17,6 +17,8 @@
+ #include <spu_intrinsics.h>
+ #endif // SPU_REGS
+ 
++#define NUMBER_OF_TILES				4096
++
+ #define NUMBER_OF_TILES_PER_CHUNK		7777	// number of tiles an SPU can process at once
+ #define CHUNK_DIVIDE_THRESHOLD			3	// only subdivide if we have less than this free
+ 							// i _think_ this*num_spus+1 <= 16
+@@ -31,6 +33,24 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
+ 				    unsigned short chunkTriangle, unsigned short endTriangle,
+ 				    unsigned long long triangleBase, struct __Renderable* renderable);
+ 
++/*
++ *
++ * vec_ushort8	[2]	chunkstart[16]	32 bytes	  0  32
++ * vec_ushort8	[2]	triangle[16]	32 bytes	 32  64
++ * vec_uchar16	[1]	chunknext[16]	16 bytes	 64  80
++ *
++ * unsigned long long	nextcachethingy	 8 bytes	 80  88
++ * unsigned long long	memorybuffer	 8 bytes	 88  96
++ * unsigned int		id		 4 bytes	 96 100
++ * unsigned short	width		 2 bytes	100 102
++ * unsigned short	height		 2 bytes	102 104
++ * unsigned int		stride		 4 bytes	104 108
++ * unsigned int		format		 4 bytes	108 112
++ * unsigned int		width		 4 bytes	112 116
++ * unsigned short	endTriangle	 2 bytes	116 118
++ * 
++ */
++
+ typedef struct {
+ 	union {
+ #ifdef SPU_REGS
+@@ -48,10 +68,18 @@ typedef struct {
+ // 64
+ 	union {
+ #ifdef SPU_REGS
+-		vec_ushort8	chunkLength[2];
++		vec_uchar16	chunkNext;
+ #endif // SPU_REGS
+-		unsigned short	chunkLengthArray[16];
++		unsigned char	chunkNextArray[16];
+ 	};
++
++//	union {
++//#ifdef SPU_REGS
++//		vec_ushort8	chunkLength[2];
++//#endif // SPU_REGS
++//		unsigned short	chunkLengthArray[16];
++//	};
++
+ // 96
+ 	unsigned long long	next;
+ 	unsigned long long	triangleBase;
+diff --git a/server/renderspu/rendertasks.c b/server/renderspu/rendertasks.c
+index 1073ac7..b3dd4d0 100644
+--- a/server/renderspu/rendertasks.c
++++ b/server/renderspu/rendertasks.c
+@@ -21,6 +21,8 @@
+ #define DEBUG_VEC8(x) __debug_vec8(#x, (vec_ushort8) x)
+ #define DEBUG_VECf(x) __debug_vecf(#x, (vec_float4) x)
+ 
++#define TEST
++
+ void __debug_vec4(char* s, vec_uint4 x)
+ {
+ 	printf("[%d] %-20s %08x   %08x   %08x   %08x\n", _SPUID, s,
+@@ -61,13 +63,19 @@ void debug_render_tasks(RenderableCacheLine* cache)
+ 	int mask = 0x8000;
+ 	for (int i=0; i<16; i++) {
+ 		if (1 || cache->chunksWaiting & mask) {
++
++			unsigned int chunkStart    	= cache->chunkStartArray   [i];
++			unsigned int chunkNext		= cache->chunkNextArray	   [i];
++			unsigned int chunkEnd		= cache->chunkStartArray   [chunkNext];
++			unsigned int chunkLength	= (chunkEnd-chunkStart) & (NUMBER_OF_TILES-1);
++
+ 			printf("[%d] DEBUG %2d - [%c%c] Start %4d Length %4d End %4d Triangle %x\n",
+ 				_SPUID, i,
+ 				cache->chunksWaiting & mask ? 'W': '-',
+ 				cache->chunksFree & mask ? 'F': '-',
+-				cache->chunkStartArray[i],
+-				cache->chunkLengthArray[i],
+-				cache->chunkStartArray[i] + cache->chunkLengthArray[i],
++				chunkStart,
++				chunkLength,
++				chunkEnd,
+ 				cache->chunkTriangleArray[i]);
+ 		}
+ 		mask>>=1;
+@@ -157,9 +165,13 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
+ 
+ 		// at least one of the bits is set, chunkToProcess is a valid result
+ 		unsigned int chunkStart    	= cache->chunkStartArray   [chunkToProcess];
+-		unsigned int chunkLength   	= cache->chunkLengthArray  [chunkToProcess];
++//		unsigned int chunkLength   	= cache->chunkLengthArray  [chunkToProcess];
+ 		unsigned int chunkTriangle	= cache->chunkTriangleArray[chunkToProcess];
+ 
++		unsigned int chunkNext		= cache->chunkNextArray	   [chunkToProcess];
++		unsigned int chunkEnd		= cache->chunkStartArray   [chunkNext];
++		unsigned int chunkLength	= (chunkEnd-chunkStart) & (NUMBER_OF_TILES-1);
++
+ 		// split block up if possible
+ 		if (numberOfWaitingChunks < CHUNK_DIVIDE_THRESHOLD &&
+ 		    chunkLength>NUMBER_OF_TILES_PER_CHUNK) {
+@@ -170,16 +182,18 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
+ 			unsigned int chunkBoundary = (chunkStart &~ (chunkSplitMask) ) + chunkSplitSize;
+ 
+ 			cache->chunkStartArray   [freeChunk2]	  = chunkBoundary;
+-			cache->chunkLengthArray  [freeChunk2]	  = chunkStart + chunkLength - chunkBoundary;
++			cache->chunkNextArray	 [freeChunk2]	  = chunkNext;
++			cache->chunkNextArray	 [chunkToProcess] = chunkNext = freeChunk2;
++			//cache->chunkLengthArray  [freeChunk2]	  = chunkStart + chunkLength - chunkBoundary;
+ 			cache->chunkTriangleArray[freeChunk2]	  = chunkTriangle;
+-			cache->chunkLengthArray  [chunkToProcess] = chunkBoundary - chunkStart;
++			//cache->chunkLengthArray  [chunkToProcess] = chunkBoundary - chunkStart;
+ 			cache->chunksWaiting	|=    0x8000>>freeChunk2;
+ 			cache->chunksFree	&= ~( 0x8000>>freeChunk2 );
+ #ifdef TEST
+-			printf("[%d] W=%d Divided chunk %d at %d len %d, remainder chunk %d at %d len %d [%d]\n",
++			printf("[%d] W=%d Divided chunk %d at %d len %d, remainder chunk %d at %d [%d]\n",
+ 				_SPUID, numberOfWaitingChunks,
+ 				chunkToProcess, chunkStart, chunkLength, freeChunk2,
+-				cache->chunkStartArray [freeChunk2], cache->chunkLengthArray[freeChunk2],
++				cache->chunkStartArray [freeChunk2], // cache->chunkLengthArray[freeChunk2],
+ 				chunkTriangle);
+ 			debug_render_tasks(cache);
+ #endif // TEST
+@@ -204,16 +218,18 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
+ 		if (spu_extract(v_free, 0) && chunkLength>NUMBER_OF_TILES_PER_CHUNK) {
+ 			// there's one spare slot to move remainder into, so split the chunk up
+ 			cache->chunkStartArray   [freeChunk]	  = chunkStart + NUMBER_OF_TILES_PER_CHUNK;
+-			cache->chunkLengthArray  [freeChunk]	  = chunkLength - NUMBER_OF_TILES_PER_CHUNK;
++			cache->chunkNextArray	 [freeChunk2]	  = chunkNext;
++			cache->chunkNextArray	 [chunkToProcess] = chunkNext = freeChunk2;
++			//cache->chunkLengthArray  [freeChunk]	  = chunkLength - NUMBER_OF_TILES_PER_CHUNK;
+ 			cache->chunkTriangleArray[freeChunk]	  = chunkTriangle;
+-			cache->chunkLengthArray  [chunkToProcess] = NUMBER_OF_TILES_PER_CHUNK;
++			//cache->chunkLengthArray  [chunkToProcess] = NUMBER_OF_TILES_PER_CHUNK;
+ 			cache->chunksWaiting	|=    0x8000>>freeChunk;
+ 			cache->chunksFree	&= ~( 0x8000>>freeChunk );
+ #ifdef TEST
+-			printf("[%d] Split chunk %d at %d len %d, creating remainder chunk %d at %d len %d [%d]\n",
++			printf("[%d] Split chunk %d at %d len %d, creating remainder chunk %d at %d [%d]\n",
+ 				_SPUID,
+ 				chunkToProcess, chunkStart, chunkLength, freeChunk,
+-				cache->chunkStartArray [freeChunk], cache->chunkLengthArray[freeChunk],
++				cache->chunkStartArray [freeChunk], // cache->chunkLengthArray[freeChunk],
+ 				chunkTriangle);
+ #endif // TEST
+ 			chunkLength = NUMBER_OF_TILES_PER_CHUNK;
+@@ -312,6 +328,11 @@ void mergeBlock( RenderableCacheLine* cache, unsigned short cStart, unsigned sho
+ 			(vec_uchar16) spu_cmpeq(testTri, cache->chunkTriangle[1]),
+ 			SHUFFLE_MERGE_BYTES) );
+ 
++		vec_uchar16 testNextIndex = spu_splats( (unsigned char) cIndex );
++		vec_uint4 testStartGather = spu_gather( spu_cmpeq(testNextIndex, cache->chunkNext) );
++		vec_uint4 testEndGather = spu_promote( 1U << (cache->chunkNextArray[cIndex]), 0 );
++
++/*
+ 		vec_uint4 testStartGather = spu_gather( (vec_uchar16) spu_shuffle(
+ 			(vec_uchar16) spu_cmpeq(testStart, cache->chunkStart[0]),
+ 			(vec_uchar16) spu_cmpeq(testStart, cache->chunkStart[1]),
+@@ -323,7 +344,7 @@ void mergeBlock( RenderableCacheLine* cache, unsigned short cStart, unsigned sho
+ 			(vec_uchar16) spu_cmpeq(testEnd,
+ 					spu_add(cache->chunkLength[1], cache->chunkStart[1])),
+ 			SHUFFLE_MERGE_BYTES) );
+-
++*/
+ 		vec_uint4 testWaiting = spu_splats( (unsigned int)cache->chunksWaiting );
+ 		vec_uint4 matchMask = spu_and(testWaiting, testTriangleGather);
+ 
+@@ -344,19 +365,25 @@ void mergeBlock( RenderableCacheLine* cache, unsigned short cStart, unsigned sho
+ 		if (spu_extract(matchFollowing,0)) {
+ 			unsigned int otherIndex = spu_extract( spu_cntlz(matchFollowing), 0 )-16;
+ #ifdef TEST
+-			printf("[%d] Merging %d with following %d, %d+%d and %d+%d\n",
++			printf("[%d] Merging %d with following %d, %d and %d\n",
+ 				_SPUID,
+ 				cIndex, otherIndex,
+ 				cache->chunkStartArray[cIndex],
+-				cache->chunkLengthArray[cIndex],
+-				cache->chunkStartArray[otherIndex],
+-				cache->chunkLengthArray[otherIndex]);
++			//	cache->chunkLengthArray[cIndex],
++				cache->chunkStartArray[otherIndex]); //,
++			//	cache->chunkLengthArray[otherIndex]);
+ #endif // TEST
+ 
+ 			cache->chunksWaiting &= ~( 0x8000>>otherIndex );
+ 			cache->chunksFree    |=    0x8000>>otherIndex;
+-			cache->chunkLengthArray[cIndex] += cache->chunkLengthArray[otherIndex];
+-			cLength = cache->chunkLengthArray[cIndex];
++			cache->chunkNextArray[cIndex] = cache->chunkNextArray[otherIndex];
++			cache->chunkNextArray[otherIndex] = -1;
++			//cache->chunkLengthArray[cIndex] += cache->chunkLengthArray[otherIndex];
++			//cLength = cache->chunkLengthArray[cIndex];
++
++			unsigned int _next = cache->chunkNextArray   [cIndex];
++			unsigned int _end  = cache->chunkStartArray   [_end];
++			cLength	= (_end-cStart) & (NUMBER_OF_TILES-1);
+ 
+ #ifdef TEST
+ 			debug_render_tasks(cache);
+@@ -366,18 +393,20 @@ void mergeBlock( RenderableCacheLine* cache, unsigned short cStart, unsigned sho
+ 		if (spu_extract(matchPreceding,0)) {
+ 			unsigned int otherIndex = spu_extract( spu_cntlz(matchPreceding), 0 )-16;
+ #ifdef TEST
+-			printf("[%d] Merging preceding %d with %d, %d+%d and %d+%d\n",
++			printf("[%d] Merging preceding %d with %d, %d and %d\n",
+ 				_SPUID,
+ 				otherIndex, cIndex,
+ 				cache->chunkStartArray[otherIndex],
+-				cache->chunkLengthArray[otherIndex],
+-				cache->chunkStartArray[cIndex],
+-				cache->chunkLengthArray[cIndex]);
++				//cache->chunkLengthArray[otherIndex],
++				cache->chunkStartArray[cIndex]); //,
++				//cache->chunkLengthArray[cIndex]);
+ #endif // TEST
+ 
+ 			cache->chunksWaiting &= ~( 0x8000>>cIndex );
+ 			cache->chunksFree    |=    0x8000>>cIndex;
+-			cache->chunkLengthArray[otherIndex] += cache->chunkLengthArray[cIndex];
++			cache->chunkNextArray[otherIndex] = cache->chunkNextArray[cIndex];
++			cache->chunkNextArray[cIndex] = -1;
++			//cache->chunkLengthArray[otherIndex] += cache->chunkLengthArray[cIndex];
+ 			cIndex = otherIndex;
+ 			cStart = cache->chunkStartArray[cIndex];
+ 
