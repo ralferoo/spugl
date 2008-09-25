@@ -218,14 +218,14 @@ server/%.d: server/%.c
 		| sed '\''s|\($*\)\.o[ :]*|server/\1.o $@ : |g'\'' >$@ ; \
 		[ -s $@ ] || rm -f $@'
 
-server/spu/%.d: server/spu/%.c
-	@$(SHELL) -ec '$(PPUCC) $(PPUCCFLAGSARCH) $(PPUCCFLAGS) -MM $< \
-		| sed '\''s|\($*\)\.o[ :]*|server/spu/\1.o $@ : |g'\'' >$@ ; \
+server/spu/%.D: server/spu/%.c
+	@$(SHELL) -ec '$(SPUCC) $(SPUCCFLAGSARCH) $(SPUCCFLAGS) -MM $< \
+		| sed '\''s|\($*\)\.o[ :]*|server/spu/\1.0 $@ : |g'\'' >$@ ; \
 		[ -s $@ ] || rm -f $@'
 
-server/renderspu/%.d: server/renderspu/%.c
-	@$(SHELL) -ec '$(PPUCC) $(PPUCCFLAGSARCH) $(PPUCCFLAGS) -MM $< \
-		| sed '\''s|\($*\)\.o[ :]*|server/renderspu/\1.o $@ : |g'\'' >$@ ; \
+server/renderspu/%.D: server/renderspu/%.c
+	@$(SHELL) -ec '$(SPUCC) $(SPUCCFLAGSARCH) $(SPUCCFLAGS) -MM $< \
+		| sed '\''s|\($*\)\.o[ :]*|server/renderspu/\1.0 $@ : |g'\'' >$@ ; \
 		[ -s $@ ] || rm -f $@'
 
 ###############################################################################
@@ -234,8 +234,8 @@ server/renderspu/%.d: server/renderspu/%.c
 
 -include $(CLIENT_LIB_TARGETS_C:.c=.d)
 -include $(DAEMON_TARGETS_C:.c=.d)
--include $(SPU_DRIVER_SOURCES:.c=.d)
--include $(RENDER_DRIVER_SOURCES:.c=.d)
+-include $(SPU_DRIVER_SOURCES:.c=.D)
+-include $(RENDER_DRIVER_SOURCES:.c=.D)
 
 ###############################################################################
 #
