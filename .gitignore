@@ -13,6 +13,7 @@ test
 *.tar.gz
 #dependency
 *.d
+*.D
 #outputs
 spugld
 spugld.debug
