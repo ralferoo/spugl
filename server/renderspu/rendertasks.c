@@ -372,7 +372,14 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 			freeChunk!=32 ? freeChunk : -1 );
 #endif
 
+		int w = 64;
+		vec_uint4 Amask = {0, 0, 0, -1};
+		vec_uint4 INITIAL_BASE_ADD = { w*w, 2*w*w, 3*w*w, 4*w*w };
+		vec_uint4 ZEROS = spu_splats(0U);
+		vec_ushort8 INITIAL_i = spu_splats((unsigned short)w);
+	
 		Triangle* triangle;
+		int firstTile;
 		do {
 			// read the triangle data for the current triangle
 			unsigned int extra = chunkTriangle & 127;
@@ -390,12 +397,8 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 			vec_uint4 Adx = (vec_uint4) triangle->area_dx;
 			vec_uint4 Ady = (vec_uint4) triangle->area_dy;
 	
-			int w = 64;
-			vec_uint4 Amask = {0, 0, 0, -1};
-			vec_uint4 bdelta = { w*w, 2*w*w, 3*w*w, 4*w*w };
-	
-			int firstTile = findFirstTile(spu_or(A,Amask), Adx, Ady,
-					spu_splats(0U), spu_splats((unsigned short)w), spu_splats(0U), bdelta, 0,
+			firstTile = findFirstTile(spu_or(A,Amask), Adx, Ady,
+					ZEROS, INITIAL_i, ZEROS, INITIAL_BASE_ADD, 0,
 					chunkStart, chunkLength, chunkEnd);
 	
 			printf("[%d] Processing chunk at %4d len %4d, triangle %04x \n",
