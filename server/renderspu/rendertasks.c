@@ -252,7 +252,7 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushor
 			subdivide(startD, dxD, dyD, spu_add(y,addD), i, spu_splats(spu_extract(newbase,3)), baseadd, type^0x0f);
 
 		} else {
-			printf("block %4x %08x %d,%d\n",
+			printf("[%d] block %4x %08x %d,%d\n", _SPUID,
 				spu_extract(base,0),
 				spu_extract(y, 0),
 				spu_extract(y,0) >> 16,
@@ -269,7 +269,99 @@ int findFirstTile(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_us
 		vec_uint4 base, vec_uint4 baseadd,
 		int type, unsigned int chunkStart, unsigned int chunkLength, unsigned int chunkEnd)
 {
-	return -1;
+	vec_uint4 Ar = spu_add(A, Adx);
+	vec_uint4 Ab = spu_add(A, Ady);
+	vec_uint4 Abr = spu_add(Ar, Ady);
+	unsigned int outside = spu_extract(spu_orx(spu_rlmaska(
+					spu_nor( spu_or(A,Ar), spu_or(Ab,Abr) ), -31)),0);
+
+	if (!outside) {
+		i = spu_rlmask(i, -1);
+		baseadd = spu_rlmask(baseadd, -2);
+		if (spu_extract(i, 1)) {
+			vec_uint4 hdx = spu_rlmaska(Adx, -1);
+			vec_uint4 hdy = spu_rlmaska(Ady, -1);
+
+			vec_uint4 A_hdx 	= spu_add(A,     hdx);
+			vec_uint4 A_hdy		= spu_add(A,     hdy);
+			vec_uint4 A_hdx_hdy	= spu_add(A_hdx, hdy);
+
+			vec_uint4 Adx_hdx	= spu_sub(Adx,hdx);
+			vec_uint4 Ady_hdy	= spu_sub(Ady,hdy);
+
+			// type & 0xf0 = bit 0 of type (&1)
+			// type & 0x0f = bit 1 of type (&2)
+			//
+			//		A	B	C	D
+			//
+			// type 0:	0	y	x+y	x
+			// type 1:	0	x	x+y	y
+			// type 2:	x+y	y	0	x
+			// type 3:	x+y	x	0	y
+
+			vec_uint4 bit1 = spu_maskw( type );
+			vec_uint4 bit0 = spu_maskw( type>>4 );
+
+			vec_uint4 andm = spu_xor( spu_promote(0xffff0000, 0), bit0);
+			vec_uint4 im   = (vec_uint4) i;
+
+			// A
+			vec_uint4 startA = spu_sel( A, A_hdx_hdy, bit1);
+			vec_uint4 dxA	 = spu_sel( hdx, Adx_hdx, bit1);
+			vec_uint4 dyA	 = spu_sel( hdy, Ady_hdy, bit1);
+			vec_uint4 addA	 = spu_and( im, bit1 );
+
+			// B
+			vec_uint4 startB = spu_sel( A_hdy, A_hdx, bit0);
+			vec_uint4 dxB	 = spu_sel( hdx, Adx_hdx, bit0);
+			vec_uint4 dyB	 = spu_sel( Ady_hdy, hdy, bit0);
+			vec_uint4 addB	 = spu_andc( im, andm );
+
+			// C
+			vec_uint4 startC = spu_sel( A_hdx_hdy, A, bit1);
+			vec_uint4 dxC	 = spu_sel( Adx_hdx, hdx, bit1);
+			vec_uint4 dyC	 = spu_sel( Ady_hdy, hdy, bit1);
+			vec_uint4 addC	 = spu_andc( im, bit1 );
+
+			// D
+			vec_uint4 startD = spu_sel( A_hdx, A_hdy, bit0);
+			vec_uint4 dxD	 = spu_sel( Adx_hdx, hdx, bit0);
+			vec_uint4 dyD	 = spu_sel( hdy, Ady_hdy, bit0);
+			vec_uint4 addD	 = spu_and( im, andm );
+
+			vec_uint4 newbase  = spu_add(base, spu_rlmaskqwbyte(baseadd, -4));
+			vec_uint4 baseend  = spu_add(base,baseadd);
+
+			vec_uint4 v_start = spu_splats( chunkStart+1 );
+			vec_uint4 v_end = spu_splats( chunkEnd );
+
+			// chunkStart < baseEnd && chunkEnd > newBase
+			// chunkStart >= baseEnd && chunkEnd > newBase
+/*
+			DEBUG_VEC4( newbase );
+			DEBUG_VEC4( baseend );
+			DEBUG_VEC4( v_start );
+			DEBUG_VEC4( v_end );
+*/
+			vec_uint4 v_process_1 = spu_cmpgt(baseend, v_start);
+			vec_uint4 v_process_2 = spu_cmpgt(v_end, newbase);
+			vec_uint4 v_process = spu_and( v_process_1, v_process_2 );
+
+			DEBUG_VEC4( v_process );
+/*
+			subdivide(startA, dxA, dyA, spu_add(y,addA), i, spu_splats(spu_extract(newbase,0)), baseadd, type^0xf0);
+			subdivide(startB, dxB, dyB, spu_add(y,addB), i, spu_splats(spu_extract(newbase,1)), baseadd, type);
+			subdivide(startC, dxC, dyC, spu_add(y,addC), i, spu_splats(spu_extract(newbase,2)), baseadd, type);
+			subdivide(startD, dxD, dyD, spu_add(y,addD), i, spu_splats(spu_extract(newbase,3)), baseadd, type^0x0f);
+*/
+		} else {
+			printf("[%d] block %4x %08x %d,%d\n", _SPUID,
+				spu_extract(base,0),
+				spu_extract(y, 0),
+				spu_extract(y,0) >> 16,
+				spu_extract(y,0) & 0xffff);
+		}
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -399,7 +491,7 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 	
 			firstTile = findFirstTile(spu_or(A,Amask), Adx, Ady,
 					ZEROS, INITIAL_i, ZEROS, INITIAL_BASE_ADD, 0,
-					chunkStart, chunkLength, chunkEnd);
+					chunkStart, chunkLength, chunkEnd+1);
 	
 			printf("[%d] Processing chunk at %4d len %4d, triangle %04x \n",
 				_SPUID, chunkStart, chunkLength, chunkTriangle);
