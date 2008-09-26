@@ -21,6 +21,8 @@
 #define DEBUG_VEC8(x) __debug_vec8(#x, (vec_ushort8) x)
 #define DEBUG_VECf(x) __debug_vecf(#x, (vec_float4) x)
 
+#define TEST
+
 void __debug_vec4(char* s, vec_uint4 x)
 {
 	printf("[%d] %-20s %08x   %08x   %08x   %08x\n", _SPUID, s,
@@ -32,7 +34,7 @@ void __debug_vec4(char* s, vec_uint4 x)
 
 void __debug_vec8(char* s, vec_ushort8 x)
 {
-	printf("[%d] %-20s %04x %04x %04x %04x %04x %04x %04x %04x\n", _SPUID, s,
+	printf("[%d] %-20s %04x %04x  %04x %04x  %04x %04x  %04x %04x\n", _SPUID, s,
 		spu_extract(x, 0),
 		spu_extract(x, 1),
 		spu_extract(x, 2),
@@ -60,15 +62,36 @@ void debug_render_tasks(RenderableCacheLine* cache)
 {
 	int mask = 0x8000;
 	for (int i=0; i<16; i++) {
-		if (1 || cache->chunksWaiting & mask) {
-			printf("[%d] DEBUG %2d - [%c%c] Start %4d Length %4d End %4d Triangle %x\n",
-				_SPUID, i,
-				cache->chunksWaiting & mask ? 'W': '-',
-				cache->chunksFree & mask ? 'F': '-',
-				cache->chunkStartArray[i],
-				cache->chunkLengthArray[i],
-				cache->chunkStartArray[i] + cache->chunkLengthArray[i],
+		unsigned int chunkNext	= cache->chunkNextArray	   [i];
+		int error = 0; //= ( (chunkNext==255) ? 1:0) ^ (cache->chunksFree&mask ? 1 : 0);
+		if (chunkNext != CHUNK_NEXT_INVALID) {
+		// if (1 || cache->chunksWaiting & mask) {
+		//if (error || ! (cache->chunksFree & mask) ) {
+
+			unsigned int chunkStart    	= cache->chunkStartArray   [i];
+			unsigned int chunkEnd		= cache->chunkStartArray   [chunkNext & CHUNK_NEXT_MASK];
+			//unsigned int chunkLength	= (chunkEnd-chunkStart) & (NUMBER_OF_TILES-1);
+			unsigned int chunkLength	= 1 + ( (chunkEnd-1-chunkStart) & (NUMBER_OF_TILES-1) );
+
+			if (chunkNext == CHUNK_NEXT_RESERVED) {
+			    printf("[%d] %s %2d - RESERVED\n",
+				_SPUID, 
+				error ? "ERROR" : "DEBUG",
+				i );
+			} else {
+			    printf("[%d] %s %2d - [%c%c%c] Start %4d Length %4d End %5d Next %2d (%2x) Triangle %x\n",
+				_SPUID, 
+				error ? "ERROR" : "DEBUG",
+				i,
+				chunkNext & CHUNK_NEXT_BUSY_BIT /*cache->chunksWaiting & mask*/ ? 'W': '-',
+				chunkNext == CHUNK_NEXT_INVALID /*cache->chunksFree & mask*/ ? 'F': '-',
+				chunkNext == CHUNK_NEXT_RESERVED ? 'R': '-',
+				chunkStart,
+				chunkLength,
+				chunkEnd,
+				chunkNext & CHUNK_NEXT_MASK, chunkNext,
 				cache->chunkTriangleArray[i]);
+			}
 		}
 		mask>>=1;
 	}
@@ -78,316 +101,80 @@ char __renderable_base_buffer[ 256 + sizeof(Renderable) ] __attribute__((__align
 unsigned long long currentRenderableBaseAddress = ~0ULL;
 Renderable* currentRenderableBase;
 
-void mergeBlock( RenderableCacheLine* cache, unsigned short cStart, unsigned short cLength, unsigned int cIndex,
-			vec_ushort8 testTri );
-
-void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_render_tasks)
-{
-	const vec_uchar16 SHUFFLE_MERGE_BYTES = (vec_uchar16) {	// merge lo bytes from unsigned shorts (array)
-		1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 };
-
-	const vec_uchar16 SHUFFLE_GET_BUSY_WITH_ONES = (vec_uchar16) {	// get busy flag with ones in unused bytes
-		0xc0, 0xc0, 2, 3, 0xc0,0xc0,0xc0,0xc0, 0xc0,0xc0,0xc0,0xc0 };
-
-	const vec_uchar16 ZERO_BYTES = (vec_uchar16) spu_splats(0);
-
-	char	sync_buffer[128+127];
-	void*	aligned_sync_buffer = (void*) ( ((unsigned long)sync_buffer+127) & ~127 );
-
-	RenderableCacheLine*	cache = (RenderableCacheLine*) aligned_sync_buffer;
-	unsigned long long cache_ea;
-
-	spu_mfcdma64(&cache_ea, eah_render_tasks, eal_render_tasks, sizeof(cache_ea), 0, MFC_GET_CMD);
-	mfc_write_tag_mask(1<<0);
-	mfc_read_tag_status_all();
-
-	while (cache_ea) {
-		// terminate immediately if possible
-		if (spu_stat_in_mbox())
-			return;
-
-		// read the cache line
-		spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
-		spu_readch(MFC_RdAtomicStat);
-
-		unsigned int endTriangle = cache->endTriangle;
-		vec_ushort8 testTriangle = spu_splats((unsigned short) endTriangle);
-
-		vec_uint4 doneTriangleGather = spu_gather( (vec_uchar16) spu_shuffle(
-			(vec_uchar16) spu_cmpeq(testTriangle, cache->chunkTriangle[0]),
-			(vec_uchar16) spu_cmpeq(testTriangle, cache->chunkTriangle[1]),
-			SHUFFLE_MERGE_BYTES) );
-		// doneTriangleGather, rightmost 16 bits of word 0 set if triangle done
-		vec_uint4 v_waiting = spu_splats( (unsigned int)cache->chunksWaiting );
-		vec_uint4 v_free = spu_splats( (unsigned int)cache->chunksFree );
-
-		vec_uint4 v_mayprocess = spu_andc(v_waiting, doneTriangleGather);
-		// v_mayprocess bits are set if chunkWaiting bit set and triangle not complete
-
-		unsigned int chunkToProcess = spu_extract( spu_cntlz(v_mayprocess), 0 )-16;
-		unsigned int freeChunk = spu_extract( spu_cntlz(v_free), 0 )-16;
-
-		unsigned int numberOfWaitingChunks = spu_extract( (vec_uint4)
-						spu_sumb(spu_cntb( (vec_uchar16) v_mayprocess ), ZERO_BYTES), 0);
-
-		if (!spu_extract(v_mayprocess, 0)) {
-			// nothing to process, try the next cache line in the rendering tasks list
-			cache_ea = cache->next;
-			continue;
-		}
-
-		// calculate possible second free chunk
-		vec_uint4 v_free2 = spu_andc(v_free, spu_splats( (unsigned int) (0x8000>>freeChunk) ));
-		unsigned int freeChunk2 = spu_extract( spu_cntlz(v_free2), 0 )-16;
-
-		// read in the renderable's information
-		unsigned long long renderableBase = cache->renderableBase;
-		if (renderableBase != currentRenderableBaseAddress) {
-			currentRenderableBaseAddress = renderableBase;
-			int offset = renderableBase & 127;
-			currentRenderableBase = (Renderable*) (__renderable_base_buffer + offset);
-			unsigned long long end = (renderableBase + sizeof(Renderable) + 127) & ~127;
-			renderableBase &= ~127;
-			unsigned int length = end - renderableBase;
-
-			spu_mfcdma64(__renderable_base_buffer, mfc_ea2h(renderableBase), mfc_ea2l(renderableBase),
-				length, 1, MFC_GET_CMD);
-		}
-
-
-		// at least one of the bits is set, chunkToProcess is a valid result
-		unsigned int chunkStart    	= cache->chunkStartArray   [chunkToProcess];
-		unsigned int chunkLength   	= cache->chunkLengthArray  [chunkToProcess];
-		unsigned int chunkTriangle	= cache->chunkTriangleArray[chunkToProcess];
-
-		// split block up if possible
-		if (numberOfWaitingChunks < CHUNK_DIVIDE_THRESHOLD &&
-		    chunkLength>NUMBER_OF_TILES_PER_CHUNK) {
-			vec_uint4 chunkBitFiddle = spu_splats( chunkStart ^ (chunkStart+chunkLength-1) );
-			unsigned int chunkBitShift = spu_extract(spu_cntlz(chunkBitFiddle), 0);
-			unsigned int chunkSplitSize = ((unsigned int) (1UL<<31)   ) >> chunkBitShift;
-			unsigned int chunkSplitMask = ((unsigned int)((1UL<<31)-1)) >> chunkBitShift;
-			unsigned int chunkBoundary = (chunkStart &~ (chunkSplitMask) ) + chunkSplitSize;
-
-			cache->chunkStartArray   [freeChunk2]	  = chunkBoundary;
-			cache->chunkLengthArray  [freeChunk2]	  = chunkStart + chunkLength - chunkBoundary;
-			cache->chunkTriangleArray[freeChunk2]	  = chunkTriangle;
-			cache->chunkLengthArray  [chunkToProcess] = chunkBoundary - chunkStart;
-			cache->chunksWaiting	|=    0x8000>>freeChunk2;
-			cache->chunksFree	&= ~( 0x8000>>freeChunk2 );
-#ifdef TEST
-			printf("[%d] W=%d Divided chunk %d at %d len %d, remainder chunk %d at %d len %d [%d]\n",
-				_SPUID, numberOfWaitingChunks,
-				chunkToProcess, chunkStart, chunkLength, freeChunk2,
-				cache->chunkStartArray [freeChunk2], cache->chunkLengthArray[freeChunk2],
-				chunkTriangle);
-			debug_render_tasks(cache);
-#endif // TEST
-			chunkLength = chunkBoundary - chunkStart;
-		}
-
-/*
-		// we can process this chunk without using any other chunks
-		if (chunkLength <= NUMBER_OF_TILES_PER_CHUNK) {
-			// reserve the chunk, abort if can't write data
-			cache->chunksWaiting	&= ~( 0x8000>>chunkToProcess );
-			spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
-			if (spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS)
-				continue;
-
-			printf("Processing small chunk %d+%d current triangle %x\n",
-					chunkStart, chunkLength, chunkTriangle);
-		}
-*/
-
-
-		if (spu_extract(v_free, 0) && chunkLength>NUMBER_OF_TILES_PER_CHUNK) {
-			// there's one spare slot to move remainder into, so split the chunk up
-			cache->chunkStartArray   [freeChunk]	  = chunkStart + NUMBER_OF_TILES_PER_CHUNK;
-			cache->chunkLengthArray  [freeChunk]	  = chunkLength - NUMBER_OF_TILES_PER_CHUNK;
-			cache->chunkTriangleArray[freeChunk]	  = chunkTriangle;
-			cache->chunkLengthArray  [chunkToProcess] = NUMBER_OF_TILES_PER_CHUNK;
-			cache->chunksWaiting	|=    0x8000>>freeChunk;
-			cache->chunksFree	&= ~( 0x8000>>freeChunk );
-#ifdef TEST
-			printf("[%d] Split chunk %d at %d len %d, creating remainder chunk %d at %d len %d [%d]\n",
-				_SPUID,
-				chunkToProcess, chunkStart, chunkLength, freeChunk,
-				cache->chunkStartArray [freeChunk], cache->chunkLengthArray[freeChunk],
-				chunkTriangle);
-#endif // TEST
-			chunkLength = NUMBER_OF_TILES_PER_CHUNK;
-		}
-		else if (chunkLength>NUMBER_OF_TILES_PER_CHUNK) {
-			printf("[%d] Unable to split chunk %d at %d len %d\n",
-				_SPUID,
-				chunkToProcess, chunkStart, chunkLength);
-			debug_render_tasks(cache);
-		}
-
-		//cache->chunksBusy	|=    0x8000>>chunkToProcess;
-		cache->chunksWaiting	&= ~( 0x8000>>chunkToProcess );
-
-		// write out the updated cache line
-		spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
-		unsigned int status = spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS;
-		if (status) {
-			// cache is dirty and write failed, reload it and attempt the whole thing again again
-#ifdef TEST
-			printf("[%d] Atomic write failed, retring...\n", _SPUID);
-#endif // TEST
-			continue;
-		}
-
-		// ensure that the currentRenderableBase structure has finished DMA (shouldn't be a problem
-		// but always worth checking)
-		mfc_write_tag_mask(1<<1);
-		mfc_read_tag_status_all();
-
-renderMoreTriangles:
-		// now, if we got here, then we have a successful lock on a chunk
-		endTriangle = process_render_chunk(chunkStart, chunkLength, chunkTriangle, endTriangle,
-					cache->triangleBase, currentRenderableBase);
-
-		// now mark the chunk as complete...
-		do {
-#ifdef TEST
-			printf("[%d] Trying to release chunk %d\n", _SPUID, chunkToProcess);
-#endif // TEST
-
-			spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
-			spu_readch(MFC_RdAtomicStat);
-
-			if (endTriangle != cache->endTriangle) {
-#ifdef TEST
-				printf("[%d] Goalposts moved from %d to %d, currently %d\n", _SPUID,
-					endTriangle, cache->endTriangle, chunkTriangle);
-#endif // TEST
-				chunkTriangle = endTriangle;
-				endTriangle = cache->endTriangle;
-				goto renderMoreTriangles;
-			}
-
-			cache->chunkTriangleArray[chunkToProcess] = endTriangle;
-			cache->chunksWaiting	|=    0x8000>>chunkToProcess;
-
-			vec_ushort8 testTri = spu_splats( (unsigned short) endTriangle );
-			unsigned short cStart = chunkStart;
-			unsigned short cLength = chunkLength;
-			unsigned int   cIndex = chunkToProcess;
-
-			mergeBlock( cache, cStart, cLength, cIndex, testTri );
-
-			// attempt the write
-			spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
-			status = spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS;
-		} while (status);
-	} // while (cache_ea) - process current cache line
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void mergeBlock( RenderableCacheLine* cache, unsigned short cStart, unsigned short cLength, unsigned int cIndex,
-			vec_ushort8 testTri )
+inline void merge_cache_blocks(RenderableCacheLine* cache)
 {
-	const vec_uchar16 SHUFFLE_MERGE_BYTES = (vec_uchar16) {	// merge lo bytes from unsigned shorts (array)
-		1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 };
+	vec_uchar16 next = cache->chunkNext;
 
+	const vec_uchar16 SHUF0 = (vec_uchar16) {
+		0,16,1,17, 2,18,3,19, 4,20,5,21, 6,22, 7,23 };
+	const vec_uchar16 SHUF1 = (vec_uchar16) {
+		8,24,9,25, 10,26,11,27, 12,28,13,29, 14,30,15,31 };
+	const vec_uchar16 MERGE = (vec_uchar16) {
+		0,2,4,6, 8,10,12,14, 16,18,20,22, 24,26,28,30 };
 
-	// merge blocks for as long as possible
-	int continueMergingBlocks;
-	do {
-#ifdef TEST
-		debug_render_tasks(cache);
+//	printf("[%d] Merging:\n", _SPUID);
+//	debug_render_tasks(cache);
+//	DEBUG_VEC8( next );
 
-		printf("[%d] cStart=%d, cLength=%d, cIndex=%d\n",
-			_SPUID, cStart, cLength, cIndex);
-#endif // TEST
-
-		vec_ushort8 testStart = spu_splats( (unsigned short)(cStart+cLength) );
-		vec_ushort8 testEnd = spu_splats( cStart );
-
-		vec_uint4 testTriangleGather = spu_gather( (vec_uchar16) spu_shuffle(
-			(vec_uchar16) spu_cmpeq(testTri, cache->chunkTriangle[0]),
-			(vec_uchar16) spu_cmpeq(testTri, cache->chunkTriangle[1]),
-			SHUFFLE_MERGE_BYTES) );
-
-		vec_uint4 testStartGather = spu_gather( (vec_uchar16) spu_shuffle(
-			(vec_uchar16) spu_cmpeq(testStart, cache->chunkStart[0]),
-			(vec_uchar16) spu_cmpeq(testStart, cache->chunkStart[1]),
-			SHUFFLE_MERGE_BYTES) );
-
-		vec_uint4 testEndGather = spu_gather( (vec_uchar16) spu_shuffle(
-			(vec_uchar16) spu_cmpeq(testEnd,
-					spu_add(cache->chunkLength[0], cache->chunkStart[0])),
-			(vec_uchar16) spu_cmpeq(testEnd,
-					spu_add(cache->chunkLength[1], cache->chunkStart[1])),
-			SHUFFLE_MERGE_BYTES) );
-
-		vec_uint4 testWaiting = spu_splats( (unsigned int)cache->chunksWaiting );
-		vec_uint4 matchMask = spu_and(testWaiting, testTriangleGather);
-
-		vec_uint4 matchFollowing = spu_and( testStartGather, matchMask );
-		vec_uint4 matchPreceding   = spu_and( testEndGather, matchMask );
-
-#ifdef TEST
-		printf("[%d] Join tests: W: %04x T: %04x S:%04x %c E:%04x %c tS:%d tE:%d\n",
-			_SPUID,
-			spu_extract(testWaiting, 0),
-			spu_extract(testTriangleGather, 0),
-			spu_extract(testStartGather, 0), spu_extract(matchFollowing,0) ? '*' : ' ',
-			spu_extract(testEndGather, 0),   spu_extract(matchPreceding,0) ? '*' : ' ',
-			spu_extract(testStart, 0),
-			spu_extract(testEnd, 0));
-#endif // TEST
-
-		if (spu_extract(matchFollowing,0)) {
-			unsigned int otherIndex = spu_extract( spu_cntlz(matchFollowing), 0 )-16;
-#ifdef TEST
-			printf("[%d] Merging %d with following %d, %d+%d and %d+%d\n",
-				_SPUID,
-				cIndex, otherIndex,
-				cache->chunkStartArray[cIndex],
-				cache->chunkLengthArray[cIndex],
-				cache->chunkStartArray[otherIndex],
-				cache->chunkLengthArray[otherIndex]);
-#endif // TEST
-
-			cache->chunksWaiting &= ~( 0x8000>>otherIndex );
-			cache->chunksFree    |=    0x8000>>otherIndex;
-			cache->chunkLengthArray[cIndex] += cache->chunkLengthArray[otherIndex];
-			cLength = cache->chunkLengthArray[cIndex];
-
-#ifdef TEST
-			debug_render_tasks(cache);
-#endif // TEST
+	for (;;) {
+		vec_uchar16 nextnext = spu_shuffle(next, next, next);
+		vec_uchar16 nextmask = spu_and(next, spu_splats((unsigned char)CHUNK_NEXT_MASK));
+	
+		vec_ushort8 firstblock0 = spu_cmpeq( cache->chunkStart[0], 0);
+		vec_ushort8 firstblock1 = spu_cmpeq( cache->chunkStart[1], 0);
+		// change next to word offset, note we don't care what the low bit shifted in is
+		vec_uchar16 firstshuf = (vec_uchar16) spu_sl( (vec_ushort8)nextmask, 1 );
+		vec_uchar16 first = spu_shuffle( firstblock0, firstblock1, firstshuf );
+	
+		vec_ushort8 tri0 = cache->chunkTriangle[0];
+		vec_ushort8 tri1 = cache->chunkTriangle[1];
+		vec_uchar16 trishufhi = spu_or ( firstshuf, spu_splats((unsigned char) 1));
+		vec_uchar16 trishuflo = spu_and( firstshuf, spu_splats((unsigned char) 254));
+	
+		vec_ushort8 ntri0 = spu_shuffle( tri0, tri1, spu_shuffle( trishuflo, trishufhi, SHUF0 ) );
+		vec_ushort8 ntri1 = spu_shuffle( tri0, tri1, spu_shuffle( trishuflo, trishufhi, SHUF1 ) );
+	
+		vec_ushort8 trieq0 = spu_cmpeq( tri0, ntri0 );
+		vec_ushort8 trieq1 = spu_cmpeq( tri1, ntri1 );
+	
+		vec_uchar16 trieq = spu_shuffle( trieq0, trieq1, MERGE );
+		vec_uchar16 combi = spu_orc(first, trieq);
+	
+		vec_uchar16 canmerge = spu_cmpgt( spu_nor(spu_or(next, nextnext), combi), 256-CHUNK_NEXT_BUSY_BIT );
+	
+		vec_uint4 gather = spu_gather( canmerge );
+	
+		vec_uint4 mergeid = spu_sub( spu_cntlz( gather ), spu_promote((unsigned int)16, 0));
+	
+		if( !spu_extract(gather, 0) ) {
+			// debug_render_tasks(cache);
+			return;
 		}
+	
+		//	unsigned int firstchunk = spu_extract(mergeid, 0);
+		//	unsigned int nextchunk = cache->chunkNextArray[firstchunk];
+		vec_uint4 v_chunkNext = (vec_uint4) si_rotqby( next, spu_add(mergeid,13) );
+		vec_uint4 v_chunkNextNext = (vec_uint4) si_rotqby( next, spu_add(v_chunkNext,13) );
 
-		if (spu_extract(matchPreceding,0)) {
-			unsigned int otherIndex = spu_extract( spu_cntlz(matchPreceding), 0 )-16;
-#ifdef TEST
-			printf("[%d] Merging preceding %d with %d, %d+%d and %d+%d\n",
-				_SPUID,
-				otherIndex, cIndex,
-				cache->chunkStartArray[otherIndex],
-				cache->chunkLengthArray[otherIndex],
-				cache->chunkStartArray[cIndex],
-				cache->chunkLengthArray[cIndex]);
-#endif // TEST
+		// cache->chunkNextArray[firstchunk] = cache->chunkNextArray[nextchunk];
+		next = spu_shuffle( (vec_uchar16) v_chunkNextNext, next, (vec_uchar16) si_cbd( mergeid, 0 ) );
 
-			cache->chunksWaiting &= ~( 0x8000>>cIndex );
-			cache->chunksFree    |=    0x8000>>cIndex;
-			cache->chunkLengthArray[otherIndex] += cache->chunkLengthArray[cIndex];
-			cIndex = otherIndex;
-			cStart = cache->chunkStartArray[cIndex];
+		// cache->chunkNextArray[nextchunk] = CHUNK_NEXT_INVALID;
+		next = spu_shuffle( spu_splats( (unsigned char) CHUNK_NEXT_INVALID), next, (vec_uchar16) si_cbd( v_chunkNext, 0 ) );
 
-#ifdef TEST
-			debug_render_tasks(cache);
-#endif // TEST
-		}
+		// this is for debug use only, it's not really needed...
+		// cache->chunkStartArray[nextchunk] = -1;
+		cache->chunkStartArray[ spu_extract(v_chunkNext,0) & 255 ] = -1;
 
-		continueMergingBlocks = spu_extract( spu_or(matchFollowing, matchPreceding), 0);
-	} while(continueMergingBlocks);
+		cache->chunkNext = next;
+//		printf("[%d] ->\n", _SPUID);
+//		DEBUG_VEC8( next );
+//		debug_render_tasks(cache);
+	}
+/*	
+*/
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -476,46 +263,216 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushor
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-unsigned short process_render_chunk(unsigned short chunkStart, unsigned short chunkLength,
-				    unsigned short chunkTriangle, unsigned short endTriangle,
-				    unsigned long long triangleBase, Renderable* renderable)
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+int findFirstTile(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushort8 i,
+		vec_uint4 base, vec_uint4 baseadd,
+		int type, unsigned int chunkStart, unsigned int chunkLength, unsigned int chunkEnd)
 {
+	return -1;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_render_tasks)
+{
+	const vec_uchar16 SHUFFLE_MERGE_BYTES = (vec_uchar16) {	// merge lo bytes from unsigned shorts (array)
+		1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 };
+
+	const vec_uchar16 SHUFFLE_GET_BUSY_WITH_ONES = (vec_uchar16) {	// get busy flag with ones in unused bytes
+		0xc0, 0xc0, 2, 3, 0xc0,0xc0,0xc0,0xc0, 0xc0,0xc0,0xc0,0xc0 };
+
+	const vec_uchar16 ZERO_BYTES = (vec_uchar16) spu_splats(0);
 
 	char trianglebuffer[ 256 + TRIANGLE_MAX_SIZE ];
-	unsigned int extra = chunkTriangle & 127;
-	unsigned long long trianglebuffer_ea = triangleBase + (chunkTriangle & ~127);
-	Triangle* triangle = (Triangle*) (trianglebuffer+extra);
-	unsigned int length = (extra + TRIANGLE_MAX_SIZE + 127) & ~127;
-	spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), length, 0, MFC_GET_CMD);
 
+	char	sync_buffer[128+127];
+	void*	aligned_sync_buffer = (void*) ( ((unsigned long)sync_buffer+127) & ~127 );
+
+	RenderableCacheLine*	cache = (RenderableCacheLine*) aligned_sync_buffer;
+	unsigned long long cache_ea;
+
+	spu_mfcdma64(&cache_ea, eah_render_tasks, eal_render_tasks, sizeof(cache_ea), 0, MFC_GET_CMD);
 	mfc_write_tag_mask(1<<0);
 	mfc_read_tag_status_all();
 
-	printf("[%d] Read triangle %x, next is %x\n", _SPUID, chunkTriangle, triangle->next_triangle);
+	while (cache_ea) {
+		// terminate immediately if possible
+		if (spu_stat_in_mbox())
+			return;
+
+		// read the cache line
+		spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
+		spu_readch(MFC_RdAtomicStat);
+
+		unsigned int endTriangle = cache->endTriangle;
+		vec_ushort8 testTriangle = spu_splats((unsigned short) endTriangle);
+
+		// check to see if chunk is already at the last triangle
+		vec_uint4 doneChunkGather = spu_gather( (vec_uchar16) spu_shuffle(
+			(vec_uchar16) spu_cmpeq(testTriangle, cache->chunkTriangle[0]),
+			(vec_uchar16) spu_cmpeq(testTriangle, cache->chunkTriangle[1]),
+			SHUFFLE_MERGE_BYTES) );
+
+		// check if the chunk is free
+		vec_uint4 freeChunkGather = spu_gather(
+			spu_cmpeq( spu_splats( (unsigned char) CHUNK_NEXT_INVALID ), cache->chunkNext ) );
+
+		// check to see if the chunk is being processed
+		vec_uint4 busyChunkGather = spu_gather(
+			spu_cmpgt( cache->chunkNext, //spu_and(cache->chunkNext, CHUNK_NEXT_MASK),
+				   spu_splats( (unsigned char) (CHUNK_NEXT_BUSY_BIT-1) ) ) );
+
+		// doneChunkGather, freeChunkGather, busyChunkGather - rightmost 16 bits of word 0
+		// note that if freeChunkGather is true then busyChunkGather must also be true
+
+		// done=false, free=false, busy=false -> can process
+		// free=false, busy=false -> can be merged
+
+		// decide which chunk to process
+		vec_uint4 mayProcessBits = spu_sl( spu_nor( doneChunkGather, busyChunkGather ), 16);
+		unsigned int chunkToProcess = spu_extract( spu_cntlz( mayProcessBits ), 0);
+		unsigned int freeChunk = spu_extract( spu_cntlz( spu_sl( freeChunkGather, 16 ) ), 0);
+
+		// if there's nothing to process, try the next cache line in the rendering tasks list
+		if (!spu_extract(mayProcessBits, 0)) {
+			cache_ea = cache->next;
+			// __asm("stop 0x2111\n\t.word 0");
+			continue;
+		}
+		
+		unsigned int chunkStart    	= cache->chunkStartArray   [chunkToProcess];
+		unsigned int chunkTriangle	= cache->chunkTriangleArray[chunkToProcess];
+		unsigned int chunkNext		= cache->chunkNextArray	   [chunkToProcess] & CHUNK_NEXT_MASK;
+		unsigned int chunkEnd		= (cache->chunkStartArray  [chunkNext]-1) & (NUMBER_OF_TILES-1);
+		unsigned int chunkLength	= 1 + chunkEnd-chunkStart;
+
+		// only need an extra block if the block is especially long
+		if (chunkLength <= NUMBER_OF_TILES_PER_CHUNK) {
+			freeChunk = 32;
+		}
+
+		// mark this block as busy
+		cache->chunkNextArray[chunkToProcess] |= CHUNK_NEXT_BUSY_BIT;
+
+		// if there's at least one free chunk, claim it
+		if (freeChunk != 32) {
+			cache->chunkNextArray[freeChunk] = CHUNK_NEXT_RESERVED;
+			// cache->chunkStartArray[freeChunk] = 12345;
+		}
+
+		// write the cache line back
+		spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
+		if (spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS)
+			continue;
+
+#ifdef INFO
+		printf("[%d] Claimed chunk %d (%d-%d len %d) at tri %x end %x with free chunk %d\n", _SPUID,
+			chunkToProcess, chunkStart, chunkEnd, chunkLength, chunkTriangle, endTriangle,
+			freeChunk!=32 ? freeChunk : -1 );
+#endif
+
+		Triangle* triangle;
+		do {
+			// read the triangle data for the current triangle
+			unsigned int extra = chunkTriangle & 127;
+			unsigned long long triangleBase = cache->triangleBase;
+			unsigned long long trianglebuffer_ea = triangleBase + (chunkTriangle & ~127);
+			triangle = (Triangle*) (trianglebuffer+extra);
+			unsigned int length = (extra + TRIANGLE_MAX_SIZE + 127) & ~127;
+			spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea),
+					length, 0, MFC_GET_CMD);
+			mfc_write_tag_mask(1<<0);
+			mfc_read_tag_status_all();
+
+			// get the triangle deltas
+			vec_uint4 A   = (vec_uint4) triangle->area;
+			vec_uint4 Adx = (vec_uint4) triangle->area_dx;
+			vec_uint4 Ady = (vec_uint4) triangle->area_dy;
+	
+			int w = 64;
+			vec_uint4 Amask = {0, 0, 0, -1};
+			vec_uint4 bdelta = { w*w, 2*w*w, 3*w*w, 4*w*w };
+	
+			int firstTile = findFirstTile(spu_or(A,Amask), Adx, Ady,
+					spu_splats(0U), spu_splats((unsigned short)w), spu_splats(0U), bdelta, 0,
+					chunkStart, chunkLength, chunkEnd);
+	
+			printf("[%d] Processing chunk at %4d len %4d, triangle %04x \n",
+				_SPUID, chunkStart, chunkLength, chunkTriangle);
+	//		DEBUG_VEC4( A );
+	//		DEBUG_VEC4( Adx );
+	//		DEBUG_VEC4( Ady );
+		} while (0);
+
+		// fake split up the chunk
+		if (freeChunk != 32) {
+			do {
+				// read the cache line
+				spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
+				spu_readch(MFC_RdAtomicStat);
+
+				// chain in the free chunk, keeping this one marked as busy
+				cache->chunkStartArray[freeChunk] = chunkStart + NUMBER_OF_TILES_PER_CHUNK;
+				cache->chunkNextArray[freeChunk] = chunkNext;
+				cache->chunkNextArray[chunkToProcess] = freeChunk | CHUNK_NEXT_BUSY_BIT;
+				cache->chunkTriangleArray[freeChunk] = chunkTriangle;
+
+				// write the cache line back
+				spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
+			} while (spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS);
+
+			// finally after the write succeeded, update the variables
+			chunkNext = freeChunk;
+			chunkLength = NUMBER_OF_TILES_PER_CHUNK;
+			chunkEnd = chunkStart + chunkLength - 1;
+			freeChunk = 32;
+		}
+
+#ifdef INFO
+		printf("[%d] Processing chunk %d (%d-%d len %d) at tri %x end %x\n", _SPUID,
+			chunkToProcess, chunkStart, chunkEnd, chunkLength, chunkTriangle, endTriangle);
+#endif
+
+//		endTriangle = process_render_chunk(chunkStart, chunkLength, chunkTriangle, endTriangle,
+//					cache->triangleBase, currentRenderableBase);
+
+		endTriangle = triangle->next_triangle;
 
 
-	vec_uint4 A   = (vec_uint4) triangle->area;
-	vec_uint4 Adx = (vec_uint4) triangle->area_dx;
-	vec_uint4 Ady = (vec_uint4) triangle->area_dy;
+		// process stuff
+//		for (int p=0; p<1; p++)
+//			__asm("stop 0x2111\n\t.word 0");
 
-	int w = 64;
-	vec_uint4 Amask = {0, 0, 0, -1};
-	vec_uint4 bdelta = { w*w, 2*w*w, 3*w*w, 4*w*w };
-	subdivide(spu_or(A,Amask), Adx, Ady, spu_splats(0U), spu_splats((unsigned short)w), spu_splats(0U), bdelta, 0);
+		// update the cache line again
+		do {
+			// read the cache line
+			spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
+			spu_readch(MFC_RdAtomicStat);
 
-/*
-	printf("[%d] Screen address: %llx, id %x, locks %d, size %dx%d, stride 0x%x, format %d\n",
-		_SPUID,
-		renderable->ea, renderable->id, renderable->locks,
-		renderable->width, renderable->height, renderable->stride, renderable->format);
-*/
+			// mark chunk as available for processing, update endTriangle
+			cache->chunkNextArray[chunkToProcess] &= ~CHUNK_NEXT_BUSY_BIT;
+			cache->chunkTriangleArray[chunkToProcess] = endTriangle;
 
-	printf("[%d] Processing chunk at %d len %d, triangle %x to renderable %x\n",
-		_SPUID,
-		chunkStart, chunkLength, chunkTriangle, renderable->id);
+			// free spare chunk if we used one
+			if (freeChunk != 32) {
+				cache->chunkNextArray[freeChunk] = CHUNK_NEXT_INVALID;
+			}
 
-//	__asm("stop 0x2110\n\t.word 0");
+			// merge blocks if possible
+			merge_cache_blocks(cache);
 
-	return triangle->next_triangle;
+			// write the cache line back
+			spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
+		} while (spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS);
+
+#ifdef INFO
+		printf("[%d] Finished chunk %d, now at %x\n", _SPUID, chunkToProcess, endTriangle);
+		debug_render_tasks(cache);
+#endif
+	} // while (cache_ea) - process current cache line
 }
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 

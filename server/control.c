@@ -46,6 +46,13 @@ struct __SPU_HANDLE {
 
 #ifdef USE_LIBSPE2
 /* PPE Callback Function */
+int sleep_callback(void *ls_base_tmp, unsigned int data) {
+	char *ls_base = (char *)ls_base_tmp; 
+	usleep(125000);
+
+	return 0;
+}
+
 int my_callback(void *ls_base_tmp, unsigned int data) {
 	char *ls_base = (char *)ls_base_tmp; 
 //	spe_offset_t params_offset = *((spe_offset_t *)(ls_base + data));
@@ -93,6 +100,7 @@ SPU_HANDLE _init_spu_thread(void* list, int master)
 	context->list = list;
 
 	spe_callback_handler_register(my_callback, 0x10, SPE_CALLBACK_NEW);
+	spe_callback_handler_register(sleep_callback, 0x11, SPE_CALLBACK_NEW);
 
 #ifdef USE_LIBSPE2
 	context->spe_ctx = spe_context_create(SPE_EVENTS_ENABLE|SPE_MAP_PS, NULL);

@@ -17,9 +17,18 @@
 #include <spu_intrinsics.h>
 #endif // SPU_REGS
 
-#define NUMBER_OF_TILES_PER_CHUNK		7777	// number of tiles an SPU can process at once
+#define NUMBER_OF_TILES				4096
+
+#define NUMBER_OF_TILES_PER_CHUNK		16	// number of tiles an SPU can process at once
 #define CHUNK_DIVIDE_THRESHOLD			3	// only subdivide if we have less than this free
 							// i _think_ this*num_spus+1 <= 16
+						
+#define CHUNK_NEXT_MASK				31
+#define CHUNK_NEXT_END				64	// mostly so it wraps around
+#define CHUNK_NEXT_INVALID			255	// if next chunk == 255, then it's free
+#define CHUNK_NEXT_BUSY_BIT			32
+#define CHUNK_NEXT_RESERVED			254	// was free, but now claimed
+
 struct __Renderable;
 extern unsigned int _SPUID;
 
@@ -30,6 +39,24 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 unsigned short process_render_chunk(unsigned short chunkStart, unsigned short chunkLength,
 				    unsigned short chunkTriangle, unsigned short endTriangle,
 				    unsigned long long triangleBase, struct __Renderable* renderable);
+
+/*
+ *
+ * vec_ushort8	[2]	chunkstart[16]	32 bytes	  0  32
+ * vec_ushort8	[2]	triangle[16]	32 bytes	 32  64
+ * vec_uchar16	[1]	chunknext[16]	16 bytes	 64  80
+ *
+ * unsigned long long	nextcachethingy	 8 bytes	 80  88
+ * unsigned long long	memorybuffer	 8 bytes	 88  96
+ * unsigned int		id		 4 bytes	 96 100
+ * unsigned short	width		 2 bytes	100 102
+ * unsigned short	height		 2 bytes	102 104
+ * unsigned int		stride		 4 bytes	104 108
+ * unsigned int		format		 4 bytes	108 112
+ * unsigned int		width		 4 bytes	112 116
+ * unsigned short	endTriangle	 2 bytes	116 118
+ * 
+ */
 
 typedef struct {
 	union {
@@ -48,17 +75,26 @@ typedef struct {
 // 64
 	union {
 #ifdef SPU_REGS
-		vec_ushort8	chunkLength[2];
+		vec_uchar16	chunkNext;
 #endif // SPU_REGS
-		unsigned short	chunkLengthArray[16];
+		unsigned char	chunkNextArray[16];
 	};
+// 80
+
+//	union {
+//#ifdef SPU_REGS
+//		vec_ushort8	chunkLength[2];
+//#endif // SPU_REGS
+//		unsigned short	chunkLengthArray[16];
+//	};
+
 // 96
 	unsigned long long	next;
 	unsigned long long	triangleBase;
 	unsigned long long	renderableBase;
 // 120
-	unsigned short	chunksWaiting;				// bitmask of chunks waiting to be rendered
-	unsigned short	chunksFree;				// bitmask of chunks not yet allocated
+//	unsigned short	chunksWaiting;				// bitmask of chunks waiting to be rendered
+//	unsigned short	chunksFree;				// bitmask of chunks not yet allocated
 	unsigned short	endTriangle;				// triangle buffer that is waiting to be filled
 
 //	unsigned short	chunksFree; // ~(chunksWaiting|chunksBusy)	// bitmask of chunks that can be allocated

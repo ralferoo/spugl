@@ -69,10 +69,12 @@ int blockManagementCreateRenderable(void* buffer, int width, int height, int str
 			memset(cacheLine, 0, 128);
 			cacheLine->chunkTriangleArray[0] = 0;
 			cacheLine->chunkStartArray[0] = 0;
-			cacheLine->chunkLengthArray[0] = 4096;
+			memset(&cacheLine->chunkNextArray, -1, 16);
+			cacheLine->chunkNextArray[0] = 0; //CHUNK_NEXT_END;
+			//cacheLine->chunkLengthArray[0] = 4096;
 			cacheLine->next = *_block_mgr_render_tasks;
-			cacheLine->chunksWaiting = 0x8000;
-			cacheLine->chunksFree = 0x7fff;
+			//cacheLine->chunksWaiting = 0x8000;
+			//cacheLine->chunksFree = 0x7fff;
 			cacheLine->endTriangle = 0;
 			cacheLine->renderableBase = (unsigned long long) ( (unsigned long)result );
 			cacheLine->triangleBase = result->cacheLine + 128;

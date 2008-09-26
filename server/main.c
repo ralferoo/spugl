@@ -9,6 +9,8 @@
  *
  ****************************************************************************/
 
+#define NUMBER_OF_RENDER_SPU_THREADS 5
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -31,8 +33,6 @@
 #include "connection.h"
 #include "ppufuncs.h"
 #include "framebuffer.h"
-
-#define NUMBER_OF_RENDER_SPU_THREADS 5
 
 #ifndef MNT_DETACH
 // not defined on my system for some reason :(
