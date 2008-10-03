@@ -210,22 +210,22 @@ server/render_main.handle.spe: $(RENDER_DRIVER_TARGETS) Makefile
 
 client/%.d: client/%.c
 	@$(SHELL) -ec '$(PPUCC) $(PPUCCFLAGSARCH) $(PPUCCFLAGS) -MM $< \
-		| sed '\''s|\($*\)\.o[ :]*|client/\1.o32 client/\1.o64 $@ : |g'\'' >$@ ; \
+		| sed '\''s|\($*\)\.o[ :]*|client/\1.o32 client/\1.o64 $@ : \\\n  |g'\'' >$@ ; \
 		[ -s $@ ] || rm -f $@'
 
 server/%.d: server/%.c
 	@$(SHELL) -ec '$(PPUCC) $(PPUCCFLAGSARCH) $(PPUCCFLAGS) -MM $< \
-		| sed '\''s|\($*\)\.o[ :]*|server/\1.o $@ : |g'\'' >$@ ; \
+		| sed '\''s|\($*\)\.o[ :]*|server/\1.o $@ : \\\n  |g'\'' >$@ ; \
 		[ -s $@ ] || rm -f $@'
 
 server/spu/%.D: server/spu/%.c
 	@$(SHELL) -ec '$(SPUCC) $(SPUCCFLAGSARCH) $(SPUCCFLAGS) -MM $< \
-		| sed '\''s|\($*\)\.o[ :]*|server/spu/\1.0 $@ : |g'\'' >$@ ; \
+		| sed '\''s|\($*\)\.o[ :]*|server/spu/\1.0 $@ : \\\n  |g'\'' >$@ ; \
 		[ -s $@ ] || rm -f $@'
 
 server/renderspu/%.D: server/renderspu/%.c
 	@$(SHELL) -ec '$(SPUCC) $(SPUCCFLAGSARCH) $(SPUCCFLAGS) -MM $< \
-		| sed '\''s|\($*\)\.o[ :]*|server/renderspu/\1.0 $@ : |g'\'' >$@ ; \
+		| sed '\''s|\($*\)\.o[ :]*|server/renderspu/\1.0 $@ : \\\n  |g'\'' >$@ ; \
 		[ -s $@ ] || rm -f $@'
 
 ###############################################################################
