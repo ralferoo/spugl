@@ -171,7 +171,7 @@ inline void merge_cache_blocks(RenderableCacheLine* cache)
 
 unsigned int subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_short8 y, vec_short8 i,
 		vec_int4 base, vec_int4 baseadd,
-		int type, int blockMax, unsigned int found);
+		int type, vec_int4 blockMax, unsigned int found);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -225,7 +225,7 @@ void processTriangleChunks(Triangle* triangle, unsigned int firstTile, unsigned 
 //	DEBUG_VEC4(hdy);
 
 	unsigned int found = subdivide(A, Adx, Ady,
-		(vec_short8) ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, chunkEnd-firstTile, 0); 
+		(vec_short8) ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, spu_splats(chunkEnd-firstTile), 0); 
 //, spu_splats( chunkStart ), spu_splats( chunkEnd ) );
 
 	// process the tiles
@@ -246,7 +246,7 @@ void processTriangleChunks(Triangle* triangle, unsigned int firstTile, unsigned 
 
 unsigned int subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_short8 y, vec_short8 i,
 		vec_int4 base, vec_int4 baseadd,
-		int type, int blockMax, unsigned int found)
+		int type, vec_int4 blockMax, unsigned int found)
 {
 	vec_uint4 Ar = spu_add(A, Adx);
 	vec_uint4 Ab = spu_add(A, Ady);
@@ -309,17 +309,32 @@ unsigned int subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_short8 y, 
 			vec_short8 addD	 = spu_and( im, (vec_short8) andm );
 
 			vec_int4 newbase  = spu_add(base, spu_rlmaskqwbyte(baseadd, -4));
-//			vec_uint4 baseend  = spu_add(base,baseadd);
+			vec_int4 baseend  = spu_add(base,baseadd);
 
-			found  = subdivide(startA, dxA, dyA, spu_add(y,addA), i, spu_splats(spu_extract(newbase,0)), baseadd, type^0xf0, blockMax, found);
-			found = subdivide(startB, dxB, dyB, spu_add(y,addB), i, spu_splats(spu_extract(newbase,1)), baseadd, type, blockMax, found);
-			found = subdivide(startC, dxC, dyC, spu_add(y,addC), i, spu_splats(spu_extract(newbase,2)), baseadd, type, blockMax, found);
-			found = subdivide(startD, dxD, dyD, spu_add(y,addD), i, spu_splats(spu_extract(newbase,3)), baseadd, type^0x0f, blockMax, found);
+			// chunkStart < baseEnd && chunkEnd > newBase
+			// chunkStart >= baseEnd && chunkEnd > newBase
+
+			vec_uint4 v_process_1 = spu_cmpgt(baseend, spu_splats(0));
+			vec_uint4 v_process_2 = spu_cmpgt(blockMax, newbase);
+			vec_uint4 v_process = spu_and( v_process_1, v_process_2 );
+
+			if (spu_extract(v_process, 0)) {
+				found  = subdivide(startA, dxA, dyA, spu_add(y,addA), i, spu_splats(spu_extract(newbase,0)), baseadd, type^0xf0, blockMax, found);
+			}
+			if (spu_extract(v_process, 1)) {
+				found = subdivide(startB, dxB, dyB, spu_add(y,addB), i, spu_splats(spu_extract(newbase,1)), baseadd, type, blockMax, found);
+			}
+			if (spu_extract(v_process, 2)) {
+				found = subdivide(startC, dxC, dyC, spu_add(y,addC), i, spu_splats(spu_extract(newbase,2)), baseadd, type, blockMax, found);
+			}
+			if (spu_extract(v_process, 3)) {
+				found = subdivide(startD, dxD, dyD, spu_add(y,addD), i, spu_splats(spu_extract(newbase,3)), baseadd, type^0x0f, blockMax, found);
+			}
 
 		} else {
 			int block = spu_extract(base,0);
 
-			if (block>=0 && block<=blockMax) {
+			if (block>=0 && block<=spu_extract(blockMax, 0)) {
 				found |= 0x80000000>>block;
 				processTile.coordArray[block] = spu_extract( (vec_uint4)y, 0);
 				processTile.A[block] = A;
