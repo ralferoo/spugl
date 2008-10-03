@@ -362,7 +362,6 @@ int findFirstTile(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_us
 int findFirstTriangleTile(Triangle* triangle, unsigned int chunkStart, unsigned int chunkEnd)
 {
 	int w = 64;
-	vec_uint4 Amask = {0, 0, 0, -1};
 	vec_uint4 INITIAL_BASE_ADD = { w*w, 2*w*w, 3*w*w, 4*w*w };
 	vec_uint4 ZEROS = spu_splats(0U);
 	vec_ushort8 INITIAL_i = spu_splats((unsigned short)w);
@@ -371,7 +370,7 @@ int findFirstTriangleTile(Triangle* triangle, unsigned int chunkStart, unsigned 
 	vec_uint4 Adx = (vec_uint4) triangle->area_dx;
 	vec_uint4 Ady = (vec_uint4) triangle->area_dy;
 	
-	return findFirstTile(spu_or(A,Amask), Adx, Ady,
+	return findFirstTile(A, Adx, Ady,
 		ZEROS, INITIAL_i, ZEROS, INITIAL_BASE_ADD, 0,
 		spu_splats( chunkStart ), spu_splats( chunkEnd ) );
 }

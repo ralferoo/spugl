@@ -176,26 +176,11 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 	if (!spu_extract(valid,0))
 		return triangle;
 
-/*
-	DEBUG_VEC4(total);
-	DEBUG_VEC4(triA);
-	DEBUG_VEC4(triAdx);
-	DEBUG_VEC4(triAdy);
-*/
-
-	triangle->area = triA;
+	// remove requirement to do this in the hilbert calcs
+	vec_int4 Amask = {0, 0, 0, -1};
+	triangle->area = spu_or(triA,Amask);
 	triangle->area_dx = triAdx;
 	triangle->area_dy = triAdy;
-
-/*
-	vec_float4 cv_A = spu_convtf(triA, 4);
-	vec_float4 cv_Adx = spu_convtf(triAdx, 15);
-	vec_float4 cv_Ady = spu_convtf(triAdy, 15);
-	DEBUG_VECf( cv_A );
-	DEBUG_VECf( cv_Adx );
-	DEBUG_VECf( cv_Ady );
-
-*/
 
 	triangle->x = TRIx;
 	triangle->y = TRIy;
