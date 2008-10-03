@@ -169,9 +169,84 @@ inline void merge_cache_blocks(RenderableCacheLine* cache)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushort8 i,
-		vec_uint4 base, vec_uint4 baseadd,
-		int type)
+unsigned int subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_short8 y, vec_short8 i,
+		vec_int4 base, vec_int4 baseadd,
+		int type, int blockMax, unsigned int found);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+struct {
+//	union {
+//		vec_uchar16 found;
+//		unsigned char foundArray[16];
+//	};
+
+	vec_uint4 A  [NUMBER_OF_TILES_PER_CHUNK];
+
+	unsigned int found;
+	unsigned int coordArray[NUMBER_OF_TILES_PER_CHUNK];
+} processTile;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void initTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
+{
+	// printf("[%d] Init\n", _SPUID);
+	processTile.found = 0;
+}
+void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
+{
+	printf("[%d] Flush tiles %04x\n", _SPUID, processTile.found>>16);
+}
+
+void processTriangleChunks(Triangle* triangle, unsigned int firstTile, unsigned int chunkEnd, unsigned int chunkTriangle)
+{
+	printf("[%d] Processing tiles %d to %d on tri %04x\n",
+		_SPUID, firstTile, chunkEnd, chunkTriangle);
+
+	int w = 64;
+	vec_int4 INITIAL_BASE = spu_splats(-firstTile);
+	vec_int4 INITIAL_BASE_ADD = { w*w, 2*w*w, 3*w*w, 4*w*w };
+	vec_short8 ZEROS = spu_splats(0U);
+	vec_short8 INITIAL_i = spu_splats((short)w);
+	
+	vec_uint4 A   = (vec_uint4) triangle->area;
+	vec_uint4 Adx = (vec_uint4) triangle->area_dx;
+	vec_uint4 Ady = (vec_uint4) triangle->area_dy;
+	
+	vec_uint4 hdx = spu_rlmaska(Adx, -6);
+	vec_uint4 hdy = spu_rlmaska(Ady, -6);
+
+//	DEBUG_VEC4(A);
+//	DEBUG_VEC4(Adx);
+//	DEBUG_VEC4(Ady);
+
+//	DEBUG_VEC4(hdx);
+//	DEBUG_VEC4(hdy);
+
+	unsigned int found = subdivide(A, Adx, Ady,
+		(vec_short8) ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, chunkEnd-firstTile, 0); 
+//, spu_splats( chunkStart ), spu_splats( chunkEnd ) );
+
+	// process the tiles
+	processTile.found |= found;
+	while (found) {
+		unsigned int block = spu_extract( spu_cntlz( spu_promote(found, 0) ), 0);
+		found &= ~( 0x80000000>>block );
+
+		unsigned int coord = processTile.coordArray[block];
+		printf("[%d] Block %x %08x\n", _SPUID, block, coord);
+
+		A=processTile.A[block];
+		// DEBUG_VEC4(A);
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+unsigned int subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_short8 y, vec_short8 i,
+		vec_int4 base, vec_int4 baseadd,
+		int type, int blockMax, unsigned int found)
 {
 	vec_uint4 Ar = spu_add(A, Adx);
 	vec_uint4 Ab = spu_add(A, Ady);
@@ -207,51 +282,60 @@ void subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushor
 			vec_uint4 bit0 = spu_maskw( type>>4 );
 
 			vec_uint4 andm = spu_xor( spu_promote(0xffff0000, 0), bit0);
-			vec_uint4 im   = (vec_uint4) i;
+			vec_short8 im   = i;
 
 			// A
 			vec_uint4 startA = spu_sel( A, A_hdx_hdy, bit1);
 			vec_uint4 dxA	 = spu_sel( hdx, Adx_hdx, bit1);
 			vec_uint4 dyA	 = spu_sel( hdy, Ady_hdy, bit1);
-			vec_uint4 addA	 = spu_and( im, bit1 );
+			vec_short8 addA	 = spu_and( im, (vec_short8) bit1 );
 
 			// B
 			vec_uint4 startB = spu_sel( A_hdy, A_hdx, bit0);
 			vec_uint4 dxB	 = spu_sel( hdx, Adx_hdx, bit0);
 			vec_uint4 dyB	 = spu_sel( Ady_hdy, hdy, bit0);
-			vec_uint4 addB	 = spu_andc( im, andm );
+			vec_short8 addB	 = spu_andc( im, (vec_short8) andm );
 
 			// C
 			vec_uint4 startC = spu_sel( A_hdx_hdy, A, bit1);
 			vec_uint4 dxC	 = spu_sel( Adx_hdx, hdx, bit1);
 			vec_uint4 dyC	 = spu_sel( Ady_hdy, hdy, bit1);
-			vec_uint4 addC	 = spu_andc( im, bit1 );
+			vec_short8 addC	 = spu_andc( im, (vec_short8) bit1 );
 
 			// D
 			vec_uint4 startD = spu_sel( A_hdx, A_hdy, bit0);
 			vec_uint4 dxD	 = spu_sel( Adx_hdx, hdx, bit0);
 			vec_uint4 dyD	 = spu_sel( hdy, Ady_hdy, bit0);
-			vec_uint4 addD	 = spu_and( im, andm );
+			vec_short8 addD	 = spu_and( im, (vec_short8) andm );
 
-			vec_uint4 newbase  = spu_add(base, spu_rlmaskqwbyte(baseadd, -4));
-			vec_uint4 baseend  = spu_add(base,baseadd);
+			vec_int4 newbase  = spu_add(base, spu_rlmaskqwbyte(baseadd, -4));
+//			vec_uint4 baseend  = spu_add(base,baseadd);
 
-			subdivide(startA, dxA, dyA, spu_add(y,addA), i, spu_splats(spu_extract(newbase,0)), baseadd, type^0xf0);
-			subdivide(startB, dxB, dyB, spu_add(y,addB), i, spu_splats(spu_extract(newbase,1)), baseadd, type);
-			subdivide(startC, dxC, dyC, spu_add(y,addC), i, spu_splats(spu_extract(newbase,2)), baseadd, type);
-			subdivide(startD, dxD, dyD, spu_add(y,addD), i, spu_splats(spu_extract(newbase,3)), baseadd, type^0x0f);
+			found  = subdivide(startA, dxA, dyA, spu_add(y,addA), i, spu_splats(spu_extract(newbase,0)), baseadd, type^0xf0, blockMax, found);
+			found = subdivide(startB, dxB, dyB, spu_add(y,addB), i, spu_splats(spu_extract(newbase,1)), baseadd, type, blockMax, found);
+			found = subdivide(startC, dxC, dyC, spu_add(y,addC), i, spu_splats(spu_extract(newbase,2)), baseadd, type, blockMax, found);
+			found = subdivide(startD, dxD, dyD, spu_add(y,addD), i, spu_splats(spu_extract(newbase,3)), baseadd, type^0x0f, blockMax, found);
 
 		} else {
-			printf("[%d] block %4x %08x %d,%d\n", _SPUID,
-				spu_extract(base,0),
-				spu_extract(y, 0),
-				spu_extract(y,0) >> 16,
-				spu_extract(y,0) & 0xffff);
+			int block = spu_extract(base,0);
+
+			if (block>=0 && block<=blockMax) {
+				found |= 0x80000000>>block;
+				processTile.coordArray[block] = spu_extract( (vec_uint4)y, 0);
+				processTile.A[block] = A;
+			}
 		}
 	}
+	return found;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+int findFirstTriangleTile(Triangle* triangle, unsigned int chunkStart, unsigned int chunkEnd);
+
+int findFirstTile(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushort8 i,
+		vec_uint4 base, vec_uint4 baseadd,
+		int type, vec_uint4 v_start, vec_uint4 v_end);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -375,22 +459,6 @@ int findFirstTriangleTile(Triangle* triangle, unsigned int chunkStart, unsigned 
 		spu_splats( chunkStart ), spu_splats( chunkEnd ) );
 }
 
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void processTriangleChunks(Triangle* triangle, unsigned int firstTile, unsigned int chunkEnd, unsigned int chunkTriangle)
-{
-	printf("[%d] Processing tiles %d to %d on tri %04x\n",
-		_SPUID, firstTile, chunkEnd, chunkTriangle);
-
-	for(;;) {
-		int first = findFirstTriangleTile(triangle, firstTile, chunkEnd);
-		if (first<0)
-			return;
-		printf("[%d] Block %d\n", _SPUID, first);
-		firstTile = first+1;
-	}
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -640,8 +708,9 @@ retry:
 			freeChunk = 32;
 
 			// now we can process the block up to endTriangle
-			while (chunkTriangle != endTriangle) {
+			initTileBuffers(thisBlockStart, chunkEnd);
 
+			while (chunkTriangle != endTriangle) {
 #ifdef INFO
 				printf("[%d] Processing chunk %d at %4d len %4d, triangle %04x first=%d tbs=%d\n",
 					_SPUID, chunkToProcess, chunkStart, chunkLength,
@@ -681,6 +750,9 @@ retry:
 				mfc_write_tag_mask(1<<0);
 				mfc_read_tag_status_all();
 			} // until chunkTriangle == endTriangle
+
+			// flush any output buffers
+			flushTileBuffers(thisBlockStart, chunkEnd);
 
 		} // firstTile>=0
 
