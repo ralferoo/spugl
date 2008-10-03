@@ -114,10 +114,6 @@ inline void merge_cache_blocks(RenderableCacheLine* cache)
 	const vec_uchar16 MERGE = (vec_uchar16) {
 		0,2,4,6, 8,10,12,14, 16,18,20,22, 24,26,28,30 };
 
-//	printf("[%d] Merging:\n", _SPUID);
-//	debug_render_tasks(cache);
-//	DEBUG_VEC8( next );
-
 	for (;;) {
 		vec_uchar16 nextnext = spu_shuffle(next, next, next);
 		vec_uchar16 nextmask = spu_and(next, spu_splats((unsigned char)CHUNK_NEXT_MASK));
@@ -149,7 +145,6 @@ inline void merge_cache_blocks(RenderableCacheLine* cache)
 		vec_uint4 mergeid = spu_sub( spu_cntlz( gather ), spu_promote((unsigned int)16, 0));
 	
 		if( !spu_extract(gather, 0) ) {
-			// debug_render_tasks(cache);
 			return;
 		}
 	
@@ -169,12 +164,7 @@ inline void merge_cache_blocks(RenderableCacheLine* cache)
 		cache->chunkStartArray[ spu_extract(v_chunkNext,0) & 255 ] = -1;
 
 		cache->chunkNext = next;
-//		printf("[%d] ->\n", _SPUID);
-//		DEBUG_VEC8( next );
-//		debug_render_tasks(cache);
 	}
-/*	
-*/
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -490,6 +480,7 @@ trynextcacheline:
 		// if there's at least one free chunk, claim it
 		if (freeChunk != 32) {
 			cache->chunkNextArray[freeChunk] = CHUNK_NEXT_RESERVED;
+			cache->chunkTriangleArray[freeChunk] = chunkTriangle;
 		}
 
 		// write the cache line back
@@ -525,11 +516,7 @@ trynextcacheline:
 				break;
 
 			// no match, try next triangle
-//			printf("[%d] No match at chunk at %4d len %4d, triangle %04x first=%d\n",
-//				_SPUID, chunkStart, chunkLength, chunkTriangle, firstTile);
-
 			chunkTriangle = triangle->next_triangle;
-	
 		} while (chunkTriangle != endTriangle);
 
 		// if we actually have something to process...
@@ -542,6 +529,8 @@ trynextcacheline:
 			int tailChunk;
 			int thisChunk;
 			int nextBlockStart;
+			int thisBlockStart;
+			int realBlockStart;
 			do {
 retry:
 				// read the cache line
@@ -554,9 +543,10 @@ retry:
 					nextBlockStart = chunkEnd+1;
 	
 				// calculate start of block to mark as busy
-				int thisBlockStart = nextBlockStart - NUMBER_OF_TILES_PER_CHUNK;
+				thisBlockStart = nextBlockStart - NUMBER_OF_TILES_PER_CHUNK;
 				if (thisBlockStart < chunkStart)
 					thisBlockStart = chunkStart;
+				realBlockStart = thisBlockStart;
 	
 				// allocate some more free chunks
 				vec_uint4 freeChunkGather2 = spu_sl(spu_gather(spu_cmpeq(
@@ -630,10 +620,11 @@ retry:
 						// need to keep whole block, update info and mark bust
 						cache->chunkTriangleArray[chunkToProcess]=chunkTriangle;
 						cache->chunkNextArray[chunkToProcess]=tailChunk | CHUNK_NEXT_BUSY_BIT;
-#ifdef INFO
+						realBlockStart = chunkStart;
+//#ifdef INFO
 						printf("[%d] Keep whole block, tailChunk=%d, chunkNext=%d, thisChunk=%d\n", _SPUID, tailChunk, chunkNext, thisChunk);
 						debug_render_tasks(cache);
-#endif
+//#endif
 					}
 				}
 
@@ -644,21 +635,54 @@ retry:
 			// finally after the write succeeded, update the variables
 			chunkNext = tailChunk;
 			chunkToProcess = thisChunk;
-			chunkStart = firstTile;
+			chunkStart = thisBlockStart;
 			chunkLength = nextBlockStart - firstTile;
 			chunkEnd = chunkStart + chunkLength - 1;
 			freeChunk = 32;
 
+			// now we can process the block up to endTriangle
+			while (chunkTriangle != endTriangle) {
+
 #ifdef INFO
-			printf("[%d] Processing chunk %d at %4d len %4d, triangle %04x first=%d\n",
-				_SPUID, chunkToProcess, chunkStart, chunkLength, chunkTriangle, firstTile);
+				printf("[%d] Processing chunk %d at %4d len %4d, triangle %04x first=%d tbs=%d\n",
+					_SPUID, chunkToProcess, chunkStart, chunkLength,
+					chunkTriangle, firstTile, thisBlockStart);
 #endif
+				// and actually process that triangle on these chunks
+				processTriangleChunks(triangle, thisBlockStart, chunkEnd, chunkTriangle);
+				__asm("stop 0x2111\n\t.word 0");
 
-			// and actually process that triangle on these chunks
-			processTriangleChunks(triangle, firstTile, chunkEnd, chunkTriangle);
-			chunkTriangle = triangle->next_triangle;
+				// and advance to the next-triangle
+				chunkTriangle = triangle->next_triangle;
 
-			__asm("stop 0x2111\n\t.word 0");
+				// this should only ever happen if we're running really low on cache line slots
+				// basically, if we pick up a block with more than NUMBER_OF_TILES_PER_CHUNK and
+				// there's no slot to store the pre-NUMBER_OF_TILES_PER_CHUNK tiles.
+				// in this case, we process from thisBlockStart only (because we know that from
+				// chunkStart to there has no result) and then we only process one triangle
+				if (chunkStart != realBlockStart) {
+					printf("[%d] chunkStart=%d != realBlockStart %d, chunkEnd=%d, "
+						"firstTile=%d chunk=%d\n",
+						_SPUID, chunkStart, realBlockStart, chunkEnd,
+						firstTile, chunkToProcess);
+					debug_render_tasks(cache);
+
+					// abort the while loop
+					break;
+				}
+
+				// read the next triangle
+				unsigned int extra = chunkTriangle & 127;
+				unsigned long long triangleBase = cache->triangleBase;
+				unsigned long long trianglebuffer_ea = triangleBase + (chunkTriangle & ~127);
+				triangle = (Triangle*) (trianglebuffer+extra);
+				unsigned int length = (extra + TRIANGLE_MAX_SIZE + 127) & ~127;
+				spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea),
+						mfc_ea2l(trianglebuffer_ea), length, 0, MFC_GET_CMD);
+				mfc_write_tag_mask(1<<0);
+				mfc_read_tag_status_all();
+			} // until chunkTriangle == endTriangle
+
 		} // firstTile>=0
 
 		// when finished, mark chunk as done and free reserved chunk (if still in use)
