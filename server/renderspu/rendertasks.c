@@ -88,7 +88,7 @@ void debug_render_tasks(RenderableCacheLine* cache)
 				chunkNext == CHUNK_NEXT_RESERVED ? 'R': '-',
 				chunkStart,
 				chunkLength,
-				chunkEnd,
+				chunkStart + chunkLength -1, //chunkEnd,
 				chunkNext & CHUNK_NEXT_MASK, chunkNext,
 				cache->chunkTriangleArray[i]);
 			}
@@ -334,13 +334,7 @@ int findFirstTile(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_us
 
 			// chunkStart < baseEnd && chunkEnd > newBase
 			// chunkStart >= baseEnd && chunkEnd > newBase
-/*
-			DEBUG_VEC4( newbase );
-			DEBUG_VEC4( baseend );
-			DEBUG_VEC4( v_start );
-			DEBUG_VEC4( v_end );
-			DEBUG_VEC4( v_process );
-*/
+
 			vec_uint4 v_process_1 = spu_cmpgt(baseend, v_start);
 			vec_uint4 v_process_2 = spu_cmpgt(v_end, newbase);
 			vec_uint4 v_process = spu_and( v_process_1, v_process_2 );
@@ -367,17 +361,46 @@ int findFirstTile(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_us
 				if (first>=0) return first;
 			}
 		} else {
-/*
-			printf("[%d] block %4x %08x %d,%d\n", _SPUID,
-				spu_extract(base,0),
-				spu_extract(y, 0),
-				spu_extract(y,0) >> 16,
-				spu_extract(y,0) & 0xffff);
-*/
 			return spu_extract(base, 0);
 		}
 	}
 	return -1;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+int findFirstTriangleTile(Triangle* triangle, unsigned int chunkStart, unsigned int chunkEnd)
+{
+	int w = 64;
+	vec_uint4 Amask = {0, 0, 0, -1};
+	vec_uint4 INITIAL_BASE_ADD = { w*w, 2*w*w, 3*w*w, 4*w*w };
+	vec_uint4 ZEROS = spu_splats(0U);
+	vec_ushort8 INITIAL_i = spu_splats((unsigned short)w);
+	
+	vec_uint4 A   = (vec_uint4) triangle->area;
+	vec_uint4 Adx = (vec_uint4) triangle->area_dx;
+	vec_uint4 Ady = (vec_uint4) triangle->area_dy;
+	
+	return findFirstTile(spu_or(A,Amask), Adx, Ady,
+		ZEROS, INITIAL_i, ZEROS, INITIAL_BASE_ADD, 0,
+		spu_splats( chunkStart ), spu_splats( chunkEnd ) );
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void processTriangleChunks(Triangle* triangle, unsigned int firstTile, unsigned int chunkEnd, unsigned int chunkTriangle)
+{
+	printf("[%d] Processing tiles %d to %d on tri %04x\n",
+		_SPUID, firstTile, chunkEnd, chunkTriangle);
+
+	for(;;) {
+		int first = findFirstTriangleTile(triangle, firstTile, chunkEnd);
+		if (first<0)
+			return;
+		printf("[%d] Block %d\n", _SPUID, first);
+		firstTile = first+1;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -444,6 +467,7 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 
 		// if there's nothing to process, try the next cache line in the rendering tasks list
 		if (!spu_extract(mayProcessBits, 0)) {
+trynextcacheline:
 			cache_ea = cache->next;
 			// __asm("stop 0x2111\n\t.word 0");
 			continue;
@@ -473,18 +497,13 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 		if (spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS)
 			continue;
 
-//#ifdef INFO
+#ifdef INFO
 		printf("[%d] Claimed chunk %d (%d-%d len %d) at tri %x end %x with free chunk %d\n", _SPUID,
 			chunkToProcess, chunkStart, chunkEnd, chunkLength, chunkTriangle, endTriangle,
 			freeChunk!=32 ? freeChunk : -1 );
-//#endif
+//		debug_render_tasks(cache);
+#endif
 
-		int w = 64;
-		vec_uint4 Amask = {0, 0, 0, -1};
-		vec_uint4 INITIAL_BASE_ADD = { w*w, 2*w*w, 3*w*w, 4*w*w };
-		vec_uint4 ZEROS = spu_splats(0U);
-		vec_ushort8 INITIAL_i = spu_splats((unsigned short)w);
-	
 		Triangle* triangle;
 		int firstTile;
 		do {
@@ -500,96 +519,163 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 			mfc_read_tag_status_all();
 
 			// get the triangle deltas
-			vec_uint4 A   = (vec_uint4) triangle->area;
-			vec_uint4 Adx = (vec_uint4) triangle->area_dx;
-			vec_uint4 Ady = (vec_uint4) triangle->area_dy;
-	
-			firstTile = findFirstTile(spu_or(A,Amask), Adx, Ady,
-					ZEROS, INITIAL_i, ZEROS, INITIAL_BASE_ADD, 0,
-					spu_splats( chunkStart+1 ), spu_splats( chunkEnd ) );
+			firstTile = findFirstTriangleTile(triangle, chunkStart, chunkEnd);
 
 			if (firstTile>=0)
 				break;
 
 			// no match, try next triangle
-			printf("[%d] No match at chunk at %4d len %4d, triangle %04x first=%d\n",
-				_SPUID, chunkStart, chunkLength, chunkTriangle, firstTile);
+//			printf("[%d] No match at chunk at %4d len %4d, triangle %04x first=%d\n",
+//				_SPUID, chunkStart, chunkLength, chunkTriangle, firstTile);
 
 			chunkTriangle = triangle->next_triangle;
 	
 		} while (chunkTriangle != endTriangle);
 
-		{ // if (firstTile>=0) {
-			printf("[%d] Processing chunk at %4d len %4d, triangle %04x first=%d\n\n",
-				_SPUID, chunkStart, chunkLength, chunkTriangle, firstTile);
-
+		// if we actually have something to process...
+		if (firstTile>=0) {
+			// the "normal" splitting will now become:
 			// chunkStart .. (firstTile-1)	-> triangle->next_triangle
 			// firstTile .. (firstTile+NUM-1) -> chunkTriangle (BUSY)
 			// (firstTile+NUM) .. chunkEnd -> chunkTriangle (FREE)
 
-			// firstTile < 0 	update chunkToProcess, free up freeChunk
-
-			// calculate start of next block
-			int nextBlockStart = firstTile + NUMBER_OF_TILES_PER_CHUNK;
-			if (nextBlockStart > chunkEnd)
-				nextBlockStart = chunkEnd+1;
-
-			// calculate start of block to mark as busy
-			int thisBlockStart = nextBlockStart - NUMBER_OF_TILES_PER_CHUNK;
-			if (thisBlockStart < chunkStart)
-				thisBlockStart = chunkStart;
-
-			// fake split up the chunk
-			if (freeChunk != 32) {
-				do {
-					// read the cache line
-					spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
-					spu_readch(MFC_RdAtomicStat);
+			int tailChunk;
+			int thisChunk;
+			int nextBlockStart;
+			do {
+retry:
+				// read the cache line
+				spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
+				spu_readch(MFC_RdAtomicStat);
 	
-					// chain in the free chunk, keeping this one marked as busy
-					cache->chunkStartArray[freeChunk] = chunkStart + NUMBER_OF_TILES_PER_CHUNK;
+				// calculate start of next block
+				nextBlockStart = firstTile + NUMBER_OF_TILES_PER_CHUNK;
+				if (nextBlockStart > chunkEnd)
+					nextBlockStart = chunkEnd+1;
+	
+				// calculate start of block to mark as busy
+				int thisBlockStart = nextBlockStart - NUMBER_OF_TILES_PER_CHUNK;
+				if (thisBlockStart < chunkStart)
+					thisBlockStart = chunkStart;
+	
+				// allocate some more free chunks
+				vec_uint4 freeChunkGather2 = spu_sl(spu_gather(spu_cmpeq(
+					spu_splats((unsigned char)CHUNK_NEXT_INVALID), cache->chunkNext)), 16);
+				unsigned int freeChunk2 = spu_extract(spu_cntlz(freeChunkGather2), 0);
+
+				if (freeChunk == 32) {
+					// if we didn't have one before, try again
+					freeChunk = freeChunk2;
+
+					// and try to get the second one
+					freeChunkGather2 = spu_andc( freeChunkGather2, spu_promote(0x80000000>>freeChunk2, 0) );
+					freeChunk2 = spu_extract(spu_cntlz(freeChunkGather2), 0);
+				} else {
+					// speculatively clear the free chunk just in case we don't need it
+					cache->chunkNextArray[freeChunk] = CHUNK_NEXT_INVALID;
+				}
+
+#ifdef INFO
+				printf("[%d] Free chunks %d and %d, cN=%d, nBS=%d, cE=%d, tBS=%d, cS=%d\n",
+					_SPUID, freeChunk, freeChunk2, chunkNext, nextBlockStart, chunkEnd, thisBlockStart, chunkStart );
+#endif
+
+				// mark region after as available for processing if required
+				if (nextBlockStart < chunkEnd) {
+					if (freeChunk==32) {
+						// if no free chunk, relinquish entire block and write back
+						cache->chunkNextArray[chunkToProcess] = chunkNext;
+						spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
+						// if writeback failed, we *might* have a free block, retry
+						if (spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS)
+							goto retry;
+
+						// otherwise give up and try the next cache line
+						goto trynextcacheline;
+					}
+					cache->chunkStartArray[freeChunk] = nextBlockStart;
 					cache->chunkNextArray[freeChunk] = chunkNext;
-					cache->chunkNextArray[chunkToProcess] = freeChunk | CHUNK_NEXT_BUSY_BIT;
 					cache->chunkTriangleArray[freeChunk] = chunkTriangle;
+					cache->chunkNextArray[chunkToProcess] = freeChunk | CHUNK_NEXT_BUSY_BIT;
+					tailChunk = freeChunk;
+#ifdef INFO
+					printf("[%d] Insert tail, tailChunk=%d, chunkNext=%d, chunkToProcess=%d\n", _SPUID, tailChunk, chunkNext, chunkToProcess);
+					debug_render_tasks(cache);
+#endif
+				} else {
+					// we're gonna use freeChunk2 for the "in front" block, as we've not
+					// used freeChunk, let's use it as it's more likely to have a free chunk
+					freeChunk2 = freeChunk;
+					tailChunk = chunkNext;
+				}
+
+				// mark region before as available if required and possible
+				thisChunk = chunkToProcess;
+				if (thisBlockStart > chunkStart) {
+					if (freeChunk2 != 32) {
+						// mark this region as busy
+						cache->chunkStartArray[freeChunk2]=thisBlockStart;
+						cache->chunkNextArray[freeChunk2]=tailChunk | CHUNK_NEXT_BUSY_BIT;
+						cache->chunkTriangleArray[freeChunk2]=chunkTriangle;
+
+						// mark region before as available for processing
+						cache->chunkNextArray[chunkToProcess]=freeChunk2;
+						cache->chunkTriangleArray[chunkToProcess]=triangle->next_triangle;
+						thisChunk = freeChunk2;
+#ifdef INFO
+						printf("[%d] Insert new head, tailChunk=%d, chunkNext=%d, thisChunk=%d\n", _SPUID, tailChunk, chunkNext, thisChunk);
+						debug_render_tasks(cache);
+#endif
+					} else {
+						// need to keep whole block, update info and mark bust
+						cache->chunkTriangleArray[chunkToProcess]=chunkTriangle;
+						cache->chunkNextArray[chunkToProcess]=tailChunk | CHUNK_NEXT_BUSY_BIT;
+#ifdef INFO
+						printf("[%d] Keep whole block, tailChunk=%d, chunkNext=%d, thisChunk=%d\n", _SPUID, tailChunk, chunkNext, thisChunk);
+						debug_render_tasks(cache);
+#endif
+					}
+				}
+
+				// write the cache line back
+				spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
+			} while (spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS);
 	
-					// write the cache line back
-					spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
-				} while (spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS);
-	
-				// finally after the write succeeded, update the variables
-				chunkNext = freeChunk;
-				chunkLength = NUMBER_OF_TILES_PER_CHUNK;
-				chunkEnd = chunkStart + chunkLength - 1;
-				freeChunk = 32;
-			}
-		}
+			// finally after the write succeeded, update the variables
+			chunkNext = tailChunk;
+			chunkToProcess = thisChunk;
+			chunkStart = firstTile;
+			chunkLength = nextBlockStart - firstTile;
+			chunkEnd = chunkStart + chunkLength - 1;
+			freeChunk = 32;
 
-//		endTriangle = process_render_chunk(chunkStart, chunkLength, chunkTriangle, endTriangle,
-//					cache->triangleBase, currentRenderableBase);
+#ifdef INFO
+			printf("[%d] Processing chunk %d at %4d len %4d, triangle %04x first=%d\n",
+				_SPUID, chunkToProcess, chunkStart, chunkLength, chunkTriangle, firstTile);
+#endif
 
-		endTriangle = triangle->next_triangle;
+			// and actually process that triangle on these chunks
+			processTriangleChunks(triangle, firstTile, chunkEnd, chunkTriangle);
+			chunkTriangle = triangle->next_triangle;
 
+			__asm("stop 0x2111\n\t.word 0");
+		} // firstTile>=0
 
-		// process stuff
-//		for (int p=0; p<1; p++)
-//			__asm("stop 0x2111\n\t.word 0");
-
-		// update the cache line again
+		// when finished, mark chunk as done and free reserved chunk (if still in use)
 		do {
 			// read the cache line
 			spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
 			spu_readch(MFC_RdAtomicStat);
 
-			// mark chunk as available for processing, update endTriangle
-			cache->chunkNextArray[chunkToProcess] &= ~CHUNK_NEXT_BUSY_BIT;
-			cache->chunkTriangleArray[chunkToProcess] = endTriangle;
-
-			// free spare chunk if we used one
-			if (freeChunk != 32) {
+			// free reserved chunk
+			if (freeChunk != 32)
 				cache->chunkNextArray[freeChunk] = CHUNK_NEXT_INVALID;
-			}
 
-			// merge blocks if possible
+			// mark block as completed up to triangle
+			cache->chunkNextArray[chunkToProcess] = chunkNext;
+			cache->chunkTriangleArray[chunkToProcess] = chunkTriangle;
+
+			// merge chunks
 			merge_cache_blocks(cache);
 
 			// write the cache line back
