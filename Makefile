@@ -261,7 +261,7 @@ server/renderspu/%.D: server/renderspu/%.c
 
 clean:
 	rm -f *.o
-#	rm -f *.spe *.o$(USERLAND)
+	rm -f *.spe
 	rm -f *.0 *.o32 *.o64
 	rm -rf build dist
 	rm -f .gen .gennew test
