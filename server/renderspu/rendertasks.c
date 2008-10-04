@@ -191,6 +191,9 @@ struct {
 
 static const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
 
+static const vec_uchar16 shuf_0101 = { 0x80,0x80,0x80,0x80, 0,1,2,3, 0x80,0x80,0x80,0x80, 0,1,2,3 };
+static const vec_uchar16 shuf_0011 = { 0x80,0x80,0x80,0x80, 0x80,0x80,0x80,0x80, 0,1,2,3, 0,1,2,3 };
+
 void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_uint4 hdx, vec_uint4 hdy)
 {
 
@@ -202,15 +205,7 @@ void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_ui
 	vec_uint4 A_dx32 = spu_sl(A_dx, 5);
 	vec_uint4 A_dx28 = spu_sub(A_dx32, A_dx4);
 	vec_uint4 A_dy = spu_sub(spu_rlmaska(hdy, -5), A_dx28);	// dy=realdy-4.realdx
-/*
-	printf("\n");
-	DEBUG_VEC4(A);
-	DEBUG_VEC4(hdx);
-	DEBUG_VEC4(A_dx);
-	DEBUG_VEC4(A_dx4);
-	DEBUG_VEC4(hdy);
-	DEBUG_VEC4(A_dy);
-*/
+
 	vec_uint4 Aa_dx = spu_splats(spu_extract(A_dx,0));
 	vec_uint4 Ab_dx = spu_splats(spu_extract(A_dx,1));
 	vec_uint4 Ac_dx = spu_splats(spu_extract(A_dx,2));
@@ -223,9 +218,20 @@ void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_ui
 	vec_uint4 Ab_dx4 = spu_splats(spu_extract(A_dx4,1));
 	vec_uint4 Ac_dx4 = spu_splats(spu_extract(A_dx4,2));
 
-	vec_uint4 Aa = spu_splats(spu_extract(A,0));
-	vec_uint4 Ab = spu_splats(spu_extract(A,1));
-	vec_uint4 Ac = spu_splats(spu_extract(A,2));
+	vec_uint4 Aa_dx0101 = spu_shuffle( Aa_dx, Aa_dx, shuf_0101);
+	vec_uint4 Ab_dx0101 = spu_shuffle( Ab_dx, Aa_dx, shuf_0101);
+	vec_uint4 Ac_dx0101 = spu_shuffle( Ac_dx, Aa_dx, shuf_0101);
+	vec_uint4 Aa_dx0022 = spu_shuffle( spu_sl(Aa_dx,1), Aa_dx, shuf_0011);
+	vec_uint4 Ab_dx0022 = spu_shuffle( spu_sl(Ab_dx,1), Ab_dx, shuf_0011);
+	vec_uint4 Ac_dx0022 = spu_shuffle( spu_sl(Ac_dx,1), Ac_dx, shuf_0011);
+
+	vec_uint4 Aa_dx0123 = spu_add(Aa_dx0101, Aa_dx0022);
+	vec_uint4 Ab_dx0123 = spu_add(Ab_dx0101, Ab_dx0022);
+	vec_uint4 Ac_dx0123 = spu_add(Ac_dx0101, Ac_dx0022);
+
+	vec_uint4 Aa = spu_add( Aa_dx0123, spu_splats(spu_extract(A,0)));
+	vec_uint4 Ab = spu_add( Ab_dx0123, spu_splats(spu_extract(A,1)));
+	vec_uint4 Ac = spu_add( Ac_dx0123, spu_splats(spu_extract(A,2)));
 
 	vec_uint4 left = spu_promote(32*8, 0);
 	vec_uint4* ptr = pixelbuffer;
@@ -235,13 +241,6 @@ void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_ui
 		vec_uint4 pixel = spu_rlmaska(allNeg,-31);
 		vec_uint4 bail = spu_orx(pixel);
 
-/*
-		DEBUG_VEC4(Aa);
-		DEBUG_VEC4(Ab);
-		DEBUG_VEC4(Ac);
-		DEBUG_VEC4(pixel);
-		printf("\n");
-*/
 		*ptr = pixel;
 
 		if (spu_extract(bail,0)) {
