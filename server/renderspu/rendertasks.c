@@ -222,17 +222,23 @@ void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_ui
 	vec_uint4 Ac_dx4 = spu_splats(spu_extract(A_dx4,2));
 
 	vec_uint4 Aa = spu_splats(spu_extract(A,0));
-	vec_uint4 Ab = spu_splats(spu_extract(Ab,0));
-	vec_uint4 Ac = spu_splats(spu_extract(Ac,0));
+	vec_uint4 Ab = spu_splats(spu_extract(A,1));
+	vec_uint4 Ac = spu_splats(spu_extract(A,2));
 
-	vec_uint4 left = spu_splats(32*8);
+	vec_uint4 left = spu_promote(32*8, 0);
 	vec_uint4* ptr = pixelbuffer;
 	
 	do {
 		vec_uint4 allNeg = spu_and(spu_and(Aa,Ab),Ac);
 		vec_uint4 pixel = spu_rlmaska(allNeg,-31);
 		vec_uint4 bail = spu_orx(pixel);
-
+/*
+		DEBUG_VEC4(Aa);
+		DEBUG_VEC4(Ab);
+		DEBUG_VEC4(Ac);
+		DEBUG_VEC4(pixel);
+		printf("\n");
+*/
 		*ptr = pixel;
 
 		if (spu_extract(bail,0)) {
@@ -248,10 +254,10 @@ void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_ui
 		vec_uint4 which = spu_and(left,spu_splats((unsigned int)7));
 		vec_uint4 sel = spu_cmpeq(which,1);
 		ptr++;
-		left -= spu_splats(1);
-		Aa += spu_sel(Aa_dx4,Aa_dy,sel);
-		Ab += spu_sel(Ab_dx4,Ab_dy,sel);
-		Ac += spu_sel(Ac_dx4,Ac_dy,sel);
+		left = spu_sub( left, spu_splats(1U) );
+		Aa = spu_add( Aa, spu_sel(Aa_dx4,Aa_dy,sel));
+		Ab = spu_add( Ab, spu_sel(Ab_dx4,Ab_dy,sel));
+		Ac = spu_add( Ac, spu_sel(Ac_dx4,Ac_dy,sel));
 	} while (spu_extract(left,0)>0);
 }
 
