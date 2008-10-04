@@ -29,6 +29,8 @@
 #define CHUNK_NEXT_BUSY_BIT			32
 #define CHUNK_NEXT_RESERVED			254	// was free, but now claimed
 
+#define NUM_MIPMAP_LEVELS			10
+
 struct __Renderable;
 extern unsigned int _SPUID;
 
@@ -93,36 +95,25 @@ typedef struct {
 
 #define TRIANGLE_OFFSET_FROM_CACHE_LINE	128
 
-struct RenderableChunk {
-	unsigned long	pixel_eal;
-	unsigned long	depth_eal;
-	unsigned char	dx;
-	unsigned char	dy;
+#ifdef SPU_REGS
+struct TextureData {
+	vec_short8	shifts;		// interleaved shift masks,  odd: log2(height)  (s_blk_max)
+					// interleaved shift masks, even: log2(width)	(t_blk_max)
+	vec_int4	mipmapshifts;
+//32
+	vec_uchar16	tex_base_lo;	// together these hold the mipmap base id
+	vec_uchar16	tex_base_hi; 	// texture block ids (to guarantee unique)
+//64
+	unsigned long long tex_pixel_base[NUM_MIPMAP_LEVELS]; // the base texture address for block(0,0)
+//144
+	unsigned short	tex_t_blk_mult[NUM_MIPMAP_LEVELS]; // how to find the offset of a t block (s is easy ;)
+//164
+	unsigned short	tex_max_mipmap;	// how many levels of mipmap are present
+	unsigned short	tex_mask_x;
+	unsigned short	tex_mask_y;	// base mask on block count (>>mipmap)
+//170
 };
-
-struct RenderableTarget {
-	unsigned long long	next;			// next renderable target in queue
-	unsigned long long	atomic;			// pointer to atomic structure (128 byte aligned)
-
-	unsigned long long	pixels;			// pixel buffer
-	unsigned long long	zbuffer;		// depth buffer
-// 32
-	unsigned int		pixel_eal_tile_dx;
-	unsigned int 		pixel_eal_tile_dy;
-	unsigned int 		pixel_eal_stride;
-// 44
-	unsigned int		zbuf_eal_tile_dx;
-	unsigned int		zbuf_eal_tile_dy;
-	unsigned int 		zbuf_eal_stride;
-// 56
-	unsigned short		left_edge;
-	unsigned short		right_edge;
-	unsigned short		top_edge;
-	unsigned short		bottom_edge;
-// 64
-	struct RenderableChunk 	chunks[0];
-};
-
+#endif // SPU_REGS
 
 
 #endif // __SPU_RENDER_H

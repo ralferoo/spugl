@@ -62,21 +62,22 @@ int main(int argc, char* argv[]) {
 		spuglDrawContext(context);
 
 		glBegin(GL_TRIANGLES);
+/////////////////////
+				glTexCoord2f( 0, 0 );
+				glColor3ub(0, 0, 0);
+				glVertex3f(20, 0, 100);
+
+				glTexCoord2f( 256, 0 );
+				glColor3ub(255, 0, 0);
+				glVertex3f(130, 40, 100);
+
 				glTexCoord2f( 256, 256 );
 				glColor3ub(255, 255, 0);
 				glVertex3f(100, 100, 100);
-
-				glTexCoord2f( 0, 0 );
-				glColor3ub(0, 0, 0);
-				glVertex3f(20, 0, 100);
-
-				glTexCoord2f( 256, 0 );
-				glColor3ub(255, 0, 0);
-				glVertex3f(130, -40, 100);
 /////////////////////
 				glTexCoord2f( 256, 0 );
 				glColor3ub(255, 0, 0);
-				glVertex3f(130, -40, 100);
+				glVertex3f(130, 40, 100);
 
 				glTexCoord2f( 0, 0 );
 				glColor3ub(0, 0, 0);
@@ -84,7 +85,8 @@ int main(int argc, char* argv[]) {
 
 				glTexCoord2f( 256, 256 );
 				glColor3ub(255, 255, 0);
-				glVertex3f(200, 10, 100);
+				glVertex3f(100, 20, 100);
+/////////////////////
 		glEnd();
 
 		spuglFlush(queue);
