@@ -73,6 +73,9 @@ int blockManagementCreateRenderable(void* buffer, int width, int height, int str
 			cacheLine->chunkNextArray[0] = 0; //CHUNK_NEXT_END;
 			cacheLine->next = *_block_mgr_render_tasks;
 			cacheLine->endTriangle = 0;
+			cacheLine->pixelBuffer = (unsigned long long) ( (unsigned long)buffer );
+			cacheLine->pixelTotalDx = 4 * 4096;
+			cacheLine->pixelTotalDy = stride * 4096;
 
 			*_block_mgr_render_tasks = (unsigned long long) ( (unsigned long)cacheLine );
 
