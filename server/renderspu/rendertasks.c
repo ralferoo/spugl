@@ -582,8 +582,7 @@ trynextcacheline:
 		do {
 			// read the triangle data for the current triangle
 			unsigned int extra = chunkTriangle & 127;
-			unsigned long long triangleBase = cache->triangleBase;
-			unsigned long long trianglebuffer_ea = triangleBase + (chunkTriangle & ~127);
+			unsigned long long trianglebuffer_ea = cache_ea + TRIANGLE_OFFSET_FROM_CACHE_LINE + (chunkTriangle & ~127);
 			triangle = (Triangle*) (trianglebuffer+extra);
 			unsigned int length = (extra + TRIANGLE_MAX_SIZE + 127) & ~127;
 			spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea),
@@ -756,8 +755,7 @@ retry:
 
 				// read the next triangle
 				unsigned int extra = chunkTriangle & 127;
-				unsigned long long triangleBase = cache->triangleBase;
-				unsigned long long trianglebuffer_ea = triangleBase + (chunkTriangle & ~127);
+				unsigned long long trianglebuffer_ea = cache_ea + TRIANGLE_OFFSET_FROM_CACHE_LINE + (chunkTriangle & ~127);
 				triangle = (Triangle*) (trianglebuffer+extra);
 				unsigned int length = (extra + TRIANGLE_MAX_SIZE + 127) & ~127;
 				spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea),

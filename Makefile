@@ -35,9 +35,9 @@ PPUCC = $(PPUPREFIX)gcc
 PPUCCFLAGS = -c -ggdb $(LIBSPE2) -I. -Wno-trigraphs -std=gnu99
 PPUCCFLAGSARCH =-m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS
 
-NEWSPUCC = cellgcc -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -I/usr/include
+NEWSPUCC = cellgcc -DUSERLAND_$(USERLAND)_BITS -Wno-trigraphs -std=gnu99 -I/usr/include
 SPUCC = spu-gcc
-SPUCCFLAGSARCH = -DUSERLAND_$(USERLAND)_BITS -std=gnu99 -fpic -I.
+SPUCCFLAGSARCH = -DUSERLAND_$(USERLAND)_BITS -Wno-trigraphs -std=gnu99 -fpic -I.
 SPUCCFLAGS = -O6 -DSPU_REGS
 
 TEXTURES_C := $(wildcard textures/*.c)

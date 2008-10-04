@@ -80,26 +80,18 @@ typedef struct {
 		unsigned char	chunkNextArray[16];
 	};
 // 80
-
-//	union {
-//#ifdef SPU_REGS
-//		vec_ushort8	chunkLength[2];
-//#endif // SPU_REGS
-//		unsigned short	chunkLengthArray[16];
-//	};
-
-// 96
 	unsigned long long	next;
-	unsigned long long	triangleBase;
-	unsigned long long	renderableBase;
-// 120
-//	unsigned short	chunksWaiting;				// bitmask of chunks waiting to be rendered
-//	unsigned short	chunksFree;				// bitmask of chunks not yet allocated
-	unsigned short	endTriangle;				// triangle buffer that is waiting to be filled
-
-//	unsigned short	chunksFree; // ~(chunksWaiting|chunksBusy)	// bitmask of chunks that can be allocated
-// 126
+	unsigned long long	pixelBuffer;
+// 96
+	unsigned int		pixelTotalDx;
+	unsigned int		pixelTotalDy;
+// 104
+	unsigned short		endTriangle;			// triangle buffer that is waiting to be filled
+// 106
+//	22 bytes free
 } RenderableCacheLine ;
+
+#define TRIANGLE_OFFSET_FROM_CACHE_LINE	128
 
 struct RenderableChunk {
 	unsigned long	pixel_eal;

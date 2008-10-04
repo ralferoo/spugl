@@ -464,7 +464,7 @@ int imp_vertex(float4 in, Context* context)
 	char trianglebuffer[ 256 + TRIANGLE_MAX_SIZE ];
 	unsigned int offset = cache->endTriangle;
 	unsigned int extra = offset & 127;
-	unsigned long long trianglebuffer_ea = cache->triangleBase + (offset & ~127);
+	unsigned long long trianglebuffer_ea = cache_ea + TRIANGLE_OFFSET_FROM_CACHE_LINE + (offset & ~127);
 	Triangle* triangle = (Triangle*) (trianglebuffer+extra);
 	if (extra) {
 		spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), 128, 0, MFC_GET_CMD);
