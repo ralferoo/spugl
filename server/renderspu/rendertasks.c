@@ -189,20 +189,141 @@ struct {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+static const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
+
+void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_uint4 hdx, vec_uint4 hdy)
+{
+
+	for (int i=0; i<32*8; i++)
+		pixelbuffer[i] = spu_splats(0);
+
+	vec_uint4 A_dx = spu_rlmaska(hdx, -5);
+	vec_uint4 A_dx4 = spu_sl(A_dx, 2);
+	vec_uint4 A_dy = spu_sub(spu_rlmaska(hdy, -5), A_dx4);	// dy=realdy-4.realdx
+
+	printf("\n");
+	DEBUG_VEC4(A);
+	DEBUG_VEC4(hdx);
+	DEBUG_VEC4(A_dx);
+	DEBUG_VEC4(A_dx4);
+	DEBUG_VEC4(hdy);
+	DEBUG_VEC4(A_dy);
+
+	vec_uint4 Aa_dx = spu_splats(spu_extract(A_dx,0));
+	vec_uint4 Ab_dx = spu_splats(spu_extract(A_dx,1));
+	vec_uint4 Ac_dx = spu_splats(spu_extract(A_dx,2));
+
+	vec_uint4 Aa_dy = spu_splats(spu_extract(A_dy,0));
+	vec_uint4 Ab_dy = spu_splats(spu_extract(A_dy,1));
+	vec_uint4 Ac_dy = spu_splats(spu_extract(A_dy,2));
+
+	vec_uint4 Aa_dx4 = spu_splats(spu_extract(A_dx4,0));
+	vec_uint4 Ab_dx4 = spu_splats(spu_extract(A_dx4,1));
+	vec_uint4 Ac_dx4 = spu_splats(spu_extract(A_dx4,2));
+
+	vec_uint4 Aa = spu_splats(spu_extract(A,0));
+	vec_uint4 Ab = spu_splats(spu_extract(Ab,0));
+	vec_uint4 Ac = spu_splats(spu_extract(Ac,0));
+
+	vec_uint4 left = spu_splats(32*8);
+	vec_uint4* ptr = pixelbuffer;
+	
+	do {
+		vec_uint4 allNeg = spu_and(spu_and(Aa,Ab),Ac);
+		vec_uint4 pixel = spu_rlmaska(allNeg,-31);
+		vec_uint4 bail = spu_orx(pixel);
+
+		*ptr = pixel;
+
+		if (spu_extract(bail,0)) {
+//			vec_float4 t_w = extract(tri->w, Aa, Ab, Ac);
+//			vec_float4 w = spu_splats(1.0f)/t_w;
+//			vec_float4 tAa = spu_mul(Aa,w);
+//			vec_float4 tAb = spu_mul(Ab,w);
+//			vec_float4 tAc = spu_mul(Ac,w);
+
+//			vec_uint4 current = *ptr;
+//			*ptr = spu_sel(current, colour, pixel);
+		} 
+		vec_uint4 which = spu_and(left,spu_splats((unsigned int)7));
+		vec_uint4 sel = spu_cmpeq(which,1);
+		ptr++;
+		left -= spu_splats(1);
+		Aa += spu_sel(Aa_dx4,Aa_dy,sel);
+		Ab += spu_sel(Ab_dx4,Ab_dy,sel);
+		Ac += spu_sel(Ac_dx4,Ac_dy,sel);
+	} while (spu_extract(left,0)>0);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+vec_uint4 block_blit_list[16][16];
+char block_buffer[16][4*32*32];
+
+inline void populate_blit_list(vec_uint4* dma_list_buffer, unsigned int eal, unsigned int totalDy)
+{
+	unsigned int eal1 = eal + (totalDy >> (6+5) );
+	unsigned int stride2 = totalDy >> (6+5-1);
+	unsigned int stride8 = totalDy >> (6+5-3);
+
+	vec_uint4 block0 = { 128, eal, 128, eal1 };
+	vec_uint4 step2 = { 0, stride2, 0, stride2};
+	vec_uint4 step4 = spu_add(step2, step2);
+	vec_uint4 step6 = spu_add(step4, step2);
+	vec_uint4 step8 = { 0, stride8, 0, stride8};
+	vec_uint4 step16 = spu_add(step8, step8);
+	vec_uint4 block2 = spu_add(block0, step2);
+	vec_uint4 block4 = spu_add(block0, step4);
+	vec_uint4 block6 = spu_add(block0, step6);
+	vec_uint4 block8 = spu_add(block0, step8);
+	vec_uint4 block10 = spu_add(block8, step2);
+	vec_uint4 block12 = spu_add(block8, step4);
+	vec_uint4 block14 = spu_add(block8, step6);
+	vec_uint4 block16 = spu_add(block8, step8);
+	vec_uint4 block18 = spu_add(step16, block2);
+	vec_uint4 block20 = spu_add(step16, block4);
+	vec_uint4 block22 = spu_add(step16, block6);
+	vec_uint4 block24 = spu_add(step16, block8);
+	vec_uint4 block26 = spu_add(step16, block10);
+	vec_uint4 block28 = spu_add(step16, block12);
+	vec_uint4 block30 = spu_add(step16, block14);
+
+	dma_list_buffer[0] = block0;
+	dma_list_buffer[1] = block2;
+	dma_list_buffer[2] = block4;
+	dma_list_buffer[3] = block6;
+	dma_list_buffer[4] = block8;
+	dma_list_buffer[5] = block10;
+	dma_list_buffer[6] = block12;
+	dma_list_buffer[7] = block14;
+
+	dma_list_buffer[8] = block16;
+	dma_list_buffer[9] = block18;
+	dma_list_buffer[10] = block20;
+	dma_list_buffer[11] = block22;
+	dma_list_buffer[12] = block24;
+	dma_list_buffer[13] = block26;
+	dma_list_buffer[14] = block28;
+	dma_list_buffer[15] = block30;
+}
+
 void initTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 {
-	// printf("[%d] Init\n", _SPUID);
 	processTile.found = 0;
 }
 void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 {
+#ifdef INFO
 	printf("[%d] Flush tiles %04x\n", _SPUID, processTile.found>>16);
+#endif
 }
 
 void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, unsigned int firstTile, unsigned int chunkEnd, unsigned int chunkTriangle)
 {
+#ifdef INFO
 	printf("[%d] Processing tiles %d to %d on tri %04x\n",
 		_SPUID, firstTile, chunkEnd, chunkTriangle);
+#endif
 
 	int w = 64;
 	vec_int4 INITIAL_BASE = spu_splats(-firstTile);
@@ -225,8 +346,8 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, unsig
 //	DEBUG_VEC4(hdy);
 
 	unsigned int found = subdivide(A, Adx, Ady,
-		(vec_short8) ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, spu_splats(chunkEnd-firstTile), 0); 
-//, spu_splats( chunkStart ), spu_splats( chunkEnd ) );
+		(vec_short8) ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, spu_splats(chunkEnd-firstTile+1), 0); 
+		// TODO: this +1 looks screwey
 
 	// process the tiles
 	processTile.found |= found;
@@ -242,10 +363,25 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, unsig
 
 		unsigned int offsetx = coordx * (cache->pixelTotalDx >> 6);
 		unsigned int offsety = coordy * (cache->pixelTotalDy >> 6);
-		unsigned long long pixelbuffer = cache->pixelBuffer + offsetx + offsety;
+		unsigned long long pixelbuffer_ea = cache->pixelBuffer + offsetx + offsety;
 
-		printf("[%d] Block %x %08x (%2d,%2d) EA=%llx\n", _SPUID, block, coord, coordx, coordy, pixelbuffer);
+		vec_uint4* blit_list = block_blit_list[block];
+		populate_blit_list(blit_list, mfc_ea2l(pixelbuffer_ea), cache->pixelTotalDy);
+		vec_uint4* pixelbuffer = (vec_uint4*) block_buffer[block];
+
+#ifdef INFO
+		printf("[%d] Block %x %08x (%2d,%2d) EA=%llx blit_list=%05x, pixelbuffer=%05x\n", _SPUID, block, coord, coordx, coordy, pixelbuffer_ea, blit_list, pixelbuffer);
+#endif
+
+		// do the actual rendering
 		A=processTile.A[block];
+		renderBlock(pixelbuffer, triangle, A, hdx, hdy);
+
+		// write the pixel data
+		spu_mfcdma64(pixelbuffer, mfc_ea2h(pixelbuffer_ea), (unsigned int)blit_list, 8*32, block, MFC_PUTL_CMD);
+		mfc_write_tag_mask(1 << block);
+		mfc_read_tag_status_all();
+
 		// DEBUG_VEC4(A);
 	}
 }
@@ -322,9 +458,11 @@ unsigned int subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_short8 y, 
 			// chunkStart < baseEnd && chunkEnd > newBase
 			// chunkStart >= baseEnd && chunkEnd > newBase
 
+			//vec_uint4 v_process_1 = spu_rlmask(baseend, -31); //spu_cmpgt(baseend, spu_splats(0));
 			vec_uint4 v_process_1 = spu_cmpgt(baseend, spu_splats(0));
 			vec_uint4 v_process_2 = spu_cmpgt(blockMax, newbase);
-			vec_uint4 v_process = spu_and( v_process_1, v_process_2 );
+			vec_uint4 v_process = spu_and( v_process_2, v_process_1 );
+		// TODO: this looks screwey
 
 			if (spu_extract(v_process, 0)) {
 				found  = subdivide(startA, dxA, dyA, spu_add(y,addA), i, spu_splats(spu_extract(newbase,0)), baseadd, type^0xf0, blockMax, found);
@@ -342,10 +480,13 @@ unsigned int subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_short8 y, 
 		} else {
 			int block = spu_extract(base,0);
 
-			if (block>=0 && block<=spu_extract(blockMax, 0)) {
+			if (block>=0 && block<spu_extract(blockMax, 0)) {
 				found |= 0x80000000>>block;
 				processTile.coordArray[block] = spu_extract( (vec_uint4)y, 0);
 				processTile.A[block] = A;
+				// bottom bit of Adx and Ady may change, but I don't think we need to worry
+				// DEBUG_VEC4(Adx);
+				// DEBUG_VEC4(Ady);
 			}
 		}
 	}
@@ -740,8 +881,9 @@ retry:
 #endif
 				// and actually process that triangle on these chunks
 				processTriangleChunks(triangle, cache, thisBlockStart, chunkEnd, chunkTriangle);
+#ifdef PAUSE
 				__asm("stop 0x2111\n\t.word 0");
-
+#endif
 				// and advance to the next-triangle
 				chunkTriangle = triangle->next_triangle;
 
