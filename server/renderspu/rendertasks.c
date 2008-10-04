@@ -199,7 +199,7 @@ void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 	printf("[%d] Flush tiles %04x\n", _SPUID, processTile.found>>16);
 }
 
-void processTriangleChunks(Triangle* triangle, unsigned int firstTile, unsigned int chunkEnd, unsigned int chunkTriangle)
+void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, unsigned int firstTile, unsigned int chunkEnd, unsigned int chunkTriangle)
 {
 	printf("[%d] Processing tiles %d to %d on tri %04x\n",
 		_SPUID, firstTile, chunkEnd, chunkTriangle);
@@ -235,8 +235,16 @@ void processTriangleChunks(Triangle* triangle, unsigned int firstTile, unsigned 
 		found &= ~( 0x80000000>>block );
 
 		unsigned int coord = processTile.coordArray[block];
-		printf("[%d] Block %x %08x\n", _SPUID, block, coord);
 
+		vec_ushort8 coord_vec = (vec_ushort8) spu_promote(coord, 0);
+		unsigned short coordx = spu_extract(coord_vec,0);
+		unsigned short coordy = spu_extract(coord_vec,1);
+
+		unsigned int offsetx = coordx * (cache->pixelTotalDx >> 6);
+		unsigned int offsety = coordy * (cache->pixelTotalDy >> 6);
+		unsigned long long pixelbuffer = cache->pixelBuffer + offsetx + offsety;
+
+		printf("[%d] Block %x %08x (%2d,%2d) EA=%llx\n", _SPUID, block, coord, coordx, coordy, pixelbuffer);
 		A=processTile.A[block];
 		// DEBUG_VEC4(A);
 	}
@@ -492,7 +500,7 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 	char	sync_buffer[128+127];
 	void*	aligned_sync_buffer = (void*) ( ((unsigned long)sync_buffer+127) & ~127 );
 
-	RenderableCacheLine*	cache = (RenderableCacheLine*) aligned_sync_buffer;
+	RenderableCacheLine* cache = (RenderableCacheLine*) aligned_sync_buffer;
 	unsigned long long cache_ea;
 
 	spu_mfcdma64(&cache_ea, eah_render_tasks, eal_render_tasks, sizeof(cache_ea), 0, MFC_GET_CMD);
@@ -731,7 +739,7 @@ retry:
 					chunkTriangle, firstTile, thisBlockStart);
 #endif
 				// and actually process that triangle on these chunks
-				processTriangleChunks(triangle, thisBlockStart, chunkEnd, chunkTriangle);
+				processTriangleChunks(triangle, cache, thisBlockStart, chunkEnd, chunkTriangle);
 				__asm("stop 0x2111\n\t.word 0");
 
 				// and advance to the next-triangle
