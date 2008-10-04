@@ -199,8 +199,10 @@ void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_ui
 
 	vec_uint4 A_dx = spu_rlmaska(hdx, -5);
 	vec_uint4 A_dx4 = spu_sl(A_dx, 2);
-	vec_uint4 A_dy = spu_sub(spu_rlmaska(hdy, -5), A_dx4);	// dy=realdy-4.realdx
-
+	vec_uint4 A_dx32 = spu_sl(A_dx, 5);
+	vec_uint4 A_dx28 = spu_sub(A_dx32, A_dx4);
+	vec_uint4 A_dy = spu_sub(spu_rlmaska(hdy, -5), A_dx28);	// dy=realdy-4.realdx
+/*
 	printf("\n");
 	DEBUG_VEC4(A);
 	DEBUG_VEC4(hdx);
@@ -208,7 +210,7 @@ void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_ui
 	DEBUG_VEC4(A_dx4);
 	DEBUG_VEC4(hdy);
 	DEBUG_VEC4(A_dy);
-
+*/
 	vec_uint4 Aa_dx = spu_splats(spu_extract(A_dx,0));
 	vec_uint4 Ab_dx = spu_splats(spu_extract(A_dx,1));
 	vec_uint4 Ac_dx = spu_splats(spu_extract(A_dx,2));
@@ -232,6 +234,7 @@ void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_ui
 		vec_uint4 allNeg = spu_and(spu_and(Aa,Ab),Ac);
 		vec_uint4 pixel = spu_rlmaska(allNeg,-31);
 		vec_uint4 bail = spu_orx(pixel);
+
 /*
 		DEBUG_VEC4(Aa);
 		DEBUG_VEC4(Ab);
