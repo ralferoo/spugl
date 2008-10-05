@@ -226,6 +226,10 @@ void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_ui
 	vec_uint4 Ab_dx0123 = spu_add(Ab_dx0101, Ab_dx0022);
 	vec_uint4 Ac_dx0123 = spu_add(Ac_dx0101, Ac_dx0022);
 
+	//vec_uint4 Aa_dx0123 = spu_sub(spu_add(Aa_dx0101, Aa_dx0022), spu_splats(1U));
+	//vec_uint4 Ab_dx0123 = spu_sub(spu_add(Ab_dx0101, Ab_dx0022), spu_splats(1U));
+	//vec_uint4 Ac_dx0123 = spu_sub(spu_add(Ac_dx0101, Ac_dx0022), spu_splats(1U));
+
 	vec_uint4 Aa = spu_add( Aa_dx0123, spu_splats(spu_extract(A,0)));
 	vec_uint4 Ab = spu_add( Ab_dx0123, spu_splats(spu_extract(A,1)));
 	vec_uint4 Ac = spu_add( Ac_dx0123, spu_splats(spu_extract(A,2)));
