@@ -140,8 +140,11 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 	// it might seem odd doing the convts and then a shift right, but the reason is
 	// to get the "free" clamping done by convts. format: S_1_12.2_16 (i.e. sign,
 	// 1 "spare" bit, 12 before point, 2 after point, 16 junk
-	vec_int4 x = spu_rlmaska(spu_convts(TRIx, 31-12), -1);
-	vec_int4 y = spu_rlmaska(spu_convts(TRIy, 31-12), -1);
+	vec_int4 x = spu_add(spu_rlmaska(spu_convts(TRIx, 31-12), -1), 1<<(31-12-1-1));
+	vec_int4 y = spu_add(spu_rlmaska(spu_convts(TRIy, 31-12), -1), 1<<(31-12-1-1));
+
+	x = spu_andc(x, spu_splats(0xffff) );
+	y = spu_andc(y, spu_splats(0xffff) );
 
 	// calculate the gradients, format: S_13.2_16
 	vec_int4 dy = spu_sub(	spu_shuffle(x,x, shuffle_tri_cw),
@@ -150,8 +153,12 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 	vec_int4 dx = spu_sub(	spu_shuffle(y,y, shuffle_tri_ccw),
 				spu_shuffle(y,y, shuffle_tri_cw) ); // y: ccw-cw
 
+	DEBUG_VECf(TRIx);
+	DEBUG_VECf(TRIy);
+
 	// calculate the total area of the triangle, format: 3 * S_2_25.4 -> S_27.4
 	vec_int4 total_v = spu_mule( (vec_short8)x, (vec_short8)dx );
+
 	vec_int4 total = spu_add( spu_add(
 					spu_shuffle(total_v,total_v,shuffle_1st_word_pad),
 					spu_shuffle(total_v,total_v,shuffle_2nd_word_pad)),

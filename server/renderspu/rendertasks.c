@@ -242,7 +242,8 @@ void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_ui
 		vec_uint4 pixel = spu_rlmaska(allNeg,-31);
 		vec_uint4 bail = spu_orx(pixel);
 
-		if (spu_extract(bail,0)) {
+//		if (spu_extract(bail,0)) {
+
 //			vec_float4 t_w = extract(tri->w, Aa, Ab, Ac);
 //			vec_float4 w = spu_splats(1.0f)/t_w;
 //			vec_float4 tAa = spu_mul(Aa,w);
@@ -252,8 +253,11 @@ void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_ui
 			vec_uint4 colour = spu_splats(0xffff00);
 
 			vec_uint4 current = *ptr;
+
+			current = spu_rlmask(current, -1);
+
 			*ptr = spu_sel(current, colour, pixel);
-		} 
+//		} 
 		vec_uint4 which = spu_and(left,spu_splats((unsigned int)7));
 		vec_uint4 sel = spu_cmpeq(which,1);
 		ptr++;
