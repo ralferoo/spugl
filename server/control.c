@@ -25,11 +25,11 @@
 	#include <libspe.h>
 #endif
 
-extern spe_program_handle_t spu_main_handle;
-spe_program_handle_t* spu_main_program = &spu_main_handle;
+extern spe_program_handle_t main_spu_handle;
+spe_program_handle_t* main_spu_program = &main_spu_handle;
 
-extern spe_program_handle_t render_main_handle;
-spe_program_handle_t* render_main_program = &render_main_handle;
+extern spe_program_handle_t main_render_handle;
+spe_program_handle_t* main_render_program = &main_render_handle;
 
 struct __SPU_HANDLE {
 #ifdef USE_LIBSPE2
@@ -104,12 +104,12 @@ SPU_HANDLE _init_spu_thread(void* list, int master)
 
 #ifdef USE_LIBSPE2
 	context->spe_ctx = spe_context_create(SPE_EVENTS_ENABLE|SPE_MAP_PS, NULL);
-	spe_program_load(context->spe_ctx, master ? spu_main_program : render_main_program);
+	spe_program_load(context->spe_ctx, master ? main_spu_program : main_render_program);
 
 	int retval = pthread_create(&context->thread, NULL, (void*)&main_program_thread, context);
 	if (retval) {
 #else
-	context->spe_id = spe_create_thread(0, master ? spu_main_program : render_main_program,
+	context->spe_id = spe_create_thread(0, master ? main_spu_program : main_render_program,
 							context->list, context->id, -1, 0);
 	if (context->spe_id==0) {
 #endif

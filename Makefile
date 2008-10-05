@@ -57,12 +57,12 @@ SOURCE_DIST_FILES= README $(PPU_SRCS) $(SPU_HNDL) $(SHARED_HEADERS) gen_spu_comm
 
 SPU_DRIVER_SOURCES := $(wildcard server/spu/*.c)
 SPU_DRIVER_TARGETS := $(patsubst %.c,%.0,$(SPU_DRIVER_SOURCES))
-SPU_DRIVER_HNDL = server/spu_main.handle.o$(USERLAND)
+SPU_DRIVER_HNDL = server/main_spu.handle.o$(USERLAND)
 SPU_DRIVER_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(SPU_DRIVER_HNDL))
 
 RENDER_DRIVER_SOURCES := $(wildcard server/renderspu/*.c)
 RENDER_DRIVER_TARGETS := $(patsubst %.c,%.0,$(RENDER_DRIVER_SOURCES))
-RENDER_DRIVER_HNDL = server/render_main.handle.o$(USERLAND)
+RENDER_DRIVER_HNDL = server/main_render.handle.o$(USERLAND)
 RENDER_DRIVER_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(RENDER_DRIVER_HNDL))
 
 DAEMON_TARGETS_C := $(wildcard server/*.c)
@@ -196,13 +196,13 @@ spu_3d.handle.spe: $(SPU_OBJS) Makefile
 	$(SPUCC) $(SPUCCFLAGSARCH) $(SPU_OBJS) -o spu_3d.handle.spe
 	spu-strip spu_3d.handle.spe
 
-server/spu_main.handle.spe: $(SPU_DRIVER_TARGETS) Makefile
-	$(SPUCC) $(SPUCCFLAGSARCH) $(SPU_DRIVER_TARGETS) -o server/spu_main.handle.spe
-	spu-strip server/spu_main.handle.spe
+server/main_spu.handle.spe: $(SPU_DRIVER_TARGETS) Makefile
+	$(SPUCC) $(SPUCCFLAGSARCH) $(SPU_DRIVER_TARGETS) -o server/main_spu.handle.spe
+	spu-strip server/main_spu.handle.spe
 
-server/render_main.handle.spe: $(RENDER_DRIVER_TARGETS) Makefile
-	$(SPUCC) $(SPUCCFLAGSARCH) $(RENDER_DRIVER_TARGETS) -o server/render_main.handle.spe
-	spu-strip server/render_main.handle.spe
+server/main_render.handle.spe: $(RENDER_DRIVER_TARGETS) Makefile
+	$(SPUCC) $(SPUCCFLAGSARCH) $(RENDER_DRIVER_TARGETS) -o server/main_render.handle.spe
+	spu-strip server/main_render.handle.spe
 
 ###############################################################################
 #
@@ -272,6 +272,8 @@ clean:
 	rm -f server/spu/*.0 client/spu/*.0
 	rm -f server/renderspu/*.0 client/renderspu/*.0
 	rm -f *.d server/*.d server/spu/*.d server/renderspu/*.d client/*.d
+	rm -f server/spu/*.spe server/renderspu/*.spe
+	rm -f server/*.spe server/renderspu/*.spe
 
 # gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h
 
