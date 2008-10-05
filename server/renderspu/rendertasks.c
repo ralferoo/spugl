@@ -197,9 +197,6 @@ static const vec_uchar16 shuf_0011 = { 0x80,0x80,0x80,0x80, 0x80,0x80,0x80,0x80,
 void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_uint4 hdx, vec_uint4 hdy)
 {
 
-	for (int i=0; i<32*8; i++)
-		pixelbuffer[i] = spu_splats(0);
-
 	vec_uint4 A_dx = spu_rlmaska(hdx, -5);
 	vec_uint4 A_dx4 = spu_sl(A_dx, 2);
 	vec_uint4 A_dx32 = spu_sl(A_dx, 5);
@@ -241,8 +238,6 @@ void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_ui
 		vec_uint4 pixel = spu_rlmaska(allNeg,-31);
 		vec_uint4 bail = spu_orx(pixel);
 
-		*ptr = pixel;
-
 		if (spu_extract(bail,0)) {
 //			vec_float4 t_w = extract(tri->w, Aa, Ab, Ac);
 //			vec_float4 w = spu_splats(1.0f)/t_w;
@@ -250,8 +245,10 @@ void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_ui
 //			vec_float4 tAb = spu_mul(Ab,w);
 //			vec_float4 tAc = spu_mul(Ac,w);
 
-//			vec_uint4 current = *ptr;
-//			*ptr = spu_sel(current, colour, pixel);
+			vec_uint4 colour = spu_splats(0xffff00);
+
+			vec_uint4 current = *ptr;
+			*ptr = spu_sel(current, colour, pixel);
 		} 
 		vec_uint4 which = spu_and(left,spu_splats((unsigned int)7));
 		vec_uint4 sel = spu_cmpeq(which,1);
@@ -266,7 +263,8 @@ void renderBlock(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_ui
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 vec_uint4 block_blit_list[16][16];
-char block_buffer[16][4*32*32];
+vec_uint4 block_buffer[16][4*32*32/16];
+unsigned int block_eah[16];
 
 inline void populate_blit_list(vec_uint4* dma_list_buffer, unsigned int eal, unsigned int totalDy)
 {
@@ -324,6 +322,27 @@ void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 #ifdef INFO
 	printf("[%d] Flush tiles %04x\n", _SPUID, processTile.found>>16);
 #endif
+
+	// flush the tiles out
+	unsigned int found=processTile.found;
+	unsigned int tags = 0;
+	while (found) {
+		unsigned int block = spu_extract( spu_cntlz( spu_promote(found, 0) ), 0);
+		found &= ~( 0x80000000>>block );
+
+		unsigned int coord = processTile.coordArray[block];
+		vec_uint4* blit_list = block_blit_list[block];
+		vec_uint4* pixelbuffer = (vec_uint4*) block_buffer[block];
+		unsigned int eah = block_eah[block];
+
+		// write the pixel data
+		spu_mfcdma64(pixelbuffer, eah, (unsigned int)blit_list, 8*32, block, MFC_PUTL_CMD);
+		tags |= (1<<block);
+	}
+
+	// wait for all blocks to flush
+	mfc_write_tag_mask(tags);
+	mfc_read_tag_status_all();
 }
 
 void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, unsigned int firstTile, unsigned int chunkEnd, unsigned int chunkTriangle)
@@ -353,12 +372,15 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, unsig
 //	DEBUG_VEC4(hdx);
 //	DEBUG_VEC4(hdy);
 
-	unsigned int found = subdivide(A, Adx, Ady,
+	unsigned int blocksToProcess = subdivide(A, Adx, Ady,
 		(vec_short8) ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, spu_splats(chunkEnd-firstTile+1), 0); 
 		// TODO: this +1 looks screwey
 
-	// process the tiles
-	processTile.found |= found;
+	// mark the tiles as found
+	processTile.found |= blocksToProcess;
+
+	// create the DMA lists and read in the tiles to be changed
+	unsigned int found=blocksToProcess;
 	while (found) {
 		unsigned int block = spu_extract( spu_cntlz( spu_promote(found, 0) ), 0);
 		found &= ~( 0x80000000>>block );
@@ -376,21 +398,30 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, unsig
 		vec_uint4* blit_list = block_blit_list[block];
 		populate_blit_list(blit_list, mfc_ea2l(pixelbuffer_ea), cache->pixelTotalDy);
 		vec_uint4* pixelbuffer = (vec_uint4*) block_buffer[block];
+		unsigned int eah = mfc_ea2h(pixelbuffer_ea);
+		block_eah[block] = eah;
 
 #ifdef INFO
 		printf("[%d] Block %x %08x (%2d,%2d) EA=%llx blit_list=%05x, pixelbuffer=%05x\n", _SPUID, block, coord, coordx, coordy, pixelbuffer_ea, blit_list, pixelbuffer);
 #endif
 
-		// do the actual rendering
-		A=processTile.A[block];
-		renderBlock(pixelbuffer, triangle, A, hdx, hdy);
+		// read the existing pixel data
+		spu_mfcdma64(pixelbuffer, eah, (unsigned int)blit_list, 8*32, block, MFC_GETL_CMD);
+	}
 
-		// write the pixel data
-		spu_mfcdma64(pixelbuffer, mfc_ea2h(pixelbuffer_ea), (unsigned int)blit_list, 8*32, block, MFC_PUTL_CMD);
+	// now render each block
+	found=blocksToProcess;
+	while (found) {
+		unsigned int block = spu_extract( spu_cntlz( spu_promote(found, 0) ), 0);
+		found &= ~( 0x80000000>>block );
+
+		// ensure the block has finished DMA
 		mfc_write_tag_mask(1 << block);
 		mfc_read_tag_status_all();
 
-		// DEBUG_VEC4(A);
+		// do the actual rendering
+		A=processTile.A[block];
+		renderBlock(block_buffer[block], triangle, A, hdx, hdy);
 	}
 }
 
