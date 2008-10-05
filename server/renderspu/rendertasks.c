@@ -373,13 +373,6 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, unsig
 	vec_uint4 hdx = spu_rlmaska(Adx, -6);
 	vec_uint4 hdy = spu_rlmaska(Ady, -6);
 
-//	DEBUG_VEC4(A);
-//	DEBUG_VEC4(Adx);
-//	DEBUG_VEC4(Ady);
-
-//	DEBUG_VEC4(hdx);
-//	DEBUG_VEC4(hdy);
-
 	unsigned int blocksToProcess = subdivide(A, Adx, Ady,
 		(vec_short8) ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, spu_splats(chunkEnd-firstTile+1), 0); 
 		// TODO: this +1 looks screwey
