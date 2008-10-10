@@ -90,7 +90,12 @@ typedef struct {
 // 104
 	unsigned short		endTriangle;			// triangle buffer that is waiting to be filled
 // 106
-//	22 bytes free
+	unsigned short		notify_triangle;
+	unsigned int		notify_value;
+	unsigned long long	notify_ea;
+// 120
+	unsigned long long	pad
+// 128
 } RenderableCacheLine ;
 
 #define TRIANGLE_OFFSET_FROM_CACHE_LINE	128
