@@ -14,8 +14,6 @@
 #include <stdio.h>
 
 #include "../render.h"
-#include "../../connection.h"
-#include "../../spu/spucontext.h"
 
 /*
 register vec_float4    	TRIg            asm ("106");
@@ -28,7 +26,7 @@ register vec_int4	TRIri           asm ("107");
 #include "shader.h"
 
 void flatInitFunc(vec_uint4* info);
-void flatRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
+void flatRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
 
 /*
 PixelShader flat_pixel_shader = {
@@ -101,14 +99,16 @@ static const vec_uchar16 shuf_0101 = { 0x80,0x80,0x80,0x80, 0,1,2,3, 0x80,0x80,0
 static const vec_uchar16 shuf_0011 = { 0x80,0x80,0x80,0x80, 0x80,0x80,0x80,0x80, 0,1,2,3, 0,1,2,3 };
 
 static inline vec_float4 extract(
-        vec_float4 what, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
+        vec_uint4 param, vec_float4 tAa, vec_float4 tAb, vec_float4 tAc)
 {
+	vec_float4 what = (vec_float4) param;
+
         return  spu_madd(spu_splats(spu_extract(what,0)),tAa,
                 spu_madd(spu_splats(spu_extract(what,1)),tAb,
                 spu_mul (spu_splats(spu_extract(what,2)),tAc)));
 }
         
-void flatRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_int4 A, vec_int4 hdx, vec_int4 hdy)
+void flatRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy)
 {
 
 	vec_int4 A_dx = spu_rlmaska(hdx, -5);
@@ -148,17 +148,17 @@ void flatRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_int4 A, vec_
 	vec_float4 fAb_dy	= spu_convtf(Ab_dy, 5);
 	vec_float4 fAc_dy	= spu_convtf(Ac_dy, 5);
 
-	vec_float4 wA_dx4	= extract(triangle->w, fAa_dx4, fAb_dx4, fAc_dx4);
-	vec_float4 wA_dy	= extract(triangle->w, fAa_dy, fAb_dy, fAc_dy);
+	vec_float4 wA_dx4	= extract(params[3], fAa_dx4, fAb_dx4, fAc_dx4);
+	vec_float4 wA_dy	= extract(params[3], fAa_dy, fAb_dy, fAc_dy);
 
-        vec_float4 rA_dx4	= extract(triangle->r, fAa_dx4, fAb_dx4, fAc_dx4);
-        vec_float4 rA_dy	= extract(triangle->r, fAa_dy, fAb_dy, fAc_dy);
+        vec_float4 rA_dx4	= extract(params[4], fAa_dx4, fAb_dx4, fAc_dx4);
+        vec_float4 rA_dy	= extract(params[4], fAa_dy, fAb_dy, fAc_dy);
 
-        vec_float4 gA_dx4	= extract(triangle->g, fAa_dx4, fAb_dx4, fAc_dx4);
-        vec_float4 gA_dy	= extract(triangle->g, fAa_dy, fAb_dy, fAc_dy);
+        vec_float4 gA_dx4	= extract(params[5], fAa_dx4, fAb_dx4, fAc_dx4);
+        vec_float4 gA_dy	= extract(params[5], fAa_dy, fAb_dy, fAc_dy);
 
-        vec_float4 bA_dx4	= extract(triangle->b, fAa_dx4, fAb_dx4, fAc_dx4);
-        vec_float4 bA_dy	= extract(triangle->b, fAa_dy, fAb_dy, fAc_dy);
+        vec_float4 bA_dx4	= extract(params[6], fAa_dx4, fAb_dx4, fAc_dx4);
+        vec_float4 bA_dy	= extract(params[6], fAa_dy, fAb_dy, fAc_dy);
 
 	vec_int4 Aa = spu_add( Aa_dx0123, spu_splats(spu_extract(A,0)));
 	vec_int4 Ab = spu_add( Ab_dx0123, spu_splats(spu_extract(A,1)));
@@ -170,10 +170,10 @@ void flatRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_int4 A, vec_
 	vec_float4 fAb		= spu_convtf(Ab, 5);
 	vec_float4 fAc		= spu_convtf(Ac, 5);
 
-	vec_float4 wA		= extract(triangle->w, fAa, fAb, fAc);
-        vec_float4 rA		= extract(triangle->r, fAa, fAb, fAc);
-        vec_float4 gA		= extract(triangle->g, fAa, fAb, fAc);
-        vec_float4 bA		= extract(triangle->b, fAa, fAb, fAc);
+	vec_float4 wA		= extract(params[3], fAa, fAb, fAc);
+        vec_float4 rA		= extract(params[4], fAa, fAb, fAc);
+        vec_float4 gA		= extract(params[5], fAa, fAb, fAc);
+        vec_float4 bA		= extract(params[6], fAa, fAb, fAc);
 
 ///////
 

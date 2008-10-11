@@ -55,7 +55,8 @@ PPUCCFLAGSARCH =-m$(USERLAND) -DUSERLAND_$(USERLAND)_BITS
 
 NEWSPUCC = cellgcc -DUSERLAND_$(USERLAND)_BITS -Wno-trigraphs -std=gnu99 -I/usr/include
 SPUCC = spu-gcc
-SPUCCFLAGSARCH = -DUSERLAND_$(USERLAND)_BITS -Wno-trigraphs -std=gnu99 -fpic -I.
+SPUCCFLAGSARCH = -DUSERLAND_$(USERLAND)_BITS -Wno-trigraphs -std=gnu99 -I.
+SPUCCFLAGSPIC = -fpic
 SPUCCFLAGS = -O6 -DSPU_REGS
 
 TEXTURES_C := $(wildcard textures/*.c)
@@ -78,7 +79,10 @@ SPU_DRIVER_TARGETS := $(patsubst %.c,%.0,$(SPU_DRIVER_SOURCES))
 SPU_DRIVER_HNDL = server/main_spu.handle.o$(USERLAND)
 SPU_DRIVER_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(SPU_DRIVER_HNDL))
 
-RENDER_DRIVER_SOURCES := $(wildcard server/renderspu/*.c$) $(wildcard server/renderspu/shaders/*.c)
+SHADER_SOURCES := $(wildcard server/renderspu/shaders/*.c)
+SHADER_TARGETS := $(patsubst %.c,%.pic,$(SHADER_SOURCES))
+
+RENDER_DRIVER_SOURCES := $(wildcard server/renderspu/*.c$)
 RENDER_DRIVER_TARGETS := $(patsubst %.c,%.0,$(RENDER_DRIVER_SOURCES))
 RENDER_DRIVER_HNDL = server/main_render.handle.o$(USERLAND)
 RENDER_DRIVER_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(RENDER_DRIVER_HNDL))
@@ -223,8 +227,8 @@ server/main_spu.handle.spe: $(SPU_DRIVER_TARGETS) Makefile
 	$(SPUCC) $(SPUCCFLAGSARCH) $(SPU_DRIVER_TARGETS) -o server/main_spu.handle.spe
 	spu-strip server/main_spu.handle.spe
 
-server/main_render.handle.spe: $(RENDER_DRIVER_TARGETS) Makefile
-	$(SPUCC) $(SPUCCFLAGSARCH) $(RENDER_DRIVER_TARGETS) -o server/main_render.handle.spe
+server/main_render.handle.spe: $(RENDER_DRIVER_TARGETS) $(SHADER_TARGETS) Makefile
+	$(SPUCC) $(SPUCCFLAGSARCH) $(RENDER_DRIVER_TARGETS) $(SHADER_TARGETS) -o server/main_render.handle.spe
 	spu-strip server/main_render.handle.spe
 
 ###############################################################################
@@ -251,9 +255,9 @@ server/renderspu/%.D: server/renderspu/%.c
 		| sed '\''s|\($*\)\.o[ :]*|server/renderspu/\1.0 $@ : \\\n  |g'\'' >$@ ; \
 		[ -s $@ ] || rm -f $@'
 
-server/renderspu/shaders/%.D: server/renderspu/shaders/%.c
+server/renderspu/shaders/%.dep: server/renderspu/shaders/%.c
 	@$(SHELL) -ec '$(SPUCC) $(SPUCCFLAGSARCH) $(SPUCCFLAGS) -MM $< \
-		| sed '\''s|\($*\)\.o[ :]*|server/renderspu/shaders/\1.0 $@ : \\\n  |g'\'' >$@ ; \
+		| sed '\''s|\($*\)\.o[ :]*|server/renderspu/shaders/\1.pic $@ : \\\n  |g'\'' >$@ ; \
 		[ -s $@ ] || rm -f $@'
 
 ###############################################################################
@@ -264,6 +268,7 @@ server/renderspu/shaders/%.D: server/renderspu/shaders/%.c
 -include $(DAEMON_TARGETS_C:.c=.d)
 -include $(SPU_DRIVER_SOURCES:.c=.D)
 -include $(RENDER_DRIVER_SOURCES:.c=.D)
+-include $(SHADER_SOURCES:.c=.dep)
 
 ###############################################################################
 #
@@ -277,6 +282,12 @@ server/renderspu/shaders/%.D: server/renderspu/shaders/%.c
 
 %.0: %.s
 	$(SPUCC) $(SPUCCFLAGSARCH) $(SPUCCFLAGS) -c $< -o $*.0
+
+%.pic: %.c
+	$(SPUCC) $(SPUCCFLAGSARCH) $(SPUCCFLAGS) $(SPUCCFLAGSPIC) -c $< -o $*.pic
+
+%.pic: %.s
+	$(SPUCC) $(SPUCCFLAGSARCH) $(SPUCCFLAGS) $(SPUCCFLAGSPIC) -c $< -o $*.pic
 
 %.handle.o$(USERLAND): %.handle.spe
 	$(PPUEMBEDSPU) `basename $*_handle` $*.handle.spe $*.handle.o$(USERLAND)
@@ -299,10 +310,12 @@ clean:
 	rm -f textures/*.o
 	rm -f spugld spugld.debug testclient testclient64 spugl-*/*.o spugl.a spugl.a32 spugl.a64
 	rm -f hilbert
-	rm -f server/*.o client/*.o client/*.o32 client/*.o64
+	rm -f server/*.o server/*.o32 server/*.o64
+	rm -f client/*.o client/*.o32 client/*.o64
 	rm -f server/spu/*.0 client/spu/*.0
-	rm -f server/renderspu/*.0 client/renderspu/*.0 server/renderspu/shaders/*.0
-	rm -f *.d server/*.d server/spu/*.d server/renderspu/*.d client/*.d
+	rm -f server/renderspu/*.0 client/renderspu/*.0
+	rm -f server/renderspu/shaders/*.pic
+	rm -f *.d server/*.d server/spu/*.D server/renderspu/*.D client/*.d server/renderspu/shaders/*.dep
 	rm -f server/spu/*.spe server/renderspu/*.spe
 	rm -f server/*.spe server/renderspu/*.spe
 	rm -f server/*.regs server/renderspu/*.regs server/renderspu/shaders/*.regs

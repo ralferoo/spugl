@@ -189,22 +189,23 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 	triangle->area_dx = triAdx;
 	triangle->area_dy = triAdy;
 
-	triangle->x = TRIx;
-	triangle->y = TRIy;
-	triangle->z = TRIz;
-	triangle->w = TRIw;
+	vec_float4 *params = (vec_float4*) triangle->shader_params;
+	params[ 0] = TRIx;
+	params[ 1] = TRIy;
+	params[ 2] = TRIz;
+	params[ 3] = TRIw;
 
-	triangle->r = TRIr;
-	triangle->g = TRIg;
-	triangle->b = TRIb;
-	triangle->a = TRIa;
+	params[ 4] = TRIr;
+	params[ 5] = TRIg;
+	params[ 6] = TRIb;
+	params[ 7] = TRIa;
 
-	triangle->s = TRIs;
-	triangle->t = TRIt;
-	triangle->u = TRIu;
-	triangle->v = TRIv;
+	params[ 8] = TRIs;
+	params[ 9] = TRIt;
+	params[10] = TRIu;
+	params[11] = TRIv;
 
-	return triangle+1;
+	return (Triangle*) (&params[12]);
 
 // TODO: MUST PUT BACK TEXTURE STUFF
 
