@@ -60,7 +60,7 @@ SPU_DRIVER_TARGETS := $(patsubst %.c,%.0,$(SPU_DRIVER_SOURCES))
 SPU_DRIVER_HNDL = server/main_spu.handle.o$(USERLAND)
 SPU_DRIVER_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(SPU_DRIVER_HNDL))
 
-RENDER_DRIVER_SOURCES := $(wildcard server/renderspu/*.c)
+RENDER_DRIVER_SOURCES := $(wildcard server/renderspu/*.c$) $(wildcard server/renderspu/shaders/*.c)
 RENDER_DRIVER_TARGETS := $(patsubst %.c,%.0,$(RENDER_DRIVER_SOURCES))
 RENDER_DRIVER_HNDL = server/main_render.handle.o$(USERLAND)
 RENDER_DRIVER_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(RENDER_DRIVER_HNDL))
@@ -78,6 +78,11 @@ CLIENT_LIB_TARGETS32 := $(patsubst %.c,%.o32,$(CLIENT_LIB_TARGETS_C))
 CLIENT_LIB_TARGETS64 := $(patsubst %.c,%.o64,$(CLIENT_LIB_TARGETS_C))
 
 all:	$(TARGETS)
+
+rendersources:
+	ls -l $(RENDER_DRIVER_SOURCES)
+
+# .SECONDARY:
 
 .FORCE:
 
@@ -226,6 +231,11 @@ server/spu/%.D: server/spu/%.c
 server/renderspu/%.D: server/renderspu/%.c
 	@$(SHELL) -ec '$(SPUCC) $(SPUCCFLAGSARCH) $(SPUCCFLAGS) -MM $< \
 		| sed '\''s|\($*\)\.o[ :]*|server/renderspu/\1.0 $@ : \\\n  |g'\'' >$@ ; \
+		[ -s $@ ] || rm -f $@'
+
+server/renderspu/shaders/%.D: server/renderspu/shaders/%.c
+	@$(SHELL) -ec '$(SPUCC) $(SPUCCFLAGSARCH) $(SPUCCFLAGS) -MM $< \
+		| sed '\''s|\($*\)\.o[ :]*|server/renderspu/shaders/\1.0 $@ : \\\n  |g'\'' >$@ ; \
 		[ -s $@ ] || rm -f $@'
 
 ###############################################################################

@@ -94,9 +94,9 @@ typedef struct {
 	unsigned int		notify_value;
 	unsigned long long	notify_ea;
 // 120
-	unsigned long long	pad
+	unsigned long long	pad;
 // 128
-} RenderableCacheLine ;
+} RenderableCacheLine;
 
 #define TRIANGLE_OFFSET_FROM_CACHE_LINE	128
 
