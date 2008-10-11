@@ -431,7 +431,7 @@ int imp_vertex(float4 in, Context* context)
 
 	// check to see if the chunk is being processed
 	vec_uint4 v_free = spu_gather(
-		spu_cmpeq( spu_splats( (unsigned char) CHUNK_NEXT_INVALID ), cache->chunkNext ) );
+		spu_cmpeq( spu_splats( (unsigned char) CHUNKNEXT_FREE_BLOCK ), cache->chunkNext ) );
 	//vec_ushort8 v_free		= spu_promote( cache->chunksFree,1 );
 	vec_uint4   v_invalid_bits	= spu_andc( spu_gather( v_invalid ), (vec_uint4) v_free );
 

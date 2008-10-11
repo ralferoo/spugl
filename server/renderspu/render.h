@@ -19,7 +19,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define MAX_SHADER_PARAMS			32	// maximum bytes of data for a triangle data
+#define MAX_SHADER_PARAMS			32	// maximum number of parameters in a pixel shader
 #define NUMBER_OF_TILES				(64*64)	// number of tiles
 #define NUM_MIPMAP_LEVELS			10	// number of mipmap levels in a texture definition
 
@@ -27,10 +27,10 @@
 #define CHUNK_DIVIDE_THRESHOLD			3	// only subdivide if we have less than this free
 							// i _think_ this*num_spus+1 <= 16
 						
-#define CHUNK_NEXT_BUSY_BIT			32	// bit that indicates chunk is in use
-#define CHUNK_NEXT_MASK				31	// mask to get the "next chunk" pointer
-#define CHUNK_NEXT_INVALID			255	// indicates a block that is free
-#define CHUNK_NEXT_RESERVED			254	// was free, but now claimed
+#define CHUNKNEXT_BUSY_BIT			32	// bit that indicates chunk is in use
+#define CHUNKNEXT_MASK				31	// mask to get the "next chunk" pointer
+#define CHUNKNEXT_FREE_BLOCK			255	// indicates a block that is free
+#define CHUNKNEXT_RESERVED			254	// was free, but now claimed
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -106,7 +106,6 @@ struct __TRIANGLE {
 		};
 		struct {
 			unsigned short	pad[8];
-//			unsigned short	next_triangle;	// next pointer
 		};
 	};
 

@@ -65,16 +65,16 @@ void debug_render_tasks(RenderableCacheLine* cache)
 	for (int i=0; i<16; i++) {
 		unsigned int chunkNext	= cache->chunkNextArray	   [i];
 		int error = 0; //= ( (chunkNext==255) ? 1:0) ^ (cache->chunksFree&mask ? 1 : 0);
-		if (chunkNext != CHUNK_NEXT_INVALID) {
+		if (chunkNext != CHUNKNEXT_FREE_BLOCK) {
 		// if (1 || cache->chunksWaiting & mask) {
 		//if (error || ! (cache->chunksFree & mask) ) {
 
 			unsigned int chunkStart    	= cache->chunkStartArray   [i];
-			unsigned int chunkEnd		= cache->chunkStartArray   [chunkNext & CHUNK_NEXT_MASK];
+			unsigned int chunkEnd		= cache->chunkStartArray   [chunkNext & CHUNKNEXT_MASK];
 			//unsigned int chunkLength	= (chunkEnd-chunkStart) & (NUMBER_OF_TILES-1);
 			unsigned int chunkLength	= 1 + ( (chunkEnd-1-chunkStart) & (NUMBER_OF_TILES-1) );
 
-			if (chunkNext == CHUNK_NEXT_RESERVED) {
+			if (chunkNext == CHUNKNEXT_RESERVED) {
 			    printf("[%d] %s %2d - RESERVED\n",
 				_SPUID, 
 				error ? "ERROR" : "DEBUG",
@@ -84,13 +84,13 @@ void debug_render_tasks(RenderableCacheLine* cache)
 				_SPUID, 
 				error ? "ERROR" : "DEBUG",
 				i,
-				chunkNext & CHUNK_NEXT_BUSY_BIT /*cache->chunksWaiting & mask*/ ? 'W': '-',
-				chunkNext == CHUNK_NEXT_INVALID /*cache->chunksFree & mask*/ ? 'F': '-',
-				chunkNext == CHUNK_NEXT_RESERVED ? 'R': '-',
+				chunkNext & CHUNKNEXT_BUSY_BIT /*cache->chunksWaiting & mask*/ ? 'W': '-',
+				chunkNext == CHUNKNEXT_FREE_BLOCK /*cache->chunksFree & mask*/ ? 'F': '-',
+				chunkNext == CHUNKNEXT_RESERVED ? 'R': '-',
 				chunkStart,
 				chunkLength,
 				chunkStart + chunkLength -1, //chunkEnd,
-				chunkNext & CHUNK_NEXT_MASK, chunkNext,
+				chunkNext & CHUNKNEXT_MASK, chunkNext,
 				cache->chunkTriangleArray[i]);
 			}
 		}
@@ -113,7 +113,7 @@ inline void merge_cache_blocks(RenderableCacheLine* cache)
 
 	for (;;) {
 		vec_uchar16 nextnext = spu_shuffle(next, next, next);
-		vec_uchar16 nextmask = spu_and(next, spu_splats((unsigned char)CHUNK_NEXT_MASK));
+		vec_uchar16 nextmask = spu_and(next, spu_splats((unsigned char)CHUNKNEXT_MASK));
 	
 		vec_ushort8 firstblock0 = spu_cmpeq( cache->chunkStart[0], 0);
 		vec_ushort8 firstblock1 = spu_cmpeq( cache->chunkStart[1], 0);
@@ -135,7 +135,7 @@ inline void merge_cache_blocks(RenderableCacheLine* cache)
 		vec_uchar16 trieq = (vec_uchar16) spu_shuffle( trieq0, trieq1, MERGE );
 		vec_uchar16 combi = spu_orc(first, trieq);
 	
-		vec_uchar16 canmerge = spu_cmpgt( spu_nor(spu_or(next, nextnext), combi), 256-CHUNK_NEXT_BUSY_BIT );
+		vec_uchar16 canmerge = spu_cmpgt( spu_nor(spu_or(next, nextnext), combi), 256-CHUNKNEXT_BUSY_BIT );
 	
 		vec_uint4 gather = spu_gather( canmerge );
 	
@@ -153,8 +153,8 @@ inline void merge_cache_blocks(RenderableCacheLine* cache)
 		// cache->chunkNextArray[firstchunk] = cache->chunkNextArray[nextchunk];
 		next = spu_shuffle( (vec_uchar16) v_chunkNextNext, next, (vec_uchar16) si_cbd( (qword) mergeid, 0 ) );
 
-		// cache->chunkNextArray[nextchunk] = CHUNK_NEXT_INVALID;
-		next = spu_shuffle( spu_splats( (unsigned char) CHUNK_NEXT_INVALID), next, (vec_uchar16) si_cbd( (qword) v_chunkNext, 0 ) );
+		// cache->chunkNextArray[nextchunk] = CHUNKNEXT_FREE_BLOCK;
+		next = spu_shuffle( spu_splats( (unsigned char) CHUNKNEXT_FREE_BLOCK), next, (vec_uchar16) si_cbd( (qword) v_chunkNext, 0 ) );
 
 		// this is for debug use only, it's not really needed...
 		// cache->chunkStartArray[nextchunk] = -1;
@@ -622,12 +622,12 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 
 		// check if the chunk is free
 		vec_uint4 freeChunkGather = spu_gather(
-			spu_cmpeq( spu_splats( (unsigned char) CHUNK_NEXT_INVALID ), cache->chunkNext ) );
+			spu_cmpeq( spu_splats( (unsigned char) CHUNKNEXT_FREE_BLOCK ), cache->chunkNext ) );
 
 		// check to see if the chunk is being processed
 		vec_uint4 busyChunkGather = spu_gather(
-			spu_cmpgt( cache->chunkNext, //spu_and(cache->chunkNext, CHUNK_NEXT_MASK),
-				   spu_splats( (unsigned char) (CHUNK_NEXT_BUSY_BIT-1) ) ) );
+			spu_cmpgt( cache->chunkNext, //spu_and(cache->chunkNext, CHUNKNEXT_MASK),
+				   spu_splats( (unsigned char) (CHUNKNEXT_BUSY_BIT-1) ) ) );
 
 		// doneChunkGather, freeChunkGather, busyChunkGather - rightmost 16 bits of word 0
 		// note that if freeChunkGather is true then busyChunkGather must also be true
@@ -650,7 +650,7 @@ trynextcacheline:
 		
 		unsigned int chunkStart    	= cache->chunkStartArray   [chunkToProcess];
 		unsigned int chunkTriangle	= cache->chunkTriangleArray[chunkToProcess];
-		unsigned int chunkNext		= cache->chunkNextArray	   [chunkToProcess] & CHUNK_NEXT_MASK;
+		unsigned int chunkNext		= cache->chunkNextArray	   [chunkToProcess] & CHUNKNEXT_MASK;
 		unsigned int chunkEnd		= (cache->chunkStartArray  [chunkNext]-1) & (NUMBER_OF_TILES-1);
 		unsigned int chunkLength	= 1 + chunkEnd-chunkStart;
 
@@ -660,11 +660,11 @@ trynextcacheline:
 		}
 
 		// mark this block as busy
-		cache->chunkNextArray[chunkToProcess] |= CHUNK_NEXT_BUSY_BIT;
+		cache->chunkNextArray[chunkToProcess] |= CHUNKNEXT_BUSY_BIT;
 
 		// if there's at least one free chunk, claim it
 		if (freeChunk != 32) {
-			cache->chunkNextArray[freeChunk] = CHUNK_NEXT_RESERVED;
+			cache->chunkNextArray[freeChunk] = CHUNKNEXT_RESERVED;
 			cache->chunkTriangleArray[freeChunk] = chunkTriangle;
 		}
 
@@ -734,7 +734,7 @@ retry:
 	
 				// allocate some more free chunks
 				vec_uint4 freeChunkGather2 = spu_sl(spu_gather(spu_cmpeq(
-					spu_splats((unsigned char)CHUNK_NEXT_INVALID), cache->chunkNext)), 16);
+					spu_splats((unsigned char)CHUNKNEXT_FREE_BLOCK), cache->chunkNext)), 16);
 				unsigned int freeChunk2 = spu_extract(spu_cntlz(freeChunkGather2), 0);
 
 				if (freeChunk == 32) {
@@ -746,7 +746,7 @@ retry:
 					freeChunk2 = spu_extract(spu_cntlz(freeChunkGather2), 0);
 				} else {
 					// speculatively clear the free chunk just in case we don't need it
-					cache->chunkNextArray[freeChunk] = CHUNK_NEXT_INVALID;
+					cache->chunkNextArray[freeChunk] = CHUNKNEXT_FREE_BLOCK;
 				}
 
 #ifdef INFO
@@ -770,7 +770,7 @@ retry:
 					cache->chunkStartArray[freeChunk] = nextBlockStart;
 					cache->chunkNextArray[freeChunk] = chunkNext;
 					cache->chunkTriangleArray[freeChunk] = chunkTriangle;
-					cache->chunkNextArray[chunkToProcess] = freeChunk | CHUNK_NEXT_BUSY_BIT;
+					cache->chunkNextArray[chunkToProcess] = freeChunk | CHUNKNEXT_BUSY_BIT;
 					tailChunk = freeChunk;
 #ifdef INFO
 					printf("[%d] Insert tail, tailChunk=%d, chunkNext=%d, chunkToProcess=%d\n", _SPUID, tailChunk, chunkNext, chunkToProcess);
@@ -789,7 +789,7 @@ retry:
 					if (freeChunk2 != 32) {
 						// mark this region as busy
 						cache->chunkStartArray[freeChunk2]=thisBlockStart;
-						cache->chunkNextArray[freeChunk2]=tailChunk | CHUNK_NEXT_BUSY_BIT;
+						cache->chunkNextArray[freeChunk2]=tailChunk | CHUNKNEXT_BUSY_BIT;
 						cache->chunkTriangleArray[freeChunk2]=chunkTriangle;
 
 						// mark region before as available for processing
@@ -803,7 +803,7 @@ retry:
 					} else {
 						// need to keep whole block, update info and mark bust
 						cache->chunkTriangleArray[chunkToProcess]=chunkTriangle;
-						cache->chunkNextArray[chunkToProcess]=tailChunk | CHUNK_NEXT_BUSY_BIT;
+						cache->chunkNextArray[chunkToProcess]=tailChunk | CHUNKNEXT_BUSY_BIT;
 						realBlockStart = chunkStart;
 //#ifdef INFO
 						printf("[%d] Keep whole block, tailChunk=%d, chunkNext=%d, thisChunk=%d\n", _SPUID, tailChunk, chunkNext, thisChunk);
@@ -881,7 +881,7 @@ retry:
 
 			// free reserved chunk
 			if (freeChunk != 32)
-				cache->chunkNextArray[freeChunk] = CHUNK_NEXT_INVALID;
+				cache->chunkNextArray[freeChunk] = CHUNKNEXT_FREE_BLOCK;
 
 			// mark block as completed up to triangle
 			cache->chunkNextArray[chunkToProcess] = chunkNext;

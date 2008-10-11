@@ -22,42 +22,7 @@ extern unsigned int eal_buffer_lock_table;
 extern unsigned int eal_buffer_memory_table;
 extern unsigned int eal_renderables_table;
 
-/*
-#define MAX_TRIANGLES			256
-#define MAX_CHUNKS			64
-
-typedef struct {
-	unsigned long pixel_eah;
-	unsigned long pixel_eal;
-	unsigned long zbuf_eah;
-	unsigned long zbuf_eal;
-} RenderableTile;
-
-typedef struct {
-	unsigned long	base_pixel_eah;
-	unsigned long	base_pixel_eal;
-	unsigned long	base_zbuf_eah;
-	unsigned long	base_zbuf_eal;				// 16 bytes
-	unsigned short	pixel_eal_tile_dx;
-	unsigned short 	pixel_eal_tile_dy;
-	unsigned short	zbuf_eal_tile_dx;
-	unsigned short	zbuf_eal_tile_dy;			// 24 bytes
-	unsigned short	left_edge;
-	unsigned short	right_edge;
-	unsigned short	top_edge;
-	unsigned short	bottom_edge;				// 32 bytes
-} RenderableTarget;
-
-typedef struct {
-	RenderableTarget* target;
-	unsigned short	number_of_chunks;
-	unsigned short	x_y[0];
-} RenderableChunkList;
-*/
-
 /////////////////////////////////////////////////////////////////////////////////////////////////
-
-
 
 
 typedef struct {
@@ -93,20 +58,6 @@ typedef struct {
 	vec_float4    texture_matrix_x,    texture_matrix_y,    texture_matrix_z,    texture_matrix_w;
 } Context;
 
-/*
-typedef struct {
-	float		recip[3];
-	float		x[3];
-	float		y[3];
-
-	float		A[3];
-	float		Adx[3];
-	float		Ady[3];
-
-	vec_float4	gl_Position[3];		// pre-multiplied by recip
-	vec_float4	varings[8][3];		// pre-multiplied by recip
-} Triangle;
-*/
 
 
 
@@ -115,43 +66,14 @@ typedef struct {
 
 
 
+//#define MAX_MIPMAP_LEVELS 10
 
 
-
-
-
-
-
-///////////////////////////////////////////////////////////////////////////////
-//
-// these might be interesting to tweak, particularly as reducing these values will leave more
-// room for textures, at the expense of possibly increased latency for very small triangles
-//
-// NUMBER_OF_TRIS		no limit, but there's no advantage to having this bigger than blocks
-// NUMBER_OF_QUEUED_BLOCKS	maximum and optimally 32; needs to fit in bitmask
-// NUMBER_OF_ACTIVE_BLOCKS	should be between 2 and 4
-// NUMBER_OF_TEXTURE_DEFINITIONS	should be at least NUMBER_OF_TRIS or else texture.c needs work
 
 /*
-#define NUMBER_OF_TRIS	10
-#define NUMBER_OF_QUEUED_BLOCKS 32
-#define NUMBER_OF_ACTIVE_BLOCKS 1
-#define NUMBER_OF_TEXTURE_DEFINITIONS 10
-
-#define FIFO_SIZE 1024
-#define FIFO_DMA_TAG 12
-#define FIFO_MIP1_TAG 13
-#define FIFO_MIP2_TAG 14
-
-*/
-
-
-#define MAX_MIPMAP_LEVELS 10
 
 typedef struct __TEXTURE TextureDefinition;
 
-
-/*
 typedef struct __ACTIVE ActiveBlock;
 typedef struct __BLOCK Block;
 
@@ -163,6 +85,7 @@ typedef void (ActiveBlockInit)(ActiveBlock* active);
 typedef void (ActiveBlockFlush)(ActiveBlock* active, int tag);
 */
 
+/*
 // this holds data needed for texture calculations
 struct __TEXTURE {
 	vec_short8	shifts;		// interleaved shift masks,  odd: log2(height)  (s_blk_max)
@@ -179,6 +102,7 @@ struct __TEXTURE {
 	unsigned long long 	tex_pixel_base[MAX_MIPMAP_LEVELS]; // the base texture address for block(0,0)
 	unsigned short	tex_t_blk_mult[MAX_MIPMAP_LEVELS]; // how to find the offset of a t block (s is easy ;)
 } __attribute__ ((aligned(16)));
+*/
 
 /*
 // this holds a block waiting to be rendered, in whatever state it is in
