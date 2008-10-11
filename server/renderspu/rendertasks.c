@@ -121,7 +121,7 @@ inline void merge_cache_blocks(RenderableCacheLine* cache)
 		vec_ushort8 firstblock1 = spu_cmpeq( cache->chunkStart[1], 0);
 		// change next to word offset, note we don't care what the low bit shifted in is
 		vec_uchar16 firstshuf = (vec_uchar16) spu_sl( (vec_ushort8)nextmask, 1 );
-		vec_uchar16 first = spu_shuffle( firstblock0, firstblock1, firstshuf );
+		vec_uchar16 first = (vec_uchar16) spu_shuffle( firstblock0, firstblock1, firstshuf );
 	
 		vec_ushort8 tri0 = cache->chunkTriangle[0];
 		vec_ushort8 tri1 = cache->chunkTriangle[1];
@@ -134,7 +134,7 @@ inline void merge_cache_blocks(RenderableCacheLine* cache)
 		vec_ushort8 trieq0 = spu_cmpeq( tri0, ntri0 );
 		vec_ushort8 trieq1 = spu_cmpeq( tri1, ntri1 );
 	
-		vec_uchar16 trieq = spu_shuffle( trieq0, trieq1, MERGE );
+		vec_uchar16 trieq = (vec_uchar16) spu_shuffle( trieq0, trieq1, MERGE );
 		vec_uchar16 combi = spu_orc(first, trieq);
 	
 		vec_uchar16 canmerge = spu_cmpgt( spu_nor(spu_or(next, nextnext), combi), 256-CHUNK_NEXT_BUSY_BIT );
@@ -149,14 +149,14 @@ inline void merge_cache_blocks(RenderableCacheLine* cache)
 	
 		//	unsigned int firstchunk = spu_extract(mergeid, 0);
 		//	unsigned int nextchunk = cache->chunkNextArray[firstchunk];
-		vec_uint4 v_chunkNext = (vec_uint4) si_rotqby( next, spu_add(mergeid,13) );
-		vec_uint4 v_chunkNextNext = (vec_uint4) si_rotqby( next, spu_add(v_chunkNext,13) );
+		vec_uint4 v_chunkNext = (vec_uint4) si_rotqby( (qword) next, (qword) spu_add(mergeid,13) );
+		vec_uint4 v_chunkNextNext = (vec_uint4) si_rotqby( (qword) next, (qword) spu_add(v_chunkNext,13) );
 
 		// cache->chunkNextArray[firstchunk] = cache->chunkNextArray[nextchunk];
-		next = spu_shuffle( (vec_uchar16) v_chunkNextNext, next, (vec_uchar16) si_cbd( mergeid, 0 ) );
+		next = spu_shuffle( (vec_uchar16) v_chunkNextNext, next, (vec_uchar16) si_cbd( (qword) mergeid, 0 ) );
 
 		// cache->chunkNextArray[nextchunk] = CHUNK_NEXT_INVALID;
-		next = spu_shuffle( spu_splats( (unsigned char) CHUNK_NEXT_INVALID), next, (vec_uchar16) si_cbd( v_chunkNext, 0 ) );
+		next = spu_shuffle( spu_splats( (unsigned char) CHUNK_NEXT_INVALID), next, (vec_uchar16) si_cbd( (qword) v_chunkNext, 0 ) );
 
 		// this is for debug use only, it's not really needed...
 		// cache->chunkStartArray[nextchunk] = -1;
@@ -180,7 +180,7 @@ struct {
 //		unsigned char foundArray[16];
 //	};
 
-	vec_uint4 A  [NUMBER_OF_TILES_PER_CHUNK];
+	vec_int4 A  [NUMBER_OF_TILES_PER_CHUNK];
 
 	unsigned int found;
 	unsigned int coordArray[NUMBER_OF_TILES_PER_CHUNK];
@@ -271,7 +271,7 @@ void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 	mfc_read_tag_status_all();
 }
 
-void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, unsigned int firstTile, unsigned int chunkEnd, unsigned int chunkTriangle)
+void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int firstTile, int chunkEnd, unsigned int chunkTriangle)
 {
 #ifdef INFO
 	printf("[%d] Processing tiles %d to %d on tri %04x\n",
@@ -281,7 +281,7 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, unsig
 	int w = 64;
 	vec_int4 INITIAL_BASE = spu_splats(-firstTile);
 	vec_int4 INITIAL_BASE_ADD = { w*w, 2*w*w, 3*w*w, 4*w*w };
-	vec_short8 ZEROS = spu_splats(0U);
+	vec_short8 ZEROS = spu_splats((short)0);
 	vec_short8 INITIAL_i = spu_splats((short)w);
 	
 	vec_int4 A   = triangle->area;
@@ -292,7 +292,7 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, unsig
 	vec_int4 hdy = spu_rlmaska(Ady, -6);
 
 	unsigned int blocksToProcess = subdivide(A, Adx, Ady,
-		(vec_short8) ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, spu_splats(chunkEnd-firstTile+1), 0); 
+		ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, spu_splats(chunkEnd-firstTile+1), 0); 
 		// TODO: this +1 looks screwey
 
 	// mark the tiles as found
@@ -570,9 +570,9 @@ int findFirstTriangleTile(Triangle* triangle, unsigned int chunkStart, unsigned 
 	vec_uint4 ZEROS = spu_splats(0U);
 	vec_ushort8 INITIAL_i = spu_splats((unsigned short)w);
 	
-	vec_uint4 A   = (vec_uint4) triangle->area;
-	vec_uint4 Adx = (vec_uint4) triangle->area_dx;
-	vec_uint4 Ady = (vec_uint4) triangle->area_dy;
+	vec_int4 A   = triangle->area;
+	vec_int4 Adx = triangle->area_dx;
+	vec_int4 Ady = triangle->area_dy;
 	
 	return findFirstTile(A, Adx, Ady,
 		ZEROS, INITIAL_i, ZEROS, INITIAL_BASE_ADD, 0,

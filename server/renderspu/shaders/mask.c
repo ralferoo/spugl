@@ -84,11 +84,11 @@ void maskRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_int4 A, vec_
 	vec_int4 Ab = spu_add( Ab_dx0123, spu_splats(spu_extract(A,1)));
 	vec_int4 Ac = spu_add( Ac_dx0123, spu_splats(spu_extract(A,2)));
 
-	vec_uint4 left = spu_promote(32*8, 0);
+	vec_uint4 left = spu_promote(32U * 8U, 0);
 	vec_uint4* ptr = pixelbuffer;
 	
 	do {
-		vec_uint4 allNeg = spu_and(spu_and(Aa,Ab),Ac);
+		vec_uint4 allNeg = (vec_uint4) spu_and(spu_and(Aa,Ab),Ac);
 		vec_uint4 pixel = spu_rlmaska(allNeg,-31);
 		vec_uint4 bail = spu_orx(pixel);
 
@@ -100,7 +100,7 @@ void maskRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_int4 A, vec_
 //			vec_float4 tAb = spu_mul(Ab,w);
 //			vec_float4 tAc = spu_mul(Ac,w);
 
-			vec_uint4 colour = spu_splats(0xffff00);
+			vec_uint4 colour = spu_splats(0xffff00U);
 
 			vec_uint4 current = *ptr;
 

@@ -177,11 +177,11 @@ void flatRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_int4 A, vec_
 
 ///////
 
-	vec_uint4 left = spu_promote(32*8, 0);
+	vec_uint4 left = spu_promote(32U * 8U, 0);
 	vec_uint4* ptr = pixelbuffer;
 	
 	do {
-		vec_uint4 allNeg = spu_and(spu_and(Aa,Ab),Ac);
+		vec_uint4 allNeg = (vec_uint4) spu_and(spu_and(Aa,Ab),Ac);
 		vec_uint4 pixel = spu_rlmaska(allNeg,-31);
 		vec_uint4 bail = spu_orx(pixel);
 

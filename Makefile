@@ -9,6 +9,17 @@
 #
 ############################################################################
 
+# git tags
+# --------
+#
+# This has caught me out a couple of times... To "correctly" tag something, need to do this:
+#
+# git tag -a 0.2 -m "Release 0.2 of spugl"
+# git push --tags
+#
+# failing to do this will break version.sh
+
+
 BASE_NAME = spugl-client-0.1
 
 TARGETS = spugld testclient
