@@ -23,6 +23,17 @@ register vec_float4    	TRIr            asm ("107");
 register vec_int4	TRIri           asm ("107");
 */
 
+register union {
+	vec_float4    	f;
+	vec_int4	i;
+	vec_uint4	u;
+} TEST asm ("107");
+
+void a(void) { TEST.f = spu_splats(123.4f); }
+void b(void) { TEST.i = spu_splats(-1234); }
+void c(void) { TEST.u = spu_splats(1234); }
+
+
 #include "shader.h"
 
 void flatInitFunc(vec_uint4* info);

@@ -293,6 +293,7 @@ server/renderspu/shaders/%.dep: server/renderspu/shaders/%.c
 	$(PPUEMBEDSPU) `basename $*_handle` $*.handle.spe $*.handle.o$(USERLAND)
 
 %.regs: %.s Makefile
+	@echo counting register usage - $@
 	@grep -v "nop.*$$127" < $< | perl -ne '{ if (s/\$$(\d+)/---/) { print "$$1\n"; }}' |sort -n|uniq -c > $@
 
 ### BUILD-ONLY-END ###
