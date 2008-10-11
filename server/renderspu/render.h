@@ -19,21 +19,19 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#define TRIANGLE_MAX_SIZE			512	// maximum bytes in triangle array
-
+#define MAX_SHADER_PARAMS			32	// maximum bytes of data for a triangle data
 #define NUMBER_OF_TILES				(64*64)	// number of tiles
+#define NUM_MIPMAP_LEVELS			10	// number of mipmap levels in a texture definition
 
 #define NUMBER_OF_TILES_PER_CHUNK		16	// number of tiles an SPU can process at once
 #define CHUNK_DIVIDE_THRESHOLD			3	// only subdivide if we have less than this free
 							// i _think_ this*num_spus+1 <= 16
 						
-#define CHUNK_NEXT_MASK				31
-#define CHUNK_NEXT_END				64	// mostly so it wraps around
-#define CHUNK_NEXT_INVALID			255	// if next chunk == 255, then it's free
-#define CHUNK_NEXT_BUSY_BIT			32
+#define CHUNK_NEXT_BUSY_BIT			32	// bit that indicates chunk is in use
+#define CHUNK_NEXT_MASK				31	// mask to get the "next chunk" pointer
+#define CHUNK_NEXT_INVALID			255	// indicates a block that is free
 #define CHUNK_NEXT_RESERVED			254	// was free, but now claimed
 
-#define NUM_MIPMAP_LEVELS			10
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -124,28 +122,13 @@ struct __TRIANGLE {
 #endif // SPU_REGS
 } __attribute__ ((aligned(16)));
 
+#define TRIANGLE_MAX_SIZE	((MAX_SHADER_PARAMS*16)+sizeof(struct __TRIANGLE))
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Format of texture data (actually, I suspect this won't be used)
+
 /*
-	vec_float4	x,y,z,w;	// coords
-	vec_float4	r,g,b,a;	// primary colour
-	vec_float4	s,t,u,v;	// primary texture
-
-//	vec_float4	A,A_dx,A_dy;	// weight information
-//	vec_float4	A_dx4,A_dx32,A_dy32,blockA_dy;		// block init values
-
-//	TriangleHandler*	produce;
-//	BlockHandler*	init_block;
-//	TextureDefinition*	texture;
-
-//		 short	left;		// count of blocks left to produce
-//	unsigned short	count;		// count of blocks that still have reference
-//	unsigned char	step, step_start;
-//	unsigned char	cur_x, cur_y;	// current x and y values
-//	int	block_left;
-*/
-
-
-
-
 #ifdef SPU_REGS
 struct TextureData {
 	vec_short8	shifts;		// interleaved shift masks,  odd: log2(height)  (s_blk_max)
@@ -165,6 +148,6 @@ struct TextureData {
 //170
 };
 #endif // SPU_REGS
-
+*/
 
 #endif // __SPU_RENDER_H

@@ -46,6 +46,7 @@ Renderable* blockManagementGetRenderable(int id)
 }
 
 // TODO: there should be management around this, but currently it's only used for the framebuffer...
+// TODO: also, this needs a corresponding delete function!
 int blockManagementCreateRenderable(void* buffer, int width, int height, int stride)
 {
 	for (int id=0; id<MAX_RENDERABLES; id++) {
@@ -62,26 +63,29 @@ int blockManagementCreateRenderable(void* buffer, int width, int height, int str
 
 			result->memoryBuffer = malloc(TRIANGLE_BUFFER_SIZE + 128 + 127);
 
+			// calculate the cache line address
 			RenderableCacheLine* cacheLine = (RenderableCacheLine*)
 						( ((unsigned int)result->memoryBuffer+127)&~127);
 			result->cacheLine = (unsigned long long) ( (unsigned long)cacheLine );
 
+			// populate the cache line
 			memset(cacheLine, 0, 128);
 			cacheLine->chunkTriangleArray[0] = 0;
 			cacheLine->chunkStartArray[0] = 0;
-			memset(&cacheLine->chunkNextArray, -1, 16);
-			cacheLine->chunkNextArray[0] = 0; //CHUNK_NEXT_END;
-			cacheLine->next = *_block_mgr_render_tasks;
+			memset(&cacheLine->chunkNextArray, CHUNK_NEXT_INVALID, 16);
+			cacheLine->chunkNextArray[0] = 0;
 			cacheLine->endTriangle = 0;
 			cacheLine->pixelBuffer = (unsigned long long) ( (unsigned long)buffer );
 			cacheLine->pixelTileDx = 4 * 32;
 			cacheLine->pixelTileDy = stride * 32;
 			cacheLine->pixelLineDy = stride;
 
+			// chain in the cache line
+			cacheLine->next = *_block_mgr_render_tasks;
 			*_block_mgr_render_tasks = (unsigned long long) ( (unsigned long)cacheLine );
 
-			printf("Renderable id %x is %x, cache at %x, triangle base at %x\n",
-				id, buffer, cacheLine, result->triangleBase);
+			printf("Renderable id %x is %x, cache at %x\n",
+				id, buffer, cacheLine);
 
 			return id;
 		}
@@ -141,18 +145,6 @@ void *blockManagementInit()
 	memset(_block_mgr_lock_table, -1, MAX_DATA_BUFFERS);
 	memset(_block_mgr_ea_table, 0, MAX_DATA_BUFFERS*sizeof(long long));
 	memset(_block_mgr_renderables_table, 0, MAX_RENDERABLES*sizeof(Renderable));
-/*
-	RenderableCacheLine* cacheLine = (RenderableCacheLine*) _aligned;
-	memset(cacheLine, 0, 128);
-	cacheLine->chunkTriangleArray[0] = 0;
-	cacheLine->chunkStartArray[0] = 0;
-	cacheLine->chunkLengthArray[0] = 4096;
-	cacheLine->next = 0ULL;
-	cacheLine->chunksWaiting = 0x8000;
-	cacheLine->chunksFree = 0x7fff;
-	cacheLine->endTriangle = 5;
-	*_block_mgr_render_tasks = (unsigned long long) ( (unsigned long)cacheLine );
-*/
 	*_block_mgr_render_tasks = 0ULL;
 
 	blockManagementDebug();

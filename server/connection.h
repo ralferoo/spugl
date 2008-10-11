@@ -98,7 +98,6 @@ struct __Renderable {
 	int	format;
 	void*	memoryBuffer;
 	unsigned long long	cacheLine;
-	unsigned long long	triangleBase;
 };
 
 #endif // __SERVER_CONNECTION_H
