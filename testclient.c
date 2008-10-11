@@ -89,7 +89,7 @@ int main(int argc, char* argv[]) {
 
 				glTexCoord2f( 256, 256 );
 				glColor3ub(255, 255, 0);
-				glVertex3f(180, 20, 100);
+				glVertex3f(170, 20, 100);
 /////////////////////
 		glEnd();
 
