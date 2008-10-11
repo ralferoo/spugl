@@ -1,0 +1,2 @@
+#!/bin/sh
+curl -u spugl:spuglupdate -d status="$@" http://twitter.com/statuses/update.json
