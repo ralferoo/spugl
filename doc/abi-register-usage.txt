@@ -1,0 +1,21 @@
+R0 (LR)    Dedicated    Return Address / Link Register. This register contains
+			the address to which a called function normally returns.
+			It is volatile across function calls and must be saved
+			by a non-leaf function.
+R1 (SP)    Dedicated    Stack pointer information. Word element 0 of the SP
+			register contains the current stack pointer. The stack
+			pointer is always 16-byte aligned, and it must always
+			point to the lowest allocated valid stack frame and
+			grow towards low addresses. The contents of the word
+			at the stack-frame address always point to the previous
+			allocated stack frame. Word element 1 of the SP register
+			contains the number of bytes of Available Stack Space.
+			See section “2.2.2. The Stack Frame” for more details.
+R2         Volatile     Environment pointer. This register is used as an
+			environment pointer for languages that require one.
+R3  – R74  Volatile     First 72 quadwords of a function’s argument list and
+			its return value.
+R75 – R79  Volatile     Scratch Registers.
+R80 – R127 Non-volatile Local variable registers. These must be preserved
+			across function calls.
+
