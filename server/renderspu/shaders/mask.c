@@ -13,29 +13,9 @@
 #include <spu_intrinsics.h>
 #include <stdio.h>
 
-#include "../render.h"
-#include "../../connection.h"
-#include "../../spu/spucontext.h"
+//#include "../render.h"
 
-#include "shader.h"
-
-void maskInitFunc(vec_uint4* info);
-void maskRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
-
-
-/*
-PixelShader mask_pixel_shader = {
-	.data_size		= 64,
-	.init_func_offset	= ((int) &maskInitFunc)			- ((int) &mask_pixel_shader),
-	.render_func_offset	= ((int) &maskRenderFunc)		- ((int) &mask_pixel_shader),
-};
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void maskInitFunc(vec_uint4* info)
-{
-}
-*/
+void maskRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -44,7 +24,7 @@ static const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
 static const vec_uchar16 shuf_0101 = { 0x80,0x80,0x80,0x80, 0,1,2,3, 0x80,0x80,0x80,0x80, 0,1,2,3 };
 static const vec_uchar16 shuf_0011 = { 0x80,0x80,0x80,0x80, 0x80,0x80,0x80,0x80, 0,1,2,3, 0,1,2,3 };
 
-void maskRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_int4 A, vec_int4 hdx, vec_int4 hdy)
+void maskRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy)
 {
 
 	vec_int4 A_dx = spu_rlmaska(hdx, -5);

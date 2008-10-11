@@ -87,7 +87,6 @@ struct __ConnectionList {
 // TRIANGLE_MAX_SIZE		amount of memory to reserve in ring (max size of a triangle structure)
 
 #define TRIANGLE_BUFFER_SIZE	0x900 //0xc00 //0xf00d //(65536-128)
-#define TRIANGLE_MAX_SIZE	512
 
 struct __Renderable {
 	unsigned long long	ea;

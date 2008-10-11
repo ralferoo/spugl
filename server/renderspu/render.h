@@ -17,7 +17,11 @@
 #include <spu_intrinsics.h>
 #endif // SPU_REGS
 
-#define NUMBER_OF_TILES				4096
+///////////////////////////////////////////////////////////////////////////////
+
+#define TRIANGLE_MAX_SIZE			512	// maximum bytes in triangle array
+
+#define NUMBER_OF_TILES				(64*64)	// number of tiles
 
 #define NUMBER_OF_TILES_PER_CHUNK		16	// number of tiles an SPU can process at once
 #define CHUNK_DIVIDE_THRESHOLD			3	// only subdivide if we have less than this free
@@ -31,6 +35,8 @@
 
 #define NUM_MIPMAP_LEVELS			10
 
+///////////////////////////////////////////////////////////////////////////////
+
 struct __Renderable;
 extern unsigned int _SPUID;
 
@@ -42,23 +48,9 @@ unsigned short process_render_chunk(unsigned short chunkStart, unsigned short ch
 				    unsigned short chunkTriangle, unsigned short endTriangle,
 				    unsigned long long triangleBase, struct __Renderable* renderable);
 
-/*
- *
- * vec_ushort8	[2]	chunkstart[16]	32 bytes	  0  32
- * vec_ushort8	[2]	triangle[16]	32 bytes	 32  64
- * vec_uchar16	[1]	chunknext[16]	16 bytes	 64  80
- *
- * unsigned long long	nextcachethingy	 8 bytes	 80  88
- * unsigned long long	memorybuffer	 8 bytes	 88  96
- * unsigned int		id		 4 bytes	 96 100
- * unsigned short	width		 2 bytes	100 102
- * unsigned short	height		 2 bytes	102 104
- * unsigned int		stride		 4 bytes	104 108
- * unsigned int		format		 4 bytes	108 112
- * unsigned int		width		 4 bytes	112 116
- * unsigned short	endTriangle	 2 bytes	116 118
- * 
- */
+///////////////////////////////////////////////////////////////////////////////
+//
+// Format of the cache line used to drive the render SPUs
 
 typedef struct {
 	union {
@@ -99,6 +91,60 @@ typedef struct {
 } RenderableCacheLine;
 
 #define TRIANGLE_OFFSET_FROM_CACHE_LINE	128
+
+///////////////////////////////////////////////////////////////////////////////
+//
+// Format of the triangle data, used by the render SPUs
+
+typedef struct __TRIANGLE Triangle;
+
+struct __TRIANGLE {
+	// overlap next_triangle pointer with last word of area_dy as that's not used for anything
+	union {
+		struct {
+#ifdef SPU_REGS
+			vec_int4	area, area_dx, area_dy;
+#endif // SPU_REGS
+		};
+		struct {
+			unsigned short	pad[8];
+//			unsigned short	next_triangle;	// next pointer
+		};
+	};
+
+	// information about the shader being used
+	unsigned long long	shader_ea;
+	unsigned short		shader_length;
+	unsigned short		next_triangle;
+	unsigned int		padding;
+
+	// parameters for the shader (specific to shader)
+#ifdef SPU_REGS
+	vec_uint4		shader_params[0];
+#endif // SPU_REGS
+} __attribute__ ((aligned(16)));
+
+/*
+	vec_float4	x,y,z,w;	// coords
+	vec_float4	r,g,b,a;	// primary colour
+	vec_float4	s,t,u,v;	// primary texture
+
+//	vec_float4	A,A_dx,A_dy;	// weight information
+//	vec_float4	A_dx4,A_dx32,A_dy32,blockA_dy;		// block init values
+
+//	TriangleHandler*	produce;
+//	BlockHandler*	init_block;
+//	TextureDefinition*	texture;
+
+//		 short	left;		// count of blocks left to produce
+//	unsigned short	count;		// count of blocks that still have reference
+//	unsigned char	step, step_start;
+//	unsigned char	cur_x, cur_y;	// current x and y values
+//	int	block_left;
+*/
+
+
+
 
 #ifdef SPU_REGS
 struct TextureData {

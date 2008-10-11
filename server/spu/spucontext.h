@@ -149,7 +149,7 @@ typedef struct {
 #define MAX_MIPMAP_LEVELS 10
 
 typedef struct __TEXTURE TextureDefinition;
-typedef struct __TRIANGLE Triangle;
+
 
 /*
 typedef struct __ACTIVE ActiveBlock;
@@ -178,37 +178,6 @@ struct __TEXTURE {
 
 	unsigned long long 	tex_pixel_base[MAX_MIPMAP_LEVELS]; // the base texture address for block(0,0)
 	unsigned short	tex_t_blk_mult[MAX_MIPMAP_LEVELS]; // how to find the offset of a t block (s is easy ;)
-} __attribute__ ((aligned(16)));
-
-// this holds a triangle, i.e. something that creates blocks to be rendered
-struct __TRIANGLE {
-	// overlap next_triangle pointer with last word of area as that's not used for anything
-	union {
-		struct {
-			vec_int4	area, area_dx, area_dy;
-		};
-		struct {
-			unsigned short	pad[7];
-			unsigned short	next_triangle;	// next pointer
-		};
-	};
-
-	vec_float4	x,y,z,w;	// coords
-	vec_float4	r,g,b,a;	// primary colour
-	vec_float4	s,t,u,v;	// primary texture
-
-//	vec_float4	A,A_dx,A_dy;	// weight information
-//	vec_float4	A_dx4,A_dx32,A_dy32,blockA_dy;		// block init values
-
-//	TriangleHandler*	produce;
-//	BlockHandler*	init_block;
-//	TextureDefinition*	texture;
-
-//		 short	left;		// count of blocks left to produce
-//	unsigned short	count;		// count of blocks that still have reference
-//	unsigned char	step, step_start;
-//	unsigned char	cur_x, cur_y;	// current x and y values
-//	int	block_left;
 } __attribute__ ((aligned(16)));
 
 /*

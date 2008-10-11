@@ -14,13 +14,11 @@
 #include <stdio.h>
 
 #include "render.h"
-#include "../connection.h"
-#include "../spu/spucontext.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-extern void maskRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
-extern void flatRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
+extern void maskRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
+extern void flatRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -341,8 +339,8 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 		// do the actual rendering
 		A=processTile.A[block];
 
-//		maskRenderFunc(block_buffer[block], triangle, A, hdx, hdy);
-		flatRenderFunc(block_buffer[block], triangle, A, hdx, hdy);
+//		maskRenderFunc(block_buffer[block], &triangle->shader_params[0], A, hdx, hdy);
+		flatRenderFunc(block_buffer[block], &triangle->shader_params[0], A, hdx, hdy);
 	}
 }
 
@@ -579,12 +577,6 @@ int findFirstTriangleTile(Triangle* triangle, unsigned int chunkStart, unsigned 
 		spu_splats( chunkStart ), spu_splats( chunkEnd ) );
 }
 
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-char __renderable_base_buffer[ 256 + sizeof(Renderable) ] __attribute__((__aligned__(128)));
-unsigned long long currentRenderableBaseAddress = ~0ULL;
-Renderable* currentRenderableBase;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 

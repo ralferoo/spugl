@@ -4,6 +4,7 @@
 *.[o0]
 *.o32
 *.o64
+*.pic
 *.regs
 # embeddable SPU executable
 *.spe
@@ -15,6 +16,7 @@ test
 #dependency
 *.d
 *.D
+*.dep
 #outputs
 spugld
 spugld.debug
