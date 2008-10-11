@@ -39,7 +39,7 @@ USERLAND = 32
 PPUPREFIX = $(shell ppu-gcc -v 2>/dev/null && echo ppu- || echo )
 
 PPUAR = $(PPUPREFIX)ar
-PPUEMBEDSPU = $(PPUPREFIX)embedspu
+PPUEMBEDSPU = $(PPUPREFIX)embedspu -m$(USERLAND)
 PPUSTRIP = $(PPUPREFIX)strip
 
 PPUCC = $(PPUPREFIX)gcc
