@@ -19,8 +19,8 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-extern void maskRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_uint4 hdx, vec_uint4 hdy);
-extern void flatRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_uint4 hdx, vec_uint4 hdy);
+extern void maskRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
+extern void flatRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -174,7 +174,7 @@ inline void merge_cache_blocks(RenderableCacheLine* cache)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-unsigned int subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_short8 y, vec_short8 i,
+unsigned int subdivide(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec_short8 i,
 		vec_int4 base, vec_int4 baseadd,
 		int type, vec_int4 blockMax, unsigned int found);
 
@@ -198,11 +198,11 @@ vec_uint4 block_blit_list[16][16];
 vec_uint4 block_buffer[16][4*32*32/16];
 unsigned int block_eah[16];
 
-inline void populate_blit_list(vec_uint4* dma_list_buffer, unsigned int eal, unsigned int totalDy)
+inline void populate_blit_list(vec_uint4* dma_list_buffer, unsigned int eal, unsigned int lineDy)
 {
-	unsigned int eal1 = eal + (totalDy >> (6+5) );
-	unsigned int stride2 = totalDy >> (6+5-1);
-	unsigned int stride8 = totalDy >> (6+5-3);
+	unsigned int eal1 = eal + lineDy;
+	unsigned int stride2 = lineDy << 1;
+	unsigned int stride8 = lineDy << 3;
 
 	vec_uint4 block0 = { 128, eal, 128, eal1 };
 	vec_uint4 step2 = { 0, stride2, 0, stride2};
@@ -290,12 +290,12 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, unsig
 	vec_short8 ZEROS = spu_splats(0U);
 	vec_short8 INITIAL_i = spu_splats((short)w);
 	
-	vec_uint4 A   = (vec_uint4) triangle->area;
-	vec_uint4 Adx = (vec_uint4) triangle->area_dx;
-	vec_uint4 Ady = (vec_uint4) triangle->area_dy;
+	vec_int4 A   = triangle->area;
+	vec_int4 Adx = triangle->area_dx;
+	vec_int4 Ady = triangle->area_dy;
 	
-	vec_uint4 hdx = spu_rlmaska(Adx, -6);
-	vec_uint4 hdy = spu_rlmaska(Ady, -6);
+	vec_int4 hdx = spu_rlmaska(Adx, -6);
+	vec_int4 hdy = spu_rlmaska(Ady, -6);
 
 	unsigned int blocksToProcess = subdivide(A, Adx, Ady,
 		(vec_short8) ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, spu_splats(chunkEnd-firstTile+1), 0); 
@@ -316,12 +316,12 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, unsig
 		unsigned short coordx = spu_extract(coord_vec,0);
 		unsigned short coordy = spu_extract(coord_vec,1);
 
-		unsigned int offsetx = coordx * (cache->pixelTotalDx >> 6);
-		unsigned int offsety = coordy * (cache->pixelTotalDy >> 6);
+		unsigned int offsetx = coordx * cache->pixelTileDx;
+		unsigned int offsety = coordy * cache->pixelTileDy;
 		unsigned long long pixelbuffer_ea = cache->pixelBuffer + offsetx + offsety;
 
 		vec_uint4* blit_list = block_blit_list[block];
-		populate_blit_list(blit_list, mfc_ea2l(pixelbuffer_ea), cache->pixelTotalDy);
+		populate_blit_list(blit_list, mfc_ea2l(pixelbuffer_ea), cache->pixelLineDy);
 		vec_uint4* pixelbuffer = (vec_uint4*) block_buffer[block];
 		unsigned int eah = mfc_ea2h(pixelbuffer_ea);
 		block_eah[block] = eah;
@@ -354,13 +354,13 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, unsig
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-unsigned int subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_short8 y, vec_short8 i,
+unsigned int subdivide(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec_short8 i,
 		vec_int4 base, vec_int4 baseadd,
 		int type, vec_int4 blockMax, unsigned int found)
 {
-	vec_uint4 Ar = spu_add(A, Adx);
-	vec_uint4 Ab = spu_add(A, Ady);
-	vec_uint4 Abr = spu_add(Ar, Ady);
+	vec_int4 Ar = spu_add(A, Adx);
+	vec_int4 Ab = spu_add(A, Ady);
+	vec_int4 Abr = spu_add(Ar, Ady);
 	unsigned int outside = spu_extract(spu_orx(spu_rlmaska(
 					spu_nor( spu_or(A,Ar), spu_or(Ab,Abr) ), -31)),0);
 
@@ -368,15 +368,15 @@ unsigned int subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_short8 y, 
 		i = spu_rlmask(i, -1);
 		baseadd = spu_rlmask(baseadd, -2);
 		if (spu_extract(i, 1)) {
-			vec_uint4 hdx = spu_rlmaska(Adx, -1);
-			vec_uint4 hdy = spu_rlmaska(Ady, -1);
+			vec_int4 hdx = spu_rlmaska(Adx, -1);
+			vec_int4 hdy = spu_rlmaska(Ady, -1);
 
-			vec_uint4 A_hdx 	= spu_add(A,     hdx);
-			vec_uint4 A_hdy		= spu_add(A,     hdy);
-			vec_uint4 A_hdx_hdy	= spu_add(A_hdx, hdy);
+			vec_int4 A_hdx	 	= spu_add(A,     hdx);
+			vec_int4 A_hdy		= spu_add(A,     hdy);
+			vec_int4 A_hdx_hdy	= spu_add(A_hdx, hdy);
 
-			vec_uint4 Adx_hdx	= spu_sub(Adx,hdx);
-			vec_uint4 Ady_hdy	= spu_sub(Ady,hdy);
+			vec_int4 Adx_hdx	= spu_sub(Adx,hdx);
+			vec_int4 Ady_hdy	= spu_sub(Ady,hdy);
 
 			// type & 0xf0 = bit 0 of type (&1)
 			// type & 0x0f = bit 1 of type (&2)
@@ -395,28 +395,28 @@ unsigned int subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_short8 y, 
 			vec_short8 im   = i;
 
 			// A
-			vec_uint4 startA = spu_sel( A, A_hdx_hdy, bit1);
-			vec_uint4 dxA	 = spu_sel( hdx, Adx_hdx, bit1);
-			vec_uint4 dyA	 = spu_sel( hdy, Ady_hdy, bit1);
-			vec_short8 addA	 = spu_and( im, (vec_short8) bit1 );
+			vec_int4 startA	= spu_sel( A, A_hdx_hdy, bit1);
+			vec_int4 dxA	= spu_sel( hdx, Adx_hdx, bit1);
+			vec_int4 dyA	= spu_sel( hdy, Ady_hdy, bit1);
+			vec_short8 addA	= spu_and( im, (vec_short8) bit1 );
 
 			// B
-			vec_uint4 startB = spu_sel( A_hdy, A_hdx, bit0);
-			vec_uint4 dxB	 = spu_sel( hdx, Adx_hdx, bit0);
-			vec_uint4 dyB	 = spu_sel( Ady_hdy, hdy, bit0);
-			vec_short8 addB	 = spu_andc( im, (vec_short8) andm );
+			vec_int4 startB	= spu_sel( A_hdy, A_hdx, bit0);
+			vec_int4 dxB	= spu_sel( hdx, Adx_hdx, bit0);
+			vec_int4 dyB	= spu_sel( Ady_hdy, hdy, bit0);
+			vec_short8 addB	= spu_andc( im, (vec_short8) andm );
 
 			// C
-			vec_uint4 startC = spu_sel( A_hdx_hdy, A, bit1);
-			vec_uint4 dxC	 = spu_sel( Adx_hdx, hdx, bit1);
-			vec_uint4 dyC	 = spu_sel( Ady_hdy, hdy, bit1);
-			vec_short8 addC	 = spu_andc( im, (vec_short8) bit1 );
+			vec_int4 startC	= spu_sel( A_hdx_hdy, A, bit1);
+			vec_int4 dxC	= spu_sel( Adx_hdx, hdx, bit1);
+			vec_int4 dyC	= spu_sel( Ady_hdy, hdy, bit1);
+			vec_short8 addC	= spu_andc( im, (vec_short8) bit1 );
 
 			// D
-			vec_uint4 startD = spu_sel( A_hdx, A_hdy, bit0);
-			vec_uint4 dxD	 = spu_sel( Adx_hdx, hdx, bit0);
-			vec_uint4 dyD	 = spu_sel( hdy, Ady_hdy, bit0);
-			vec_short8 addD	 = spu_and( im, (vec_short8) andm );
+			vec_int4 startD	= spu_sel( A_hdx, A_hdy, bit0);
+			vec_int4 dxD	= spu_sel( Adx_hdx, hdx, bit0);
+			vec_int4 dyD	= spu_sel( hdy, Ady_hdy, bit0);
+			vec_short8 addD	= spu_and( im, (vec_short8) andm );
 
 			vec_int4 newbase  = spu_add(base, spu_rlmaskqwbyte(baseadd, -4));
 			vec_int4 baseend  = spu_add(base,baseadd);
@@ -463,19 +463,15 @@ unsigned int subdivide(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_short8 y, 
 
 int findFirstTriangleTile(Triangle* triangle, unsigned int chunkStart, unsigned int chunkEnd);
 
-int findFirstTile(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushort8 i,
-		vec_uint4 base, vec_uint4 baseadd,
-		int type, vec_uint4 v_start, vec_uint4 v_end);
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int findFirstTile(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_ushort8 i,
+int findFirstTile(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_uint4 y, vec_ushort8 i,
 		vec_uint4 base, vec_uint4 baseadd,
 		int type, vec_uint4 v_start, vec_uint4 v_end)
 {
-	vec_uint4 Ar = spu_add(A, Adx);
-	vec_uint4 Ab = spu_add(A, Ady);
-	vec_uint4 Abr = spu_add(Ar, Ady);
+	vec_int4 Ar = spu_add(A, Adx);
+	vec_int4 Ab = spu_add(A, Ady);
+	vec_int4 Abr = spu_add(Ar, Ady);
 	unsigned int outside = spu_extract(spu_orx(spu_rlmaska(
 					spu_nor( spu_or(A,Ar), spu_or(Ab,Abr) ), -31)),0);
 
@@ -483,15 +479,15 @@ int findFirstTile(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_us
 		i = spu_rlmask(i, -1);
 		baseadd = spu_rlmask(baseadd, -2);
 		if (spu_extract(i, 1)) {
-			vec_uint4 hdx = spu_rlmaska(Adx, -1);
-			vec_uint4 hdy = spu_rlmaska(Ady, -1);
+			vec_int4 hdx = spu_rlmaska(Adx, -1);
+			vec_int4 hdy = spu_rlmaska(Ady, -1);
 
-			vec_uint4 A_hdx 	= spu_add(A,     hdx);
-			vec_uint4 A_hdy		= spu_add(A,     hdy);
-			vec_uint4 A_hdx_hdy	= spu_add(A_hdx, hdy);
+			vec_int4 A_hdx 		= spu_add(A,     hdx);
+			vec_int4 A_hdy		= spu_add(A,     hdy);
+			vec_int4 A_hdx_hdy	= spu_add(A_hdx, hdy);
 
-			vec_uint4 Adx_hdx	= spu_sub(Adx,hdx);
-			vec_uint4 Ady_hdy	= spu_sub(Ady,hdy);
+			vec_int4 Adx_hdx	= spu_sub(Adx,hdx);
+			vec_int4 Ady_hdy	= spu_sub(Ady,hdy);
 
 			// type & 0xf0 = bit 0 of type (&1)
 			// type & 0x0f = bit 1 of type (&2)
@@ -510,28 +506,28 @@ int findFirstTile(vec_uint4 A, vec_uint4 Adx, vec_uint4 Ady, vec_uint4 y, vec_us
 			vec_uint4 im   = (vec_uint4) i;
 
 			// A
-			vec_uint4 startA = spu_sel( A, A_hdx_hdy, bit1);
-			vec_uint4 dxA	 = spu_sel( hdx, Adx_hdx, bit1);
-			vec_uint4 dyA	 = spu_sel( hdy, Ady_hdy, bit1);
-			vec_uint4 addA	 = spu_and( im, bit1 );
+			vec_int4 startA	= spu_sel( A, A_hdx_hdy, bit1);
+			vec_int4 dxA	= spu_sel( hdx, Adx_hdx, bit1);
+			vec_int4 dyA	= spu_sel( hdy, Ady_hdy, bit1);
+			vec_uint4 addA	= spu_and( im, bit1 );
 
 			// B
-			vec_uint4 startB = spu_sel( A_hdy, A_hdx, bit0);
-			vec_uint4 dxB	 = spu_sel( hdx, Adx_hdx, bit0);
-			vec_uint4 dyB	 = spu_sel( Ady_hdy, hdy, bit0);
-			vec_uint4 addB	 = spu_andc( im, andm );
+			vec_int4 startB	= spu_sel( A_hdy, A_hdx, bit0);
+			vec_int4 dxB	= spu_sel( hdx, Adx_hdx, bit0);
+			vec_int4 dyB	= spu_sel( Ady_hdy, hdy, bit0);
+			vec_uint4 addB	= spu_andc( im, andm );
 
 			// C
-			vec_uint4 startC = spu_sel( A_hdx_hdy, A, bit1);
-			vec_uint4 dxC	 = spu_sel( Adx_hdx, hdx, bit1);
-			vec_uint4 dyC	 = spu_sel( Ady_hdy, hdy, bit1);
-			vec_uint4 addC	 = spu_andc( im, bit1 );
+			vec_int4 startC	= spu_sel( A_hdx_hdy, A, bit1);
+			vec_int4 dxC	= spu_sel( Adx_hdx, hdx, bit1);
+			vec_int4 dyC	= spu_sel( Ady_hdy, hdy, bit1);
+			vec_uint4 addC	= spu_andc( im, bit1 );
 
 			// D
-			vec_uint4 startD = spu_sel( A_hdx, A_hdy, bit0);
-			vec_uint4 dxD	 = spu_sel( Adx_hdx, hdx, bit0);
-			vec_uint4 dyD	 = spu_sel( hdy, Ady_hdy, bit0);
-			vec_uint4 addD	 = spu_and( im, andm );
+			vec_int4 startD	= spu_sel( A_hdx, A_hdy, bit0);
+			vec_int4 dxD	= spu_sel( Adx_hdx, hdx, bit0);
+			vec_int4 dyD	= spu_sel( hdy, Ady_hdy, bit0);
+			vec_uint4 addD	= spu_and( im, andm );
 
 			vec_uint4 newbase  = spu_add(base, spu_rlmaskqwbyte(baseadd, -4));
 			vec_uint4 baseend  = spu_add(base,baseadd);

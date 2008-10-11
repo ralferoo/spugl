@@ -84,17 +84,17 @@ typedef struct {
 // 80
 	unsigned long long	next;
 	unsigned long long	pixelBuffer;
-// 96
-	unsigned int		pixelTotalDx;
-	unsigned int		pixelTotalDy;
+	unsigned long long 	zBuffer;
 // 104
+	unsigned int		pixelTileDx;			// this will always be 4*32
+	unsigned int		pixelTileDy;
+	unsigned int		pixelLineDy;
+	unsigned int		zTileDx;			// this will always be 4*32 or 2*32...
+	unsigned int		zTileDy;
+// 124
 	unsigned short		endTriangle;			// triangle buffer that is waiting to be filled
-// 106
-	unsigned short		notify_triangle;
-	unsigned int		notify_value;
-	unsigned long long	notify_ea;
-// 120
-	unsigned long long	pad;
+// 126
+	unsigned short		pad;
 // 128
 } RenderableCacheLine;
 
