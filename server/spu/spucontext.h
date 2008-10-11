@@ -162,6 +162,8 @@ extern void imp_close_segment(Context* context);
 extern int imp_validate_state(int state);
 extern int has_finished();
 
+// returns 0 if finished processing queue, non-zero if still processing
+extern int stillProcessingQueue(Context* context);
 
 
 

@@ -120,20 +120,8 @@ SPU_HANDLE _init_spu_thread(void* list, int master)
 //	u32 addr;
 #ifdef USE_LIBSPE2
 	void* ls = spe_ls_area_get(context->spe_ctx);
-
-//	while(!spe_out_mbox_status(context->spe_ctx)) {
-//		sched_yield();
-//		asm("sync");
-//	}
-//	spe_out_mbox_read(context->spe_ctx, &addr, 1);
 #else
 	void* ls = spe_get_ls(context->spe_id);
-
-//	while(!spe_stat_out_mbox(context->spe_id)) {
-//		sched_yield();
-//		asm("sync");
-//	}
-//	addr = spe_read_out_mbox(context->spe_id);
 #endif
 
 	context->local_store = ls;

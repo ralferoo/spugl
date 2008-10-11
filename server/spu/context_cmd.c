@@ -206,3 +206,8 @@ unsigned int current_texture = 0;
 }
 
 
+/*26*/int imp_glFlush(float* from, Context* context) {
+	return stillProcessingQueue(context);
+}
+
+

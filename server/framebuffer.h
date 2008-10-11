@@ -19,6 +19,7 @@ struct __SPUGL_framebuffer {
 	unsigned int	stride;
 	unsigned int	visible_frame;
 	unsigned int 	draw_frame;
+	unsigned int 	draw_size;
 	unsigned int	mode;
 	void*		mmap_base;
 	unsigned int	mmap_size;

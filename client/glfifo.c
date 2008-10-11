@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <sched.h>
 
 #include "fifodefs.h"
 #include <GL/gl.h>
@@ -286,6 +287,27 @@ GLAPI void GLAPIENTRY glTexCoord4f (GLfloat s, GLfloat t, GLfloat u, GLfloat v)
 	FIFO_EPILOGUE();
 }
 
+///////////////// new style flush
+
+GLAPI void GLAPIENTRY glFlush()
+{
+	FIFO_PROLOGUE(10);
+	BEGIN_RING(FIFO_COMMAND_GL_FLUSH,0);
+	FIFO_EPILOGUE();
+
+	// wait until read pointer meets write pointer
+	for (;;) {
+		if (_SPUGL_fifo->write_ptr == _SPUGL_fifo->read_ptr) {
+			write(1,"DONE\n",5);
+			break;
+		}
+
+		// allow other processes to have a go and flush the cache
+		write(1,".",1);
+		usleep(1); //sched_yield();
+		__asm__("lwsync");
+	}
+}
 
 
 
@@ -298,7 +320,7 @@ GLAPI void GLAPIENTRY glTexCoord4f (GLfloat s, GLfloat t, GLfloat u, GLfloat v)
 
 
 
-
+/*
 #ifdef __DONT_INCLUDE
 
 extern BitmapImage _getScreen(char* dumpName);
@@ -468,3 +490,4 @@ gluPerspective(GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar)
 }
 
 #endif
+*/

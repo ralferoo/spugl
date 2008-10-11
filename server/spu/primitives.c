@@ -620,3 +620,77 @@ void imp_close_segment(Context* context)
 	}
 }
 
+// returns 0 if finished processing queue, non-zero if still processing
+int stillProcessingQueue(Context* context)
+{
+	// read the current renderable cache line
+
+	unsigned long long cache_ea = context->renderableCacheLine;
+	char cachebuffer[128+127];
+	RenderableCacheLine* cache = (RenderableCacheLine*) ( ((unsigned int)cachebuffer+127) & ~127 );
+
+	spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
+	spu_readch(MFC_RdAtomicStat);
+
+	// check whether any active cache line is still running
+	
+	vec_ushort8 v_writeptr		= spu_splats( cache->endTriangle );
+	vec_ushort8 v_readptr0		= cache->chunkTriangle[0];
+	vec_ushort8 v_readptr1		= cache->chunkTriangle[1];
+
+	vec_ushort8 v_finished0		= spu_cmpeq( v_readptr0, v_writeptr );
+	vec_ushort8 v_finished1		= spu_cmpeq( v_readptr1, v_writeptr );
+
+	vec_uchar16 v_merger		= (vec_uchar16) { 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 };
+	vec_uchar16 v_finished		= spu_shuffle( v_finished0, v_finished1, v_merger );
+	// each byte = 0xFF if finished, 0x00 if still waiting
+
+	vec_uchar16 v_next		= cache->chunkNext;
+	vec_uchar16 v_free_blocks	= spu_cmpeq( spu_splats( (unsigned char) CHUNKNEXT_FREE_BLOCK ), v_next );
+	// each byte = 0xFF if free, 0x00 if busy or in a list
+
+	vec_uchar16 v_busy_mask		= spu_splats( (unsigned char) CHUNKNEXT_MASK );
+	vec_uchar16 v_busy_blocks	= spu_cmpeq( v_busy_mask, spu_and( v_busy_mask, v_next) );
+	// each byte = 0xFF if busy, 0x00 if not busy
+
+	// if free 	  == 1 -> not dirty
+	// if busy	  == 1 -> dirty
+	// if finished	  == 0 -> dirty
+
+	//  finished	free	busy	dirty
+	//	x	 1	  x	   0
+	//	x	 0	  1	   1
+	//	1	 0	  0	   0
+	//	0	 0	  0	   1
+	//
+	//	dirty = ~free & ( busy | ~finished )
+	//
+	//	WRONG - dirty = ~finished | ( ~free & busy )
+
+	//vec_uchar16 v_include		= spu_andc( v_busy_blocks, v_free_blocks );
+	//vec_uchar16 v_dirty		= spu_orc( v_include, v_finished );
+
+	vec_uchar16 v_dirty		= spu_andc( spu_orc( v_busy_blocks, v_finished ), v_free_blocks );
+
+	// and return the dirty flag
+	unsigned int dirty		= spu_extract( spu_gather( v_dirty ), 0 );
+
+/*
+	printf("----\n");
+	DEBUG_VEC4( v_writeptr );
+	DEBUG_VEC4( v_readptr0 );
+	DEBUG_VEC4( v_readptr1 );
+	DEBUG_VEC4( v_next );
+	DEBUG_VEC4( v_finished );
+	DEBUG_VEC4( v_free_blocks );
+	DEBUG_VEC4( v_busy_blocks );
+	DEBUG_VEC4( v_dirty );
+	printf("dirty=%04x\n", dirty);
+*/
+	if (dirty) 
+		for(int i=0; i<4; i++) __asm("stop 0x2110\n\t.word 0");
+		
+
+	return (int) dirty;
+}
+

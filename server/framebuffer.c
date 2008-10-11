@@ -86,7 +86,8 @@ int Screen_open(void)
 	screen.stride		= res.xres * 4;
 	screen.visible_frame	= (res.yoff * res.xres + res.xoff) * 4;
 	screen.draw_frame	= screen.visible_frame + res.yres * res.xres * 4;
-	screen.mmap_size	= res.num_frames * res.yres * res.xres * 4;
+	screen.draw_size	= res.yres * res.xres * 4;
+	screen.mmap_size	= res.num_frames * screen.draw_size;
 	screen.mmap_base	= mmap(0, screen.mmap_size, PROT_WRITE, MAP_SHARED, screen.fd, 0);
 	screen.visible		= 0;
 	screen.draw_address	= screen.mmap_base + screen.draw_frame;
@@ -144,6 +145,7 @@ unsigned int Screen_swap(void)
 	if (screen.fd < 0)
 		return -1;
 
+
 	uint32_t showFrame = screen.visible ? 0 : 1;
 	screen.visible = showFrame;
 	ioctl(screen.fd, PS3FB_IOCTL_FSEL, (unsigned long)&showFrame);
@@ -152,6 +154,10 @@ unsigned int Screen_swap(void)
 	screen.draw_frame = screen.visible_frame;
 	screen.visible_frame = f;
 	screen.draw_address = screen.mmap_base + screen.draw_frame;
+
+	printf("switching to frame %d draw addr %x\n", showFrame, screen.draw_address);
+
+	memset(screen.draw_address, 0x80, screen.draw_size);
 
 	return screen.renderable_id[showFrame];
 }
@@ -163,5 +169,6 @@ void Screen_wait(void)
 
 	uint32_t crt = 0;
 	ioctl(screen.fd, FBIO_WAITFORVSYNC, (unsigned long)&crt);
+	printf("vsync\n\n");
 }
 
