@@ -17,11 +17,10 @@
 #include "../connection.h"
 #include "../spu/spucontext.h"
 
-#define TEST
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 extern void maskRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_uint4 hdx, vec_uint4 hdy);
+extern void flatRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_uint4 A, vec_uint4 hdx, vec_uint4 hdy);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -347,7 +346,9 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, unsig
 
 		// do the actual rendering
 		A=processTile.A[block];
-		maskRenderFunc(block_buffer[block], triangle, A, hdx, hdy);
+
+//		maskRenderFunc(block_buffer[block], triangle, A, hdx, hdy);
+		flatRenderFunc(block_buffer[block], triangle, A, hdx, hdy);
 	}
 }
 
