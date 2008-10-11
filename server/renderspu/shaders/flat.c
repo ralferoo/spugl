@@ -31,7 +31,7 @@ register union {
 
 void a(void) { TEST.f = spu_splats(123.4f); }
 void b(void) { TEST.i = spu_splats(-1234); }
-void c(void) { TEST.u = spu_splats(1234); }
+void c(void) { TEST.u = spu_splats(1234U); }
 
 
 #include "shader.h"
