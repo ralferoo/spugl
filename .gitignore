@@ -4,6 +4,7 @@
 *.[o0]
 *.o32
 *.o64
+*.regs
 # embeddable SPU executable
 *.spe
 .gen

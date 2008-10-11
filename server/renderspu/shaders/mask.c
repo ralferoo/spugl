@@ -17,10 +17,11 @@
 #include "../../connection.h"
 #include "../../spu/spucontext.h"
 
-//#include "shader.h"
+#include "shader.h"
 
 void maskInitFunc(vec_uint4* info);
 void maskRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
+
 
 /*
 PixelShader mask_pixel_shader = {

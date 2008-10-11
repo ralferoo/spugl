@@ -263,6 +263,9 @@ server/renderspu/shaders/%.D: server/renderspu/shaders/%.c
 %.handle.o$(USERLAND): %.handle.spe
 	$(PPUEMBEDSPU) `basename $*_handle` $*.handle.spe $*.handle.o$(USERLAND)
 
+%.regs: %.s Makefile
+	@grep -v "nop.*$$127" < $< | perl -ne '{ if (s/\$$(\d+)/---/) { print "$$1\n"; }}' |sort -n|uniq -c > $@
+
 ### BUILD-ONLY-END ###
 
 ###############################################################################
@@ -280,10 +283,11 @@ clean:
 	rm -f hilbert
 	rm -f server/*.o client/*.o client/*.o32 client/*.o64
 	rm -f server/spu/*.0 client/spu/*.0
-	rm -f server/renderspu/*.0 client/renderspu/*.0
+	rm -f server/renderspu/*.0 client/renderspu/*.0 server/renderspu/shaders/*.0
 	rm -f *.d server/*.d server/spu/*.d server/renderspu/*.d client/*.d
 	rm -f server/spu/*.spe server/renderspu/*.spe
 	rm -f server/*.spe server/renderspu/*.spe
+	rm -f server/*.regs server/renderspu/*.regs server/renderspu/shaders/*.regs
 
 # gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h
 

@@ -59,9 +59,7 @@ void __debug_vecf(char* s, vec_float4 x)
 		spu_extract(x, 3) );
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 void debug_render_tasks(RenderableCacheLine* cache)
 {
@@ -101,10 +99,6 @@ void debug_render_tasks(RenderableCacheLine* cache)
 		mask>>=1;
 	}
 }
-
-char __renderable_base_buffer[ 256 + sizeof(Renderable) ] __attribute__((__aligned__(128)));
-unsigned long long currentRenderableBaseAddress = ~0ULL;
-Renderable* currentRenderableBase;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -585,6 +579,12 @@ int findFirstTriangleTile(Triangle* triangle, unsigned int chunkStart, unsigned 
 		spu_splats( chunkStart ), spu_splats( chunkEnd ) );
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+char __renderable_base_buffer[ 256 + sizeof(Renderable) ] __attribute__((__aligned__(128)));
+unsigned long long currentRenderableBaseAddress = ~0ULL;
+Renderable* currentRenderableBase;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 

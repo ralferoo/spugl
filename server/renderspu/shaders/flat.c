@@ -17,7 +17,15 @@
 #include "../../connection.h"
 #include "../../spu/spucontext.h"
 
-//#include "shader.h"
+/*
+register vec_float4    	TRIg            asm ("106");
+register vec_int4	TRIgi           asm ("106");
+
+register vec_float4    	TRIr            asm ("107");
+register vec_int4	TRIri           asm ("107");
+*/
+
+#include "shader.h"
 
 void flatInitFunc(vec_uint4* info);
 void flatRenderFunc(vec_uint4* pixelbuffer, Triangle* triangle, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
@@ -28,16 +36,27 @@ PixelShader flat_pixel_shader = {
 	.init_func_offset	= ((int) &flatInitFunc)			- ((int) &flat_pixel_shader),
 	.render_func_offset	= ((int) &flatRenderFunc)		- ((int) &flat_pixel_shader),
 };
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void flatInitFunc(vec_uint4* info)
-{
-}
 */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+PixelShaderInfo flatPixelShader(vec_uint4* info)
+{
+	register PixelShaderInfo ret;
+	ret.dataSize = 64;
+	ret.initFunction = &flatInitFunc;
+	ret.renderFunction = &flatRenderFunc;
+	return ret;
+}
+
+void flatInitFunc(vec_uint4* info)
+{
+//	TRIr = spu_splats(1234.0f);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
 #define DEBUG_VEC4(x) __debug_vec4(#x, (vec_uint4) x)
 #define DEBUG_VEC8(x) __debug_vec8(#x, (vec_ushort8) x)
 #define DEBUG_VECf(x) __debug_vecf(#x, (vec_float4) x)
@@ -72,7 +91,7 @@ static void __debug_vecf(char* s, vec_float4 x)
 		spu_extract(x, 2),
 		spu_extract(x, 3) );
 }
-
+*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
