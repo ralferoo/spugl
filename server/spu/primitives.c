@@ -153,9 +153,6 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 	vec_int4 dx = spu_sub(	spu_shuffle(y,y, shuffle_tri_ccw),
 				spu_shuffle(y,y, shuffle_tri_cw) ); // y: ccw-cw
 
-	DEBUG_VECf(TRIx);
-	DEBUG_VECf(TRIy);
-
 	// calculate the total area of the triangle, format: 3 * S_2_25.4 -> S_27.4
 	vec_int4 total_v = spu_mule( (vec_short8)x, (vec_short8)dx );
 
