@@ -14,10 +14,17 @@
 #
 # This has caught me out a couple of times... To "correctly" tag something, need to do this:
 #
-# git tag -a 0.2 -m "Release 0.2 of spugl"
-# git push --tags
+# $ git tag -a 0.2 -m "Release 0.2 of spugl"
+# $ git push --tags
 #
-# failing to do this will break version.sh
+# To delete a tag:
+#
+# $ git tag -d 0.2
+# $ git push origin :refs/tags/0.2
+#
+# (or maybe git push origin :0.2) http://blog.ashchan.com/archive/2008/06/30/tags-on-git/
+#
+# failing to do this this way will break version.sh
 
 
 BASE_NAME = spugl-client-0.1
