@@ -272,6 +272,8 @@ void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 //		mfc_read_tag_status_all();
 	}
 
+//	printf("[%d] Waiting for tags %04x\n", _SPUID, tags);
+
 	// wait for all blocks to flush
 	mfc_write_tag_mask(tags);
 	mfc_read_tag_status_all();
@@ -340,6 +342,11 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 			// read the existing pixel data
 			spu_mfcdma64(pixelbuffer, eah, (unsigned int)blit_list, 8*32, block, MFC_GETL_CMD);
 		}
+	}
+
+	if (!blocksToProcess) {
+		printf("[%d] No blocks generated from tiles %d to %d on tri %04x\n",
+			_SPUID, firstTile, chunkEnd, chunkTriangle);
 	}
 
 	// now render each block
@@ -461,6 +468,8 @@ unsigned int subdivide(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec
 				// bottom bit of Adx and Ady may change, but I don't think we need to worry
 				// DEBUG_VEC4(Adx);
 				// DEBUG_VEC4(Ady);
+			} else if (block>=0) {
+				printf("[%d] Losing coord %2d,%2d (block=%d)\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block );
 			}
 		}
 	}

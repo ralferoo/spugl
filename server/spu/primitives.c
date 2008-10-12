@@ -565,17 +565,17 @@ int imp_vertex(float4 in, Context* context)
 					length, endTriangleBase, next_pointer,
 					mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), length );
 */
-				// DMA the triangle data out
-				spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), length, 0, MFC_PUT_CMD);
-				mfc_write_tag_mask(1<<0);
-				mfc_read_tag_status_all();
-
 /*
 	printf("\ntri=%04x\n", offset);
 	DEBUG_VECf( TRIx );
 	DEBUG_VECf( TRIy );
 	DEBUG_VECf( TRIz );
 */
+				// DMA the triangle data out
+				spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), length, 0, MFC_PUT_CMD);
+				mfc_write_tag_mask(1<<0);
+				mfc_read_tag_status_all();
+
 				// update the information in the cache line
 				for(;;) {
 					cache->endTriangle = next_pointer;

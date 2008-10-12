@@ -65,8 +65,8 @@ int main(int argc, char* argv[]) {
 
 
 
-	for (int j=0; j<50; j++)
-	for (int i=-50; i<130; i++)
+	for (int j=0; j<5; j++)
+	for (int i=-350; i<130; i++)
 	{
 		spuglDrawContext(context);
 
@@ -103,10 +103,11 @@ int main(int argc, char* argv[]) {
 		glFlush();
 		//spuglFlush(queue);
 
+
 		context = spuglFlip(queue);
 		spuglWait(queue);
 		nf++;
-//		write(1,".",1);
+		write(1,".",1);
 	}
 
 	clock_gettime(CLOCK_MONOTONIC,&b);

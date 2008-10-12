@@ -196,7 +196,8 @@ void flatRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_i
 		vec_uint4 pixel = spu_rlmaska(allNeg,-31);
 		vec_uint4 bail = spu_orx(pixel);
 
-		if (spu_extract(bail,0)) {
+//		if (spu_extract(bail,0))
+		{
 			vec_float4 w = spu_splats(1.0f)/wA;
 
 			vec_float4 t_r = spu_mul(rA, w);
@@ -212,7 +213,7 @@ void flatRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_i
 			vec_uint4 current = *ptr;
 
 //			current = spu_and(spu_rlmaska(current,-2), spu_splats(0x3f3f3fu));
-//			current = spu_and(spu_rlmaska(current,-1), spu_splats(0x7f7f7fu));
+			current = spu_and(spu_rlmaska(current,-1), spu_splats(0x7f7f7fu));
 
 			*ptr = spu_sel(current, colour, pixel);
 		} 
