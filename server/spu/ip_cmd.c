@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 /*0*/int imp_nop(void* p) {
-	printf("NOP\n");
+//	printf("NOP\n");
 	return 0;
 }
 
