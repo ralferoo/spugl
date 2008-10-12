@@ -21,6 +21,7 @@
 #ifdef USE_LIBSPE2
 	#include <libspe2.h>
 	#include <pthread.h>
+	#include <sched.h>
 #else
 	#include <libspe.h>
 #endif
@@ -103,10 +104,22 @@ SPU_HANDLE _init_spu_thread(void* list, int master)
 	spe_callback_handler_register(sleep_callback, 0x11, SPE_CALLBACK_NEW);
 
 #ifdef USE_LIBSPE2
+	// prioritise the master thread
+	pthread_attr_t tattr;
+	struct sched_param param;
+
+	int ret = -1;
+	if ( master &&
+	     0==pthread_attr_init (&tattr) &&
+	     0==pthread_attr_getschedparam (&tattr, &param) ) {
+		param.sched_priority = 20;
+		ret = pthread_attr_setschedparam (&tattr, &param);
+	}
+
 	context->spe_ctx = spe_context_create(SPE_EVENTS_ENABLE|SPE_MAP_PS, NULL);
 	spe_program_load(context->spe_ctx, master ? main_spu_program : main_render_program);
 
-	int retval = pthread_create(&context->thread, NULL, (void*)&main_program_thread, context);
+	int retval = pthread_create(&context->thread, ret ? NULL : &tattr, (void*)&main_program_thread, context);
 	if (retval) {
 #else
 	context->spe_id = spe_create_thread(0, master ? main_spu_program : main_render_program,
