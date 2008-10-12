@@ -40,7 +40,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 
 //		write(1,"_",1);
 		// just call the callback routine (debug)
-		__asm("stop 0x2110\n\t.word 0");
+//		__asm("stop 0x2110\n\t.word 0");
 	}
 	return 0;
 }

@@ -65,10 +65,10 @@ int my_callback(void *ls_base_tmp, unsigned int data) {
 #ifdef DOTS
 	write(1,".",1);
 #endif
-	usleep(125000);
+	// usleep(125000);
 
 	// allow other jobs to run, but start up almost immediately
-	// sched_yield();
+	sched_yield();
 	return 0;
 }
 

@@ -11,6 +11,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
+#include <time.h>
 
 #include "client/daemon.h"
 #include "client/client.h"
@@ -57,12 +59,18 @@ int main(int argc, char* argv[]) {
 	};
 	glLoadMatrixf(projectionMatrix);
 
+	int nf = 0;
+	struct timespec a,b;
+	clock_gettime(CLOCK_MONOTONIC,&a);
 
-	for (int i=0; i<12; i++) {
+
+
+	for (int j=0; j<2; j++)
+	for (int i=-50; i<130; i++) {
 		spuglDrawContext(context);
 
 		glBegin(GL_TRIANGLES);
-			float ofs = i * 10.0f;
+			float ofs = i * 1.0f;
 
 /////////////////////
 				glTexCoord2f( 0, 0 );
@@ -96,9 +104,16 @@ int main(int argc, char* argv[]) {
 
 		context = spuglFlip(queue);
 		spuglWait(queue);
+		nf++;
 
-		sleep(1);
 	}
+
+	clock_gettime(CLOCK_MONOTONIC,&b);
+
+	float ta = a.tv_sec + (a.tv_nsec * 0.000000001f);
+	float tb = b.tv_sec + (b.tv_nsec * 0.000000001f);
+
+	printf("Render of %d frames took %f seconds or %f FPS\n", nf, (tb-ta), ((float)nf)/(tb-ta) );
 
 	//sleep(1);
 

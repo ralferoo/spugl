@@ -155,7 +155,7 @@ unsigned int Screen_swap(void)
 	screen.visible_frame = f;
 	screen.draw_address = screen.mmap_base + screen.draw_frame;
 
-	printf("switching to frame %d draw addr %x\n", showFrame, screen.draw_address);
+//	printf("switching to frame %d draw addr %x\n", showFrame, screen.draw_address);
 
 	memset(screen.draw_address, 0x80, screen.draw_size);
 
@@ -169,6 +169,6 @@ void Screen_wait(void)
 
 	uint32_t crt = 0;
 	ioctl(screen.fd, FBIO_WAITFORVSYNC, (unsigned long)&crt);
-	printf("vsync\n\n");
+//	printf("vsync\n\n");
 }
 

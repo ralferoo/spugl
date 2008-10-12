@@ -419,7 +419,7 @@ unsigned int subdivide(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec
 			//vec_uint4 v_process_1 = spu_rlmask(baseend, -31); //spu_cmpgt(baseend, spu_splats(0));
 			vec_uint4 v_process_1 = spu_cmpgt(baseend, spu_splats(0));
 			vec_uint4 v_process_2 = spu_cmpgt(blockMax, newbase);
-			vec_uint4 v_process = spu_and( v_process_2, v_process_1 );
+			vec_uint4 v_process = v_process_2; //spu_and( v_process_2, v_process_1 );
 		// TODO: this looks screwey
 
 			if (spu_extract(v_process, 0)) {
@@ -453,7 +453,7 @@ unsigned int subdivide(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int findFirstTriangleTile(Triangle* triangle, unsigned int chunkStart, unsigned int chunkEnd);
+int findFirstTriangleTile(Triangle* triangle, int chunkStart, int chunkEnd);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -561,7 +561,7 @@ int findFirstTile(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_uint4 y, vec_ushor
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int findFirstTriangleTile(Triangle* triangle, unsigned int chunkStart, unsigned int chunkEnd)
+int findFirstTriangleTile(Triangle* triangle, int chunkStart, int chunkEnd)
 {
 	int w = 64;
 	vec_uint4 INITIAL_BASE_ADD = { w*w, 2*w*w, 3*w*w, 4*w*w };

@@ -560,11 +560,11 @@ int imp_vertex(float4 in, Context* context)
 				// calculate genuine next pointer ( rewind==0 -> next, rewind!=0 -> 0 )
 				unsigned short next_pointer = spu_extract( spu_andc( v_new_end, v_rewind8 ), 1 );
 				triangle->next_triangle = next_pointer;
-
+/*
 				printf("len %x, endTriBase %x, next_pointer %x, ea %x:%08x len %x\n",
 					length, endTriangleBase, next_pointer,
 					mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), length );
-
+*/
 				// DMA the triangle data out
 				spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), length, 0, MFC_PUT_CMD);
 				mfc_write_tag_mask(1<<0);
@@ -584,7 +584,7 @@ int imp_vertex(float4 in, Context* context)
 				}
 
 			}
-			printf("done triangle\n");
+//			printf("done triangle\n");
 
 			break;
 	}
@@ -674,22 +674,6 @@ int stillProcessingQueue(Context* context)
 
 	// and return the dirty flag
 	unsigned int dirty		= spu_extract( spu_gather( v_dirty ), 0 );
-
-/*
-	printf("----\n");
-	DEBUG_VEC4( v_writeptr );
-	DEBUG_VEC4( v_readptr0 );
-	DEBUG_VEC4( v_readptr1 );
-	DEBUG_VEC4( v_next );
-	DEBUG_VEC4( v_finished );
-	DEBUG_VEC4( v_free_blocks );
-	DEBUG_VEC4( v_busy_blocks );
-	DEBUG_VEC4( v_dirty );
-	printf("dirty=%04x\n", dirty);
-*/
-	if (dirty) 
-		for(int i=0; i<4; i++) __asm("stop 0x2110\n\t.word 0");
-		
 
 	return (int) dirty;
 }

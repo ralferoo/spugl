@@ -298,13 +298,14 @@ GLAPI void GLAPIENTRY glFlush()
 	// wait until read pointer meets write pointer
 	for (;;) {
 		if (_SPUGL_fifo->write_ptr == _SPUGL_fifo->read_ptr) {
-			write(1,"DONE\n",5);
+		//	write(1,"DONE\n",5);
 			break;
 		}
 
 		// allow other processes to have a go and flush the cache
-		write(1,".",1);
-		usleep(1); //sched_yield();
+		// write(1,".",1);
+		// usleep(1);
+		sched_yield();
 		__asm__("lwsync");
 	}
 }

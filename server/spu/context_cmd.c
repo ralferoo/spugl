@@ -63,7 +63,7 @@
 	unsigned int eal = eal_renderables_table + sizeof(Renderable) * ( id&(MAX_RENDERABLES-1) );
 	unsigned int eah = eah_buffer_tables;
 
-	printf("DRAW CTX %x -> %x:%08x\n", id, eah, eal);
+	//printf("DRAW CTX %x -> %x:%08x\n", id, eah, eal);
 
 	char buffer[256+128];
 	char* tbuffer = (char*) ( ( ((unsigned int)buffer)+127 ) & ~127 );
@@ -74,12 +74,12 @@
 	spu_mfcdma64(tbuffer, eah, base_eal, 256, 0, MFC_GET_CMD);		// read data
 	mfc_write_tag_mask(1<<0);						// tag 0
 	mfc_read_tag_status_all();						// wait for read
-
+/*
 	printf("Screen address: %llx, id %x, locks %d, size %dx%d, stride 0x%x, format %d, cache line %x:%08x\n",
 		renderable->ea, renderable->id, renderable->locks,
 		renderable->width, renderable->height, renderable->stride, renderable->format,
 		mfc_ea2h(renderable->cacheLine), mfc_ea2l(renderable->cacheLine));
-
+*/
 	context->renderableCacheLine = renderable->cacheLine;
 
 	return 0;
