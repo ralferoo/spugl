@@ -262,6 +262,11 @@ void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 		// write the pixel data
 		spu_mfcdma64(pixelbuffer, eah, (unsigned int)blit_list, 8*32, block, MFC_PUTL_CMD);
 		tags |= (1<<block);
+
+// command queue is 16 elements deep, so we should be fine here
+//		// DEBUG, just in case
+//		mfc_write_tag_mask(tags);
+//		mfc_read_tag_status_all();
 	}
 
 	// wait for all blocks to flush
@@ -294,36 +299,41 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 		// TODO: this +1 looks screwey
 
 	// mark the tiles as found
+	unsigned int oldFound = processTile.found;
 	processTile.found |= blocksToProcess;
 
 	// create the DMA lists and read in the tiles to be changed
 	unsigned int found=blocksToProcess;
 	while (found) {
 		unsigned int block = spu_extract( spu_cntlz( spu_promote(found, 0) ), 0);
-		found &= ~( 0x80000000>>block );
+		unsigned int mask = ( 0x80000000>>block );
+		found &= ~mask;
 
-		unsigned int coord = processTile.coordArray[block];
+		if ( (~oldFound) & mask ) {
+			unsigned int coord = processTile.coordArray[block];
 
-		vec_ushort8 coord_vec = (vec_ushort8) spu_promote(coord, 0);
-		unsigned short coordx = spu_extract(coord_vec,0);
-		unsigned short coordy = spu_extract(coord_vec,1);
+			vec_ushort8 coord_vec = (vec_ushort8) spu_promote(coord, 0);
+			unsigned short coordx = spu_extract(coord_vec,0);
+			unsigned short coordy = spu_extract(coord_vec,1);
 
-		unsigned int offsetx = coordx * cache->pixelTileDx;
-		unsigned int offsety = coordy * cache->pixelTileDy;
-		unsigned long long pixelbuffer_ea = cache->pixelBuffer + offsetx + offsety;
+			unsigned int offsetx = coordx * cache->pixelTileDx;
+			unsigned int offsety = coordy * cache->pixelTileDy;
+			unsigned long long pixelbuffer_ea = cache->pixelBuffer + offsetx + offsety;
 
-		vec_uint4* blit_list = block_blit_list[block];
-		populate_blit_list(blit_list, mfc_ea2l(pixelbuffer_ea), cache->pixelLineDy);
-		vec_uint4* pixelbuffer = (vec_uint4*) block_buffer[block];
-		unsigned int eah = mfc_ea2h(pixelbuffer_ea);
-		block_eah[block] = eah;
+			vec_uint4* blit_list = block_blit_list[block];
+			populate_blit_list(blit_list, mfc_ea2l(pixelbuffer_ea), cache->pixelLineDy);
+			vec_uint4* pixelbuffer = (vec_uint4*) block_buffer[block];
+			unsigned int eah = mfc_ea2h(pixelbuffer_ea);
+			block_eah[block] = eah;
 
-#ifdef INFO
-		printf("[%d] Block %x %08x (%2d,%2d) EA=%llx blit_list=%05x, pixelbuffer=%05x\n", _SPUID, block, coord, coordx, coordy, pixelbuffer_ea, blit_list, pixelbuffer);
-#endif
+//#ifdef INFO
+			printf("[%d] Block %x %08x (%2d,%2d) EA=%llx list=%05x, pix=%05x tri=%04x\n",
+				_SPUID, block, coord, coordx, coordy, pixelbuffer_ea, blit_list, pixelbuffer, chunkTriangle);
+//#endif
 
-		// read the existing pixel data
-		spu_mfcdma64(pixelbuffer, eah, (unsigned int)blit_list, 8*32, block, MFC_GETL_CMD);
+			// read the existing pixel data
+			spu_mfcdma64(pixelbuffer, eah, (unsigned int)blit_list, 8*32, block, MFC_GETL_CMD);
+		}
 	}
 
 	// now render each block
