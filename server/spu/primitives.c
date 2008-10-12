@@ -574,9 +574,9 @@ int imp_vertex(float4 in, Context* context)
 				// DMA the triangle data out
 				spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), length, 0, MFC_PUT_CMD);
 
-				for (int i=0; i<1000000; i++) __asm("nop");
+//				for (int i=0; i<1000000; i++) __asm("nop");
 
-				mfc_sync(0);
+//				mfc_sync(0);
 				//mfc_eieio(0,0,0);
 
 				// update the information in the cache line

@@ -149,4 +149,31 @@ struct TextureData {
 #endif // SPU_REGS
 */
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#ifdef SPU_REGS
+	#define DEBUG_VEC4(x) __debug_vec4(#x, (vec_uint4) x)
+	#define DEBUG_VEC8(x) __debug_vec8(#x, (vec_ushort8) x)
+	#define DEBUG_VECf(x) __debug_vecf(#x, (vec_float4) x)
+
+	extern void __debug_vec4(char* s, vec_uint4 x);
+	extern void __debug_vec8(char* s, vec_ushort8 x);
+	extern void __debug_vecf(char* s, vec_float4 x);
+#endif // SPU_REGS
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#ifdef SPU_REGS
+	extern void initTileBuffers(unsigned int firstTile, unsigned int chunkEnd);
+
+	extern void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd);
+
+	extern void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache,
+					  int firstTile, int chunkEnd, unsigned int chunkTriangle, int ok);
+
+	extern int findFirstTriangleTile(Triangle* triangle, int chunkStart, int chunkEnd);
+#endif // SPU_REGS
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #endif // __SPU_RENDER_H

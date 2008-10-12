@@ -15,6 +15,10 @@
 
 #include "render.h"
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 unsigned int _SPUID;
 
 unsigned long eah_render_tasks;
@@ -46,4 +50,37 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 }
 
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+void __debug_vec4(char* s, vec_uint4 x)
+{
+	printf("[%d] %-20s %08x   %08x   %08x   %08x\n", _SPUID, s,
+		spu_extract(x, 0),
+		spu_extract(x, 1),
+		spu_extract(x, 2),
+		spu_extract(x, 3) );
+}
+
+void __debug_vec8(char* s, vec_ushort8 x)
+{
+	printf("[%d] %-20s %04x %04x  %04x %04x  %04x %04x  %04x %04x\n", _SPUID, s,
+		spu_extract(x, 0),
+		spu_extract(x, 1),
+		spu_extract(x, 2),
+		spu_extract(x, 3),
+		spu_extract(x, 4),
+		spu_extract(x, 5),
+		spu_extract(x, 6),
+		spu_extract(x, 7) );
+}
+
+void __debug_vecf(char* s, vec_float4 x)
+{
+	printf("[%d] %-20s %11.3f %11.3f %11.3f %11.3f\n", _SPUID, s,
+		spu_extract(x, 0),
+		spu_extract(x, 1),
+		spu_extract(x, 2),
+		spu_extract(x, 3) );
+}
 
