@@ -98,6 +98,18 @@ int main(int argc, char* argv[]) {
 				glColor3ub(255, 255, 0);
 				glVertex3f(170+ofs, 20, 100);
 /////////////////////
+				glTexCoord2f( 256, 0 );
+				glColor3ub(0, 55, 255);
+				glVertex3f(-230-ofs, 60, 100);
+
+				glTexCoord2f( 0, 0 );
+				glColor3ub(0, 255, 0);
+				glVertex3f(-150-ofs, -50, 100);
+
+				glTexCoord2f( 256, 256 );
+				glColor3ub(255, 0, 55);
+				glVertex3f(-110-ofs, 20, 100);
+/////////////////////
 		glEnd();
 
 		glFlush();
