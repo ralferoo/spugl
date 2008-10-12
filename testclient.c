@@ -104,8 +104,9 @@ int main(int argc, char* argv[]) {
 		//spuglFlush(queue);
 
 
-		context = spuglFlip(queue);
 		spuglWait(queue);
+		context = spuglFlip(queue);
+
 		nf++;
 		write(1,".",1);
 	}

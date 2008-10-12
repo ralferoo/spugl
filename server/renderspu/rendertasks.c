@@ -347,6 +347,9 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 	if (!blocksToProcess) {
 		printf("[%d] No blocks generated from tiles %d to %d on tri %04x\n",
 			_SPUID, firstTile, chunkEnd, chunkTriangle);
+//		DEBUG_VEC4( A );
+//		DEBUG_VEC4( Adx );
+//		DEBUG_VEC4( Ady );
 	}
 
 	// now render each block

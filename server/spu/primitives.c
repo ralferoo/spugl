@@ -573,8 +573,23 @@ int imp_vertex(float4 in, Context* context)
 */
 				// DMA the triangle data out
 				spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), length, 0, MFC_PUT_CMD);
+
+				for (int i=0; i<1000000; i++) __asm("nop");
+
+				mfc_sync(0);
+				//mfc_eieio(0,0,0);
+
+				// update the information in the cache line
+				cache->endTriangle = next_pointer;
+				//static short updatedEndTriangle;
+				//updatedEndTriangle = next_pointer;
+				unsigned int eal = mfc_ea2l(cache_ea) + (((char*)&cache->endTriangle) - ((char*)cache));
+//				printf("%08x %08x\n", mfc_ea2l(cache_ea), eal);
+				spu_mfcdma64(&cache->endTriangle, mfc_ea2h(cache_ea), eal, sizeof(short), 0, MFC_PUTB_CMD);
+
 				mfc_write_tag_mask(1<<0);
 				mfc_read_tag_status_all();
+/*
 
 				// update the information in the cache line
 				for(;;) {
@@ -588,7 +603,7 @@ int imp_vertex(float4 in, Context* context)
 					spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
 					spu_readch(MFC_RdAtomicStat);
 				}
-
+*/
 			}
 //			printf("done triangle\n");
 
