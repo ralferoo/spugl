@@ -571,11 +571,11 @@ int imp_vertex(float4 in, Context* context)
 				mfc_read_tag_status_all();
 
 /*
-*/
 	printf("\ntri=%04x\n", offset);
 	DEBUG_VECf( TRIx );
 	DEBUG_VECf( TRIy );
 	DEBUG_VECf( TRIz );
+*/
 				// update the information in the cache line
 				for(;;) {
 					cache->endTriangle = next_pointer;
