@@ -642,7 +642,7 @@ int stillProcessingQueue(Context* context)
 	vec_ushort8 v_finished1		= spu_cmpeq( v_readptr1, v_writeptr );
 
 	vec_uchar16 v_merger		= (vec_uchar16) { 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 };
-	vec_uchar16 v_finished		= spu_shuffle( v_finished0, v_finished1, v_merger );
+	vec_uchar16 v_finished		= (vec_uchar16) spu_shuffle( v_finished0, v_finished1, v_merger );
 	// each byte = 0xFF if finished, 0x00 if still waiting
 
 	vec_uchar16 v_next		= cache->chunkNext;

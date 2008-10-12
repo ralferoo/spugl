@@ -574,7 +574,7 @@ int findFirstTriangleTile(Triangle* triangle, int chunkStart, int chunkEnd)
 	
 	return findFirstTile(A, Adx, Ady,
 		ZEROS, INITIAL_i, ZEROS, INITIAL_BASE_ADD, 0,
-		spu_splats( chunkStart ), spu_splats( chunkEnd ) );
+		(vec_uint4) spu_splats( chunkStart ), (vec_uint4) spu_splats( chunkEnd ) );
 }
 
 
