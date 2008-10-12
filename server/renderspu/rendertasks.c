@@ -259,6 +259,9 @@ void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 		vec_uint4* pixelbuffer = (vec_uint4*) block_buffer[block];
 		unsigned int eah = block_eah[block];
 
+		// wait for 2 slots to open up (one for pixel buffer one for Z-buffer)
+		do {} while (spu_readchcnt(MFC_Cmd)<2);
+
 		// write the pixel data
 		spu_mfcdma64(pixelbuffer, eah, (unsigned int)blit_list, 8*32, block, MFC_PUTL_CMD);
 		tags |= (1<<block);
@@ -330,6 +333,9 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 			printf("[%d] Block %x %08x (%2d,%2d) EA=%llx list=%05x, pix=%05x tri=%04x\n",
 				_SPUID, block, coord, coordx, coordy, pixelbuffer_ea, blit_list, pixelbuffer, chunkTriangle);
 #endif
+
+			// wait for 2 slots to open up (one for pixel buffer one for Z-buffer)
+			do {} while (spu_readchcnt(MFC_Cmd)<2);
 
 			// read the existing pixel data
 			spu_mfcdma64(pixelbuffer, eah, (unsigned int)blit_list, 8*32, block, MFC_GETL_CMD);
