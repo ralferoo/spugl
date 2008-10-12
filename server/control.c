@@ -49,7 +49,8 @@ struct __SPU_HANDLE {
 /* PPE Callback Function */
 int sleep_callback(void *ls_base_tmp, unsigned int data) {
 	char *ls_base = (char *)ls_base_tmp; 
-	usleep(125000);
+	sched_yield();
+	// usleep(125000);
 
 	return 0;
 }

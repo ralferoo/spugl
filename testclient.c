@@ -65,8 +65,9 @@ int main(int argc, char* argv[]) {
 
 
 
-	for (int j=0; j<3; j++)
-	for (int i=-50; i<130; i++) {
+	for (int j=0; j<50; j++)
+	for (int i=-50; i<130; i++)
+	{
 		spuglDrawContext(context);
 
 		glBegin(GL_TRIANGLES);

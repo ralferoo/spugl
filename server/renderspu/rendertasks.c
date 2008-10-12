@@ -326,10 +326,10 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 			unsigned int eah = mfc_ea2h(pixelbuffer_ea);
 			block_eah[block] = eah;
 
-//#ifdef INFO
+#ifdef INFO
 			printf("[%d] Block %x %08x (%2d,%2d) EA=%llx list=%05x, pix=%05x tri=%04x\n",
 				_SPUID, block, coord, coordx, coordy, pixelbuffer_ea, blit_list, pixelbuffer, chunkTriangle);
-//#endif
+#endif
 
 			// read the existing pixel data
 			spu_mfcdma64(pixelbuffer, eah, (unsigned int)blit_list, 8*32, block, MFC_GETL_CMD);
