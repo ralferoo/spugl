@@ -155,6 +155,18 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 		ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, spu_splats(chunkEnd-firstTile+1), 0); 
 		// TODO: this +1 looks screwey
 
+	// if no blocks returned, short circuit
+	if (!blocksToProcess && !ok) {
+/*
+		printf("[%d] No blocks generated from tiles %d to %d on tri %04x %s\n",
+			_SPUID, firstTile, chunkEnd, chunkTriangle, ok ? "OK" : "BAD");
+		DEBUG_VEC4( A );
+		DEBUG_VEC4( Adx );
+		DEBUG_VEC4( Ady );
+*/
+		return;
+	}
+
 	// mark the tiles as found
 	unsigned int oldFound = processTile.found;
 	processTile.found |= blocksToProcess;
@@ -177,6 +189,7 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 			unsigned int offsety = coordy * cache->pixelTileDy;
 			unsigned long long pixelbuffer_ea = cache->pixelBuffer + offsetx + offsety;
 
+			// create the blit list (reading)
 			vec_uint4* blit_list = block_blit_list[block];
 			populate_blit_list(blit_list, mfc_ea2l(pixelbuffer_ea), cache->pixelLineDy);
 			vec_uint4* pixelbuffer = (vec_uint4*) block_buffer[block];
@@ -194,14 +207,6 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 			// read the existing pixel data
 			spu_mfcdma64(pixelbuffer, eah, (unsigned int)blit_list, 8*32, block, MFC_GETL_CMD);
 		}
-	}
-
-	if (!blocksToProcess) {
-		printf("[%d] No blocks generated from tiles %d to %d on tri %04x %s\n",
-			_SPUID, firstTile, chunkEnd, chunkTriangle, ok ? "OK" : "BAD");
-//		DEBUG_VEC4( A );
-//		DEBUG_VEC4( Adx );
-//		DEBUG_VEC4( Ady );
 	}
 
 	// now render each block

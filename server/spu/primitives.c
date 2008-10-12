@@ -106,7 +106,128 @@ static const vec_uchar16 minimax_add = {
 //extern RenderFuncs _standard_simple_texture_triangle;
 //extern RenderFuncs _standard_colour_triangle;
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+unsigned int DEBUG_SUBDIV(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec_short8 i,
+		vec_int4 base, vec_int4 baseadd,
+		int type, vec_int4 blockMax, unsigned int found)
+{
+	vec_int4 Ar = spu_add(A, Adx);
+	vec_int4 Ab = spu_add(A, Ady);
+	vec_int4 Abr = spu_add(Ar, Ady);
+	unsigned int outside = spu_extract(spu_orx(spu_rlmaska(
+					spu_nor( spu_or(A,Ar), spu_or(Ab,Abr) ), -31)),0);
+
+	if (!outside) {
+		i = spu_rlmask(i, -1);
+		baseadd = spu_rlmask(baseadd, -2);
+		if (spu_extract(i, 1)) {
+			vec_int4 hdx = spu_rlmaska(Adx, -1);
+			vec_int4 hdy = spu_rlmaska(Ady, -1);
+
+			vec_int4 A_hdx	 	= spu_add(A,     hdx);
+			vec_int4 A_hdy		= spu_add(A,     hdy);
+			vec_int4 A_hdx_hdy	= spu_add(A_hdx, hdy);
+
+			vec_int4 Adx_hdx	= spu_sub(Adx,hdx);
+			vec_int4 Ady_hdy	= spu_sub(Ady,hdy);
+
+			// type & 0xf0 = bit 0 of type (&1)
+			// type & 0x0f = bit 1 of type (&2)
+			//
+			//		A	B	C	D
+			//
+			// type 0:	0	y	x+y	x
+			// type 1:	0	x	x+y	y
+			// type 2:	x+y	y	0	x
+			// type 3:	x+y	x	0	y
+
+			vec_uint4 bit1 = spu_maskw( type );
+			vec_uint4 bit0 = spu_maskw( type>>4 );
+
+			vec_uint4 andm = spu_xor( spu_promote(0xffff0000, 0), bit0);
+			vec_short8 im   = i;
+
+			// A
+			vec_int4 startA	= spu_sel( A, A_hdx_hdy, bit1);
+			vec_int4 dxA	= spu_sel( hdx, Adx_hdx, bit1);
+			vec_int4 dyA	= spu_sel( hdy, Ady_hdy, bit1);
+			vec_short8 addA	= spu_and( im, (vec_short8) bit1 );
+
+			// B
+			vec_int4 startB	= spu_sel( A_hdy, A_hdx, bit0);
+			vec_int4 dxB	= spu_sel( hdx, Adx_hdx, bit0);
+			vec_int4 dyB	= spu_sel( Ady_hdy, hdy, bit0);
+			vec_short8 addB	= spu_andc( im, (vec_short8) andm );
+
+			// C
+			vec_int4 startC	= spu_sel( A_hdx_hdy, A, bit1);
+			vec_int4 dxC	= spu_sel( Adx_hdx, hdx, bit1);
+			vec_int4 dyC	= spu_sel( Ady_hdy, hdy, bit1);
+			vec_short8 addC	= spu_andc( im, (vec_short8) bit1 );
+
+			// D
+			vec_int4 startD	= spu_sel( A_hdx, A_hdy, bit0);
+			vec_int4 dxD	= spu_sel( Adx_hdx, hdx, bit0);
+			vec_int4 dyD	= spu_sel( hdy, Ady_hdy, bit0);
+			vec_short8 addD	= spu_and( im, (vec_short8) andm );
+
+			vec_int4 newbase  = spu_add(base, spu_rlmaskqwbyte(baseadd, -4));
+			vec_int4 baseend  = spu_add(base,baseadd);
+
+			// chunkStart < baseEnd && chunkEnd > newBase
+			// chunkStart >= baseEnd && chunkEnd > newBase
+
+			//vec_uint4 v_process_1 = spu_rlmask(baseend, -31); //spu_cmpgt(baseend, spu_splats(0));
+			vec_uint4 v_process_1 = spu_cmpgt(baseend, spu_splats(0));
+			vec_uint4 v_process_2 = spu_cmpgt(blockMax, newbase);
+			vec_uint4 v_process = v_process_2; //spu_and( v_process_2, v_process_1 );
+		// TODO: this looks screwey
+
+			if (spu_extract(v_process, 0)) {
+				found  = DEBUG_SUBDIV(startA, dxA, dyA, spu_add(y,addA), i, spu_splats(spu_extract(newbase,0)), baseadd, type^0xf0, blockMax, found);
+			}
+			if (spu_extract(v_process, 1)) {
+				found = DEBUG_SUBDIV(startB, dxB, dyB, spu_add(y,addB), i, spu_splats(spu_extract(newbase,1)), baseadd, type, blockMax, found);
+			}
+			if (spu_extract(v_process, 2)) {
+				found = DEBUG_SUBDIV(startC, dxC, dyC, spu_add(y,addC), i, spu_splats(spu_extract(newbase,2)), baseadd, type, blockMax, found);
+			}
+			if (spu_extract(v_process, 3)) {
+				found = DEBUG_SUBDIV(startD, dxD, dyD, spu_add(y,addD), i, spu_splats(spu_extract(newbase,3)), baseadd, type^0x0f, blockMax, found);
+			}
+
+		} else {
+			int block = spu_extract(base,0);
+			found++;
+			printf("[%d] DEBUG coord %2d,%2d (block=%d) (#%d)\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block, found );
+		}
+	}
+	return found;
+}
+
 //////////////////////////////////////////////////////////////////////////////
+
+int DEBUG_TRI(Triangle* triangle, int chunkStart, int chunkEnd)
+{
+
+	int w = 64;
+	vec_int4 INITIAL_BASE = spu_splats(0);
+	vec_int4 INITIAL_BASE_ADD = { w*w, 2*w*w, 3*w*w, 4*w*w };
+	vec_short8 ZEROS = spu_splats((short)0);
+	vec_short8 INITIAL_i = spu_splats((short)w);
+	
+	vec_int4 A   = triangle->area;
+	vec_int4 Adx = triangle->area_dx;
+	vec_int4 Ady = triangle->area_dy;
+	
+	unsigned int blocksToProcess = DEBUG_SUBDIV(A, Adx, Ady,
+		ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, spu_splats(4096), 0); 
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 static const vec_float4 muls4 = {4.0f, 4.0f, 4.0f, 4.0f};
 static const vec_float4 muls32 = {32.0f, 32.0f, 32.0f, 32.0f};
@@ -185,6 +306,14 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 	triangle->area = spu_or(triA,Amask);
 	triangle->area_dx = triAdx;
 	triangle->area_dy = triAdy;
+
+/*
+	DEBUG_VEC4( triA );
+	DEBUG_VEC4( triAdx );
+	DEBUG_VEC4( triAdy );
+*/
+
+//	DEBUG_TRI( triangle, 0, 4096 );
 
 	vec_float4 *params = (vec_float4*) triangle->shader_params;
 	params[ 0] = TRIx;

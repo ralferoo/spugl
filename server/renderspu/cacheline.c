@@ -232,6 +232,10 @@ trynextcacheline:
 			unsigned long long trianglebuffer_ea = cache_ea + TRIANGLE_OFFSET_FROM_CACHE_LINE + (chunkTriangle & ~127);
 			triangle = (Triangle*) (trianglebuffer+extra);
 			unsigned int length = (extra + TRIANGLE_MAX_SIZE + 127) & ~127;
+
+			// ensure DMA slot available
+			do {} while (!spu_readchcnt(MFC_Cmd));
+
 			spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea),
 					length, 0, MFC_GET_CMD);
 			mfc_write_tag_mask(1<<0);
@@ -353,6 +357,7 @@ retry:
 						printf("[%d] Keep whole block, tailChunk=%d, chunkNext=%d, thisChunk=%d\n", _SPUID, tailChunk, chunkNext, thisChunk);
 						debug_render_tasks(cache);
 //#endif
+						__asm("stop 0x2111\n\t.word 0");
 					}
 				}
 
@@ -408,6 +413,10 @@ retry:
 				unsigned long long trianglebuffer_ea = cache_ea + TRIANGLE_OFFSET_FROM_CACHE_LINE + (chunkTriangle & ~127);
 				triangle = (Triangle*) (trianglebuffer+extra);
 				unsigned int length = (extra + TRIANGLE_MAX_SIZE + 127) & ~127;
+
+				// ensure DMA slot available
+				do {} while (!spu_readchcnt(MFC_Cmd));
+
 				spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea),
 						mfc_ea2l(trianglebuffer_ea), length, 0, MFC_GET_CMD);
 				mfc_write_tag_mask(1<<0);
@@ -418,6 +427,14 @@ retry:
 			flushTileBuffers(thisBlockStart, chunkEnd);
 
 		} // firstTile>=0
+
+			if (cache->chunkNextArray[chunkToProcess] != (chunkNext|CHUNKNEXT_BUSY_BIT) )
+				printf("[%d] next=%02x, chunkNext=%02x, tri=%04x, chunkTriangle=%04x\n", _SPUID,
+					cache->chunkNextArray[chunkToProcess], chunkNext,
+					cache->chunkTriangleArray[chunkToProcess], chunkTriangle );
+
+			//cache->chunkNextArray[chunkToProcess] = chunkNext;
+			//cache->chunkTriangleArray[chunkToProcess] = chunkTriangle;
 
 		// when finished, mark chunk as done and free reserved chunk (if still in use)
 		do {

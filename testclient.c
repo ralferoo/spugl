@@ -66,8 +66,13 @@ int main(int argc, char* argv[]) {
 
 
 	for (int j=0; j<5; j++)
-	for (int i=-350; i<130; i++)
+	//for (int i=-350; i<130; i++)
+	for (int i=-338; i<-335; i++)
+	for (int k=0; k<129; k++)
 	{
+		char buffer[256];
+		sprintf(buffer,"%d\r", i);
+		//write(1,buffer,strlen(buffer));
 		spuglDrawContext(context);
 
 		glBegin(GL_TRIANGLES);
