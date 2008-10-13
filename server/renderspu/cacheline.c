@@ -359,10 +359,10 @@ retry:
 						cache->chunkTriangleArray[chunkToProcess]=chunkTriangle;
 						cache->chunkNextArray[chunkToProcess]=tailChunk | CHUNKNEXT_BUSY_BIT;
 						realBlockStart = chunkStart;
-//#ifdef INFO
 						printf("[%d] Keep whole block, tailChunk=%d, chunkNext=%d, thisChunk=%d\n", _SPUID, tailChunk, chunkNext, thisChunk);
 						debug_render_tasks(cache);
-//#endif
+#ifdef INFO
+#endif
 						__asm("stop 0x2111\n\t.word 0");
 					}
 				}
