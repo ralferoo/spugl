@@ -24,7 +24,7 @@ extern void flatRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A
 
 unsigned int subdivide(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec_short8 i,
 		vec_int4 base, vec_int4 baseadd,
-		int type, vec_int4 blockMax, unsigned int found);
+		int type, int blockStart, vec_int4 blockMax, unsigned int found);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -133,13 +133,13 @@ void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 
 void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int firstTile, int chunkEnd, unsigned int chunkTriangle, int ok)
 {
-#ifdef INFO
 	printf("[%d] Processing tiles %d to %d on tri %04x\n",
 		_SPUID, firstTile, chunkEnd, chunkTriangle);
+#ifdef INFO
 #endif
 
 	int w = 64;
-	vec_int4 INITIAL_BASE = spu_splats(-firstTile);
+	vec_int4 INITIAL_BASE = spu_splats(0); //-firstTile);
 	vec_int4 INITIAL_BASE_ADD = { w*w, 2*w*w, 3*w*w, 4*w*w };
 	vec_short8 ZEROS = spu_splats((short)0);
 	vec_short8 INITIAL_i = spu_splats((short)w);
@@ -152,7 +152,7 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 	vec_int4 hdy = spu_rlmaska(Ady, -6);
 
 	unsigned int blocksToProcess = subdivide(A, Adx, Ady,
-		ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, spu_splats(chunkEnd-firstTile+1), 0); 
+		ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, firstTile, spu_splats(chunkEnd+1), 0); 
 		// TODO: this +1 looks screwey
 
 	// if no blocks returned, short circuit
@@ -231,7 +231,7 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 
 unsigned int subdivide(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec_short8 i,
 		vec_int4 base, vec_int4 baseadd,
-		int type, vec_int4 blockMax, unsigned int found)
+		int type, int blockStart, vec_int4 blockMax, unsigned int found)
 {
 	vec_int4 Ar = spu_add(A, Adx);
 	vec_int4 Ab = spu_add(A, Ady);
@@ -306,20 +306,20 @@ unsigned int subdivide(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec
 		// TODO: this looks screwey
 
 			if (spu_extract(v_process, 0)) {
-				found  = subdivide(startA, dxA, dyA, spu_add(y,addA), i, spu_splats(spu_extract(newbase,0)), baseadd, type^0xf0, blockMax, found);
+				found  = subdivide(startA, dxA, dyA, spu_add(y,addA), i, spu_splats(spu_extract(newbase,0)), baseadd, type^0xf0, blockStart, blockMax, found);
 			}
 			if (spu_extract(v_process, 1)) {
-				found = subdivide(startB, dxB, dyB, spu_add(y,addB), i, spu_splats(spu_extract(newbase,1)), baseadd, type, blockMax, found);
+				found = subdivide(startB, dxB, dyB, spu_add(y,addB), i, spu_splats(spu_extract(newbase,1)), baseadd, type, blockStart, blockMax, found);
 			}
 			if (spu_extract(v_process, 2)) {
-				found = subdivide(startC, dxC, dyC, spu_add(y,addC), i, spu_splats(spu_extract(newbase,2)), baseadd, type, blockMax, found);
+				found = subdivide(startC, dxC, dyC, spu_add(y,addC), i, spu_splats(spu_extract(newbase,2)), baseadd, type, blockStart, blockMax, found);
 			}
 			if (spu_extract(v_process, 3)) {
-				found = subdivide(startD, dxD, dyD, spu_add(y,addD), i, spu_splats(spu_extract(newbase,3)), baseadd, type^0x0f, blockMax, found);
+				found = subdivide(startD, dxD, dyD, spu_add(y,addD), i, spu_splats(spu_extract(newbase,3)), baseadd, type^0x0f, blockStart, blockMax, found);
 			}
 
 		} else {
-			int block = spu_extract(base,0);
+			int block = spu_extract(base,0) - blockStart;
 
 			if (block>=0 && block<spu_extract(blockMax, 0)) {
 				found |= 0x80000000>>block;
@@ -328,8 +328,9 @@ unsigned int subdivide(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec
 				// bottom bit of Adx and Ady may change, but I don't think we need to worry
 				// DEBUG_VEC4(Adx);
 				// DEBUG_VEC4(Ady);
+				printf("[%d] coord %2d,%2d block=%d\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block + blockStart );
 			} else if (block>=0) {
-				printf("[%d] Losing coord %2d,%2d (block=%d)\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block );
+				printf("[%d] Block %2d,%2d (block=%d)\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block );
 			}
 		}
 	}

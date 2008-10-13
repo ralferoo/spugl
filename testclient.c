@@ -65,10 +65,12 @@ int main(int argc, char* argv[]) {
 
 
 
-	for (int j=0; j<5; j++)
-	//for (int i=-350; i<130; i++)
-	for (int i=-338; i<-335; i++)
-	for (int k=0; k<129; k++)
+	int i = -130;
+	//int i = -338;
+
+	for (int j=0; j<15; j++)
+	//for (i=-350; i<130; i++)
+	//for (int k=0; k<429; k++)
 	{
 		char buffer[256];
 		sprintf(buffer,"%d\r", i);

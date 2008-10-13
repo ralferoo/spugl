@@ -217,10 +217,10 @@ trynextcacheline:
 		if (spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS)
 			continue;
 
-#ifdef INFO
 		printf("[%d] Claimed chunk %d (%d-%d len %d) at tri %x end %x with free chunk %d\n", _SPUID,
 			chunkToProcess, chunkStart, chunkEnd, chunkLength, chunkTriangle, endTriangle,
 			freeChunk!=32 ? freeChunk : -1 );
+#ifdef INFO
 //		debug_render_tasks(cache);
 #endif
 
@@ -280,6 +280,10 @@ retry:
 					thisBlockStart = chunkStart;
 				realBlockStart = thisBlockStart;
 	
+				printf("[%d] nextBlockStart=%d, realBlockStart=%d, thisBlockStart=%d, chunkStart=%d\n", _SPUID,
+							nextBlockStart, realBlockStart, thisBlockStart, chunkStart);
+			
+
 				// allocate some more free chunks
 				vec_uint4 freeChunkGather2 = spu_sl(spu_gather(spu_cmpeq(
 					spu_splats((unsigned char)CHUNKNEXT_FREE_BLOCK), cache->chunkNext)), 16);
@@ -297,9 +301,9 @@ retry:
 					cache->chunkNextArray[freeChunk] = CHUNKNEXT_FREE_BLOCK;
 				}
 
-#ifdef INFO
 				printf("[%d] Free chunks %d and %d, cN=%d, nBS=%d, cE=%d, tBS=%d, cS=%d\n",
 					_SPUID, freeChunk, freeChunk2, chunkNext, nextBlockStart, chunkEnd, thisBlockStart, chunkStart );
+#ifdef INFO
 #endif
 
 				// mark region after as available for processing if required
@@ -320,8 +324,8 @@ retry:
 					cache->chunkTriangleArray[freeChunk] = chunkTriangle;
 					cache->chunkNextArray[chunkToProcess] = freeChunk | CHUNKNEXT_BUSY_BIT;
 					tailChunk = freeChunk;
-#ifdef INFO
 					printf("[%d] Insert tail, tailChunk=%d, chunkNext=%d, chunkToProcess=%d\n", _SPUID, tailChunk, chunkNext, chunkToProcess);
+#ifdef INFO
 					debug_render_tasks(cache);
 #endif
 				} else {
@@ -344,9 +348,9 @@ retry:
 						cache->chunkNextArray[chunkToProcess]=freeChunk2;
 						cache->chunkTriangleArray[chunkToProcess]=triangle->next_triangle;
 						thisChunk = freeChunk2;
-#ifdef INFO
 						printf("[%d] Insert new head, tailChunk=%d, chunkNext=%d, thisChunk=%d\n", _SPUID, tailChunk, chunkNext, thisChunk);
 						debug_render_tasks(cache);
+#ifdef INFO
 #endif
 					} else {
 						// need to keep whole block, update info and mark bust
@@ -368,7 +372,7 @@ retry:
 			// finally after the write succeeded, update the variables
 			chunkNext = tailChunk;
 			chunkToProcess = thisChunk;
-			chunkStart = thisBlockStart;
+			chunkStart = firstTile; //thisBlockStart;
 			chunkLength = nextBlockStart - firstTile;
 			chunkEnd = chunkStart + chunkLength - 1;
 			freeChunk = 32;
