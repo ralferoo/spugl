@@ -68,8 +68,8 @@ int main(int argc, char* argv[]) {
 	int i = -130;
 	//int i = -338;
 
-	for (int j=0; j<15; j++)
-	//for (i=-350; i<130; i++)
+	for (int j=0; j<2; j++)
+	for (i=-350; i<130; i++)
 	//for (int k=0; k<429; k++)
 	{
 		char buffer[256];

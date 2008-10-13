@@ -133,9 +133,9 @@ void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 
 void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int firstTile, int chunkEnd, unsigned int chunkTriangle, int ok)
 {
+#ifdef INFO
 	printf("[%d] Processing tiles %d to %d on tri %04x\n",
 		_SPUID, firstTile, chunkEnd, chunkTriangle);
-#ifdef INFO
 #endif
 
 	int w = 64;
@@ -328,7 +328,7 @@ unsigned int subdivide(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec
 				// bottom bit of Adx and Ady may change, but I don't think we need to worry
 				// DEBUG_VEC4(Adx);
 				// DEBUG_VEC4(Ady);
-				printf("[%d] coord %2d,%2d block=%d\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block + blockStart );
+//				printf("[%d] coord %2d,%2d block=%d\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block + blockStart );
 			} else if (block>=0) {
 				printf("[%d] Block %2d,%2d (block=%d)\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block );
 			}
@@ -460,7 +460,7 @@ int findFirstTriangleTile(Triangle* triangle, int chunkStart, int chunkEnd)
 	
 	return findFirstTile(A, Adx, Ady,
 		ZEROS, INITIAL_i, ZEROS, INITIAL_BASE_ADD, 0,
-		(vec_uint4) spu_splats( chunkStart ), (vec_uint4) spu_splats( chunkEnd ) );
+		(vec_uint4) spu_splats( chunkStart ), (vec_uint4) spu_splats( chunkEnd+1 ) );
 }
 
 
