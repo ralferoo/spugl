@@ -15,6 +15,8 @@
 
 #include "render.h"
 
+//#define INFO
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 extern void maskRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
