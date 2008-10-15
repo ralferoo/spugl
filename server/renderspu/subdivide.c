@@ -15,7 +15,7 @@
 
 #include "render.h"
 
-//#define INFO
+// #define INFO
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -199,8 +199,8 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 			block_eah[block] = eah;
 
 #ifdef INFO
-			printf("[%d] Block %x %08x (%2d,%2d) EA=%llx list=%05x, pix=%05x tri=%04x\n",
-				_SPUID, block, coord, coordx, coordy, pixelbuffer_ea, blit_list, pixelbuffer, chunkTriangle);
+//			printf("[%d] Block %x %08x (%2d,%2d) EA=%llx list=%05x, pix=%05x tri=%04x\n",
+//				_SPUID, block, coord, coordx, coordy, pixelbuffer_ea, blit_list, pixelbuffer, chunkTriangle);
 #endif
 
 			// wait for 2 slots to open up (one for pixel buffer one for Z-buffer)
@@ -330,9 +330,11 @@ unsigned int subdivide(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec
 				// bottom bit of Adx and Ady may change, but I don't think we need to worry
 				// DEBUG_VEC4(Adx);
 				// DEBUG_VEC4(Ady);
-//				printf("[%d] coord %2d,%2d block=%d\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block + blockStart );
+#ifdef INFO
+				printf("[%d] coord %2d,%2d block=%d\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block + blockStart );
+#endif
 			} else if (block>=0) {
-				printf("[%d] Block %2d,%2d (block=%d)\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block );
+				printf("[%d] coord %2d,%2d (block=%d) *** really %d\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block+blockStart, block );
 			}
 		}
 	}

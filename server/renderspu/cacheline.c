@@ -369,6 +369,9 @@ retry:
 					}
 				}
 
+				// merge chunks
+				merge_cache_blocks(cache);
+
 				// write the cache line back
 				spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
 			} while (spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS);

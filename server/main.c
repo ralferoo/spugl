@@ -9,7 +9,7 @@
  *
  ****************************************************************************/
 
-#define NUMBER_OF_RENDER_SPU_THREADS 2
+#define NUMBER_OF_RENDER_SPU_THREADS 5
 
 #include <stdio.h>
 #include <stdlib.h>
