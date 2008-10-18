@@ -389,10 +389,10 @@ retry:
 
 			int ok=0;
 			while (chunkTriangle != endTriangle) {
+#ifdef INFO
 				printf("[%d] Processing chunk %d at %4d len %4d, triangle %04x first=%d tbs=%d\n",
 					_SPUID, chunkToProcess, chunkStart, chunkLength,
 					chunkTriangle, firstTile, thisBlockStart);
-#ifdef INFO
 #endif
 				// and actually process that triangle on these chunks
 				processTriangleChunks(triangle, cache, thisBlockStart, chunkEnd, chunkTriangle, ok);
