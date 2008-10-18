@@ -1,0 +1,3 @@
+* spugld PPU-side takes 37% CPU doing almost nothing when a client is connected
+
+* with more than one render SPU, sometimes stuff glitches out of view
