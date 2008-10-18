@@ -109,7 +109,6 @@ rendersources:
 .FORCE:
 
 server:	spugld .FORCE
-	set
 	./spugld
 
 client:	testclient .FORCE

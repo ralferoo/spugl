@@ -40,7 +40,7 @@ struct {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 vec_uint4 block_blit_list[16][16];
-vec_uint4 block_buffer[16][4*32*32/16];
+vec_uint4 block_buffer[16][4*32*32/16] __attribute__((aligned(128)));
 unsigned int block_eah[16];
 
 inline void populate_blit_list(vec_uint4* dma_list_buffer, unsigned int eal, unsigned int lineDy)
@@ -97,8 +97,8 @@ void initTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 
 void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 {
+	printf("[%d] Flush tiles %08x\n", _SPUID, processTile.found);
 #ifdef INFO
-	printf("[%d] Flush tiles %04x\n", _SPUID, processTile.found>>16);
 #endif
 
 	// flush the tiles out
@@ -135,9 +135,9 @@ void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 
 void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int firstTile, int chunkEnd, unsigned int chunkTriangle, int ok)
 {
-#ifdef INFO
 	printf("[%d] Processing tiles %d to %d on tri %04x\n",
 		_SPUID, firstTile, chunkEnd, chunkTriangle);
+#ifdef INFO
 #endif
 
 	int w = 64;
@@ -157,11 +157,13 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 		ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, firstTile, spu_splats(chunkEnd+1), 0); 
 		// TODO: this +1 looks screwey
 
+	printf("btp=%d\n", blocksToProcess);
+
 	// if no blocks returned, short circuit
 	if (!blocksToProcess && !ok) {
-/*
 		printf("[%d] No blocks generated from tiles %d to %d on tri %04x %s\n",
 			_SPUID, firstTile, chunkEnd, chunkTriangle, ok ? "OK" : "BAD");
+/*
 		DEBUG_VEC4( A );
 		DEBUG_VEC4( Adx );
 		DEBUG_VEC4( Ady );
@@ -175,6 +177,7 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 
 	// create the DMA lists and read in the tiles to be changed
 	unsigned int found=blocksToProcess;
+	unsigned int wait = 0;
 	while (found) {
 		unsigned int block = spu_extract( spu_cntlz( spu_promote(found, 0) ), 0);
 		unsigned int mask = ( 0x80000000>>block );
@@ -198,35 +201,60 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 			unsigned int eah = mfc_ea2h(pixelbuffer_ea);
 			block_eah[block] = eah;
 
-#ifdef INFO
-//			printf("[%d] Block %x %08x (%2d,%2d) EA=%llx list=%05x, pix=%05x tri=%04x\n",
-//				_SPUID, block, coord, coordx, coordy, pixelbuffer_ea, blit_list, pixelbuffer, chunkTriangle);
-#endif
+//#ifdef INFO
+			printf("[%d] Block %x %08x (%2d,%2d) EA=%llx list=%05x, pix=%05x tri=%04x\n",
+				_SPUID, block, coord, coordx, coordy, pixelbuffer_ea, blit_list, pixelbuffer, chunkTriangle);
+//#endif
+
+			for (int zzz=0; zzz<30; zzz++)
+				for (int k=0; k<1000000; k++)
+					__asm("nop");
+/*
+*/
 
 			// wait for 2 slots to open up (one for pixel buffer one for Z-buffer)
-			do {} while (spu_readchcnt(MFC_Cmd)<2);
+			int a;
+			do {
+				a=spu_readchcnt(MFC_Cmd);
+				printf("waiting, count=%d\n", a);
+			}
+			while (a<12);
 
 			// read the existing pixel data
 			spu_mfcdma64(pixelbuffer, eah, (unsigned int)blit_list, 8*32, block, MFC_GETL_CMD);
+			wait |= mask;
+//		mfc_write_tag_mask(1 << block);
+//		mfc_read_tag_status_all();
 		}
 	}
+	printf("rah\n");
 
 	// now render each block
 	found=blocksToProcess;
 	while (found) {
 		unsigned int block = spu_extract( spu_cntlz( spu_promote(found, 0) ), 0);
-		found &= ~( 0x80000000>>block );
+		unsigned int mask = ( 0x80000000>>block );
+		found &= ~mask;
+
+		printf("func on block %d, mask %x\n", block, mask);
 
 		// ensure the block has finished DMA
-		mfc_write_tag_mask(1 << block);
-		mfc_read_tag_status_all();
+		if (wait&mask) {
+			mfc_write_tag_mask(1 << block);
+			mfc_read_tag_status_all();
+		}
+
+		printf("waited on block %d, mask %x\n", block, mask);
 
 		// do the actual rendering
 		A=processTile.A[block];
 
 //		maskRenderFunc(block_buffer[block], &triangle->shader_params[0], A, hdx, hdy);
 		flatRenderFunc(block_buffer[block], &triangle->shader_params[0], A, hdx, hdy);
+
+		printf("rendered block %d, mask %x\n", block, mask);
 	}
+	printf("dah\n");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -324,6 +352,7 @@ unsigned int subdivide(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec
 			int block = spu_extract(base,0) - blockStart;
 
 			if (block>=0 && block<spu_extract(blockMax, 0)) {
+				if (spu_extract(y,0) < 30 && spu_extract(y,1) < 10) {
 				found |= 0x80000000>>block;
 				processTile.coordArray[block] = spu_extract( (vec_uint4)y, 0);
 				processTile.A[block] = A;
@@ -333,6 +362,9 @@ unsigned int subdivide(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec
 #ifdef INFO
 				printf("[%d] coord %2d,%2d block=%d\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block + blockStart );
 #endif
+				} else {
+					printf("[%d] coord out of range %2d,%2d block=%d\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block + blockStart );
+				}
 			} else if (block>=0) {
 				printf("[%d] coord %2d,%2d (block=%d) *** really %d\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block+blockStart, block );
 			}
