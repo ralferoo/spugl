@@ -314,6 +314,7 @@ GLAPI void GLAPIENTRY glFlush()
 		}
 		sched_yield();
 		__asm__("lwsync");
+	}
 #endif
 }
 
