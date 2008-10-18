@@ -94,8 +94,7 @@ void flushQueue(Connection* connection, SPUGL_request* request, SPUGL_reply* rep
 	while (ptr) {
 		if (ptr->id == request->flush.id &&
 		   		(ptr->flags&ALLOCATION_FLAGS_ISCOMMANDQUEUE) ) {
-//			ptr->flags |= ALLOCATION_FLAGS_FLUSHWAIT;
-			ptr->flags |= ALLOCATION_FLAGS_FLUSHDONE;
+			ptr->flags |= ALLOCATION_FLAGS_FLUSHWAIT;
 			return;
 		}
 		ptr = ptr->nextAllocation;
@@ -119,8 +118,8 @@ void processOutstandingRequests(Connection* connection) {
 			connection->fd, connection, del->id, del);
 		syslog(LOG_INFO, buffer);
 #endif
-		if (del->flags & ALLOCATION_FLAGS_FLUSHDONE) {
-			del->flags &= ~ALLOCATION_FLAGS_FLUSHDONE;
+		if ( (del->flags & (ALLOCATION_FLAGS_FLUSHWAIT|ALLOCATION_FLAGS_FLUSHDONE)) == (ALLOCATION_FLAGS_FLUSHWAIT|ALLOCATION_FLAGS_FLUSHDONE)) {
+			del->flags &= ~(ALLOCATION_FLAGS_FLUSHWAIT|ALLOCATION_FLAGS_FLUSHDONE);
  
 			// acknowledge flush
 			if (connection->fd >=0) {

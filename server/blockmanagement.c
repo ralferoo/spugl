@@ -25,8 +25,6 @@ static unsigned long long*	_block_mgr_ea_table		= NULL;
 static Renderable*		_block_mgr_renderables_table	= NULL;
 static unsigned long long*	_block_mgr_render_tasks		= NULL;
 
-#define BLOCK_ID_MASK (MAX_DATA_BUFFERS-1)
-
 unsigned long long* blockManagementGetRenderTasksPointer(void)
 {
 	return _block_mgr_render_tasks;
@@ -35,10 +33,11 @@ unsigned long long* blockManagementGetRenderTasksPointer(void)
 // TODO: there should be management around this, but currently it's only used for the framebuffer...
 Renderable* blockManagementGetRenderable(int id)
 {
-	if (id<0 || id>=MAX_RENDERABLES)
+	int rid = id & (MAX_RENDERABLES-1);
+	if (rid>=MAX_RENDERABLES)
 		return NULL;
 
-	Renderable* result = _block_mgr_renderables_table + ( id & (MAX_RENDERABLES-1) );
+	Renderable* result = _block_mgr_renderables_table + rid;
 	if (result->id == id)
 		return result;
 

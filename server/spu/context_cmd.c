@@ -80,7 +80,11 @@
 		renderable->width, renderable->height, renderable->stride, renderable->format,
 		mfc_ea2h(renderable->cacheLine), mfc_ea2l(renderable->cacheLine));
 */
-	context->renderableCacheLine = renderable->cacheLine;
+	if (renderable->id == id ) {
+		context->renderableCacheLine = renderable->cacheLine;
+	} else {
+		context->renderableCacheLine = 0;
+	}
 
 	return 0;
 }
@@ -206,8 +210,23 @@ unsigned int current_texture = 0;
 }
 
 
-/*26*/int imp_glFlush(float* from, Context* context) {
+/*26*/int imp_glSync(float* from, Context* context) {
 	return stillProcessingQueue(context);
+}
+
+/*27*/int imp_glFlush(float* from, Context* context, unsigned int id) {
+	// construct the code fragment containing the stop isntruction
+	vector unsigned int stopfunc = {
+		0x00002112,				/* stop */
+		(unsigned int) id,
+		0x4020007f,				/* nop */
+		0x35000000				/* bi $0 */
+	};
+
+	void (*f) (void) = (void *) &stopfunc;
+	asm ("sync");
+	f();
+	return 0;
 }
 
 

@@ -289,25 +289,32 @@ GLAPI void GLAPIENTRY glTexCoord4f (GLfloat s, GLfloat t, GLfloat u, GLfloat v)
 
 ///////////////// new style flush
 
+void spuglFlush(CommandQueue* buffer);
+
 GLAPI void GLAPIENTRY glFlush()
 {
+#ifdef USE_LIBSPE2
+	// if we have libspe2 available, we can use SPU stop -> PPU callback -> signal
 	FIFO_PROLOGUE(10);
+	BEGIN_RING(FIFO_COMMAND_GL_SYNC,0);
 	BEGIN_RING(FIFO_COMMAND_GL_FLUSH,0);
+	FIFO_EPILOGUE();
+
+	spuglFlush(_SPUGL_fifo);
+#else
+	// otherwise with libspe, we must use a busy wait loop
+	FIFO_PROLOGUE(10);
+	BEGIN_RING(FIFO_COMMAND_GL_SYNC,0);
 	FIFO_EPILOGUE();
 
 	// wait until read pointer meets write pointer
 	for (;;) {
 		if (_SPUGL_fifo->write_ptr == _SPUGL_fifo->read_ptr) {
-		//	write(1,"DONE\n",5);
 			break;
 		}
-
-		// allow other processes to have a go and flush the cache
-		// write(1,".",1);
-		// usleep(1);
 		sched_yield();
 		__asm__("lwsync");
-	}
+#endif
 }
 
 

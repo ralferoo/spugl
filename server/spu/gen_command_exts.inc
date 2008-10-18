@@ -17,6 +17,7 @@ extern FIFO_COMMAND imp_glTexCoord2;
 extern FIFO_COMMAND imp_glTexCoord3;
 extern FIFO_COMMAND imp_glTexCoord4;
 extern FIFO_COMMAND imp_old_glBindTexture;
+extern FIFO_COMMAND imp_glSync;
 extern FIFO_COMMAND imp_glFlush;
 extern FIFO_COMMAND imp_nop;
 extern FIFO_COMMAND imp_jump;

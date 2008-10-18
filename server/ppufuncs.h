@@ -56,6 +56,13 @@ int blockManagementCreateRenderable(void* buffer, int width, int height, int str
 unsigned long long* blockManagementGetRenderTasksPointer(void);
 
 //////////////////////////////////////////////////////////////////////////////
+//
+// control.c
+//
+
+void receivedFlush(int id);
+
+//////////////////////////////////////////////////////////////////////////////
 
 SPU_HANDLE _init_spu_thread(void* list, int master);
 int _exit_spu_thread(SPU_HANDLE context);

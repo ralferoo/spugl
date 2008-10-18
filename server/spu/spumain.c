@@ -45,7 +45,7 @@ static Context _contexts[MAX_COMMAND_BUFFERS];
 
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef int FIFO_COMMAND(unsigned int *data, Context* context);
+typedef int FIFO_COMMAND(unsigned int *data, Context* context, unsigned int id);
 
 #include "../../client/gen_command_defs.h"	// numeric definitions
 #include "gen_command_exts.inc"			// extern definitions
@@ -105,7 +105,7 @@ retry_loop:		;
 						printf("[%02x:%08x] command %x, data length %d\n",
 								id, rptr, command, size);
 #endif
-						if ( (*func)(cmd_buf, context) ) {
+						if ( (*func)(cmd_buf, context, id) ) {
 							if (command != FIFO_COMMAND_JUMP) {
 								// cannot process at the moment, try another queue
 								return;

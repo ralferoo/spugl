@@ -26,7 +26,9 @@
 #define MAX_COMMAND_BUFFERS	(16)		// power of two, must be <=128
 #define OUT_OF_BUFFERS		(0xffffffff)
 
-#define MAX_RENDERABLES	(32)		// power of two, for mask use
+#define BLOCK_ID_MASK		(MAX_DATA_BUFFERS-1)
+
+#define MAX_RENDERABLES		(32)		// power of two, for mask use
 
 //////////////////////////////////////////////////////////////////////////////
 

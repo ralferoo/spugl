@@ -9,7 +9,7 @@
  *
  ****************************************************************************/
 
-#define NUMBER_OF_RENDER_SPU_THREADS 5
+#define NUMBER_OF_RENDER_SPU_THREADS 1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,6 +56,26 @@ static void sig_term(int sig)
 	// gracefully handle the exit signal
         terminated = 1;
 }
+
+ConnectionList list = {0};
+
+void receivedFlush(int id) {
+	Connection* current = list.first;
+	while (current) {
+		Allocation* ptr = current->firstAllocation;
+		while (ptr) {
+			if ( (ptr->id & BLOCK_ID_MASK) == id && (ptr->flags&ALLOCATION_FLAGS_ISCOMMANDQUEUE) ) {
+				ptr->flags |= ALLOCATION_FLAGS_FLUSHDONE;
+				kill(getpid(), SIGHUP);
+				return;
+			}
+			ptr = ptr->nextAllocation;
+		}
+		current = current->nextConnection;
+	}
+	printf("flush %x not found \n", id);
+}
+
 
 int main(int argc, char* argv[]) {
 	// location to create tmpfs mountpoint and place mmap'ed files
@@ -111,7 +131,6 @@ int main(int argc, char* argv[]) {
 	syslog(LOG_INFO, "accepting connections");
 
 	int connectionCount = 0;
-	ConnectionList list = {0};
 
 	while (!terminated) {
 		struct pollfd p[connectionCount+1];

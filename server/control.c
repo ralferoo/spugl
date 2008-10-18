@@ -17,6 +17,7 @@
 
 #include <sys/mman.h>
 #include "connection.h"
+#include "ppufuncs.h"
 
 #ifdef USE_LIBSPE2
 	#include <libspe2.h>
@@ -47,6 +48,13 @@ struct __SPU_HANDLE {
 
 #ifdef USE_LIBSPE2
 /* PPE Callback Function */
+int flush_callback(void *ls_base_tmp, unsigned int data) {
+	char *ls_base = (char *)ls_base_tmp; 
+	int id = *((int*)(ls_base + data));
+	receivedFlush(id);
+	return 0;
+}
+
 int sleep_callback(void *ls_base_tmp, unsigned int data) {
 	char *ls_base = (char *)ls_base_tmp; 
 	sched_yield();
@@ -103,6 +111,7 @@ SPU_HANDLE _init_spu_thread(void* list, int master)
 
 	spe_callback_handler_register(my_callback, 0x10, SPE_CALLBACK_NEW);
 	spe_callback_handler_register(sleep_callback, 0x11, SPE_CALLBACK_NEW);
+	spe_callback_handler_register(flush_callback, 0x12, SPE_CALLBACK_NEW);
 
 #ifdef USE_LIBSPE2
 	// prioritise the master thread
