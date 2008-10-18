@@ -87,11 +87,57 @@ void *main_program_thread(SPU_HANDLE context)
 	int retval;
 	unsigned int entry_point = SPE_DEFAULT_ENTRY;
 	do {
-		printf("[%d] restarting at %x, LS=%x\n", context->id, entry_point, context->local_store);
-		retval = spe_context_run(context->spe_ctx, &entry_point, 0, context->list, (void*)(context->id), NULL);
+		spe_stop_info_t stop_info;
+		//printf("[%d] restarting at %x, LS=%x\n", context->id, entry_point, context->local_store);
+		retval = spe_context_run(context->spe_ctx, &entry_point, 0, context->list, (void*)(context->id), &stop_info);
+
+		if (retval<0) {
+			switch (stop_info.stop_reason) {
+				case SPE_EXIT:
+					printf("[%d] SPE_EXIT 0x%x at 0x%05x\n", context->id, stop_info.result.spe_exit_code, entry_point);
+					break;
+				case SPE_STOP_AND_SIGNAL:
+					printf("[%d] SPE_STOP_AND_SIGNAL 0x%x at 0x%05x\n", context->id, stop_info.result.spe_signal_code, entry_point);
+					break;
+				case SPE_RUNTIME_ERROR:
+					printf("[%d] SPE_RUNTIME_ERROR 0x%x at 0x%05x\n", context->id, stop_info.result.spe_runtime_error, entry_point);
+					break;
+				case SPE_RUNTIME_EXCEPTION:
+					switch (stop_info.result.spe_runtime_exception) {
+						case SPE_DMA_ALIGNMENT:
+							printf("[%d] SPE_RUNTIME_EXCEPTION SPE_DMA_ALIGNMENT at 0x%05x\n", context->id, entry_point);
+							break;
+						case SPE_DMA_SEGMENTATION:
+							printf("[%d] SPE_RUNTIME_EXCEPTION SPE_DMA_SEGMENTATION at 0x%05x\n", context->id, entry_point);
+							break;
+						case SPE_DMA_STORAGE:
+							printf("[%d] SPE_RUNTIME_EXCEPTION SPE_DMA_STORAGE at 0x%05x\n", context->id, entry_point);
+							break;
+						//case SPE_INVALID_DMA:
+							//printf("[%d] SPE_RUNTIME_EXCEPTION SPE_INVALID_DMA at 0x%05x\n", context->id, entry_point);
+							//break;
+						default:
+							printf("[%d] SPE_RUNTIME_EXCEPTION 0x%x at 0x%05x\n", context->id, stop_info.result.spe_runtime_exception, entry_point);
+					}
+					break;
+				case SPE_RUNTIME_FATAL:
+					printf("[%d] SPE_RUNTIME_FATAL 0x%x at 0x%05x\n", context->id, stop_info.result.spe_runtime_fatal, entry_point);
+					break;
+				case SPE_CALLBACK_ERROR:
+					printf("[%d] SPE_CALLBACK_ERROR 0x%x at 0x%05x\n", context->id, stop_info.result.spe_callback_error, entry_point);
+					break;
+				case SPE_ISOLATION_ERROR:
+					printf("[%d] SPE_ISOLATION_ERROR 0x%x at 0x%05x\n", context->id, stop_info.result.spe_isolation_error, entry_point);
+					break;
+				default:
+					printf("[%d] unknown stop reason %d at 0x%05x\n", context->id, stop_info.stop_reason, entry_point);
+					break;
+			}
+		}
+
 		char* p = ((char*)context->local_store) + entry_point;
 		unsigned int* ip = (unsigned int*) p;
-		printf("[%d] exited at %x, LS=%x, instruction %08x\n", context->id, entry_point, context->local_store, *ip);
+		//printf("[%d] retval %d exited at %x, LS=%x, instruction %08x\n", context->id, retval, entry_point, context->local_store, *ip);
 	} while (retval > 0);
 //	printf("retval = %d\n", retval);
 	pthread_exit(NULL);
