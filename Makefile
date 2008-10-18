@@ -109,6 +109,7 @@ rendersources:
 .FORCE:
 
 server:	spugld .FORCE
+	set
 	./spugld
 
 client:	testclient .FORCE
@@ -229,7 +230,7 @@ server/main_spu.handle.spe: $(SPU_DRIVER_TARGETS) Makefile
 
 server/main_render.handle.spe: $(RENDER_DRIVER_TARGETS) $(SHADER_TARGETS) Makefile
 	$(SPUCC) $(SPUCCFLAGSARCH) $(RENDER_DRIVER_TARGETS) $(SHADER_TARGETS) -o server/main_render.handle.spe
-#	spu-strip server/main_render.handle.spe
+	spu-strip server/main_render.handle.spe
 
 ###############################################################################
 #

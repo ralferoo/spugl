@@ -1,4 +1,5 @@
 * crashes when daemon run directly, but fine from make
+  - works fine on jap ps3, only happens on uk ps3
 
 * spugld PPU-side takes 37% CPU doing almost nothing when a client is connected
   - actually it's all the memset on the framebuffer :O
