@@ -5,3 +5,8 @@
   - actually it's all the memset on the framebuffer :O
 
 * with more than one render SPU, sometimes stuff glitches out of view
+
+* on gimel:
+	Render of 960 frames took 16.086914 seconds or 59.675835 FPS
+  on ps3:
+	Render of 960 frames took 34.705139 seconds or 27.661610 FPS
