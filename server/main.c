@@ -44,6 +44,7 @@ static volatile sig_atomic_t terminated = 0;
 static void sig_hup(int sig)
 {
 	// no-op, but will cause the ppoll to exit early
+	write(1,"*",1);
 }
 
 static void sig_hup_onexit(int sig)

@@ -42,7 +42,7 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 			return 0;
 		}
 
-		__asm("stop 0x2111");		// momentary sleep
+		__asm("stop 0x2111\n\t.word 0");		// momentary sleep
 	}
 	return 0;
 }
