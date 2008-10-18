@@ -1,3 +1,6 @@
+* crashes when daemon run directly, but fine from make
+
 * spugld PPU-side takes 37% CPU doing almost nothing when a client is connected
+  - actually it's all the memset on the framebuffer :O
 
 * with more than one render SPU, sometimes stuff glitches out of view
