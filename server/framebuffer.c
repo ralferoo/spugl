@@ -86,6 +86,7 @@ int Screen_open(void)
 	screen.width		= res.xres - 2*res.xoff;
 	screen.height		= res.yres - 2*res.yoff;
 	screen.stride		= res.xres * 4;
+	screen.num_frames	= res.num_frames;
 	screen.visible_frame	= (res.yoff * res.xres + res.xoff) * 4;
 	screen.draw_frame	= screen.visible_frame + res.yres * res.xres * 4;
 	screen.draw_size	= res.yres * res.xres * 4;
@@ -157,7 +158,7 @@ unsigned int Screen_swap(void)
 		return -1;
 
 
-	uint32_t showFrame = screen.visible ? 0 : 1;
+	uint32_t showFrame = screen.num_frames - screen.visible;
 	screen.visible = showFrame;
 	ioctl(screen.fd, PS3FB_IOCTL_FSEL, (unsigned long)&showFrame);
 
