@@ -1,11 +1,12 @@
 ACTIVE BUGS
 
+* clear screen function should use custom shader to avoid extra reads
+
+* DMA exception if not running in 1080p :)
+
 * with more than one render SPU, sometimes stuff glitches out of view
 
 Still occurring
-
-* spugld PPU-side takes 37% CPU doing almost nothing when a client is connected
-  - actually it's all the memset on the framebuffer :O
 
 * on gimel:
 	Render of 960 frames took 16.086914 seconds or 59.675835 FPS
@@ -24,3 +25,9 @@ The newer kernel only allocates a single-buffered screen and so running from
 make I was trampling over heap but it wasn't getting caught, running directly
 caused an exception as that address space wasn't mapped.
 
+* spugld PPU-side takes 37% CPU doing almost nothing when a client is connected
+  - actually it's all the memset on the framebuffer :O
+
+Made the screen clear function use a triangle that covers the entire screen.
+Still room to optimise this, but it's a start.
+PPU usage is about 10% - still not sure what it's doing, but not too bothered.
