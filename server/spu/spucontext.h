@@ -15,6 +15,8 @@
 #include <spu_mfcio.h>
 #include <spu_intrinsics.h>
 
+#include "../spucommon.h"
+
 #include "../../server/spu/spuregs.h"
 
 extern unsigned int eah_buffer_tables;
@@ -46,7 +48,7 @@ typedef struct {
 	int	attrib_rows;		// this many rows of attributes
 } VertexShaderContext;
 
-typedef struct {
+struct __CONTEXT {
 	unsigned long long	renderableCacheLine;
 	unsigned long long	pad;
 
@@ -56,7 +58,7 @@ typedef struct {
 	vec_float4 projection_matrix_x, projection_matrix_y, projection_matrix_z, projection_matrix_w;
 	vec_float4  modelview_matrix_x,  modelview_matrix_y,  modelview_matrix_z,  modelview_matrix_w;
 	vec_float4    texture_matrix_x,    texture_matrix_y,    texture_matrix_z,    texture_matrix_w;
-} Context;
+};
 
 
 
@@ -146,6 +148,8 @@ extern void process_queue(TriangleGenerator* generator, BlockActivater* activate
 
 extern void _init_buffers();
 */
+
+
 
 ///////////////////////////////////////////////////////////////////////////////
 

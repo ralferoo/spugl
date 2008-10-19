@@ -491,6 +491,7 @@ static inline void shuffle_in(vec_uchar16 inserter, float4 s, float4 col, float4
 	TRIv = spu_shuffle(TRIv, (vec_float4) spu_promote(tex.w,0), inserter);
 }
 
+
 int imp_vertex(float4 in, Context* context)
 {
 #ifdef CHECK_STATE_TABLE
@@ -508,98 +509,8 @@ int imp_vertex(float4 in, Context* context)
 	}
 #endif
 
-	// read the current renderable cache line to ensure there is room for the triangle data
-	// in the cache line buffer; we do this by comparing against all 16 cache line blocks
-	// to make sure that extending the write pointer wouldn't clobber the data
-
-	unsigned long long cache_ea = context->renderableCacheLine;
-	char cachebuffer[128+127];
-	RenderableCacheLine* cache = (RenderableCacheLine*) ( ((unsigned int)cachebuffer+127) & ~127 );
-
-	spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
-	spu_readch(MFC_RdAtomicStat);
-
-	// extendvalid = ( read<=write && test<end ) || ( read>write && test<read )
-	// extendvalid = ( read>write && read>test ) || ( read<=write && end>test )
-	// simplifies to	extendvalid = selb(end, read, read>write) > test
-	// or			extendvalid = selb(end>test, read>test, read>write)
-	// rewind = next >= end
-	// rewindvalid = read != 0
-	// valid = extendvalid && (!rewind || rewindvalid)
-	// 	 = extendvalid && (!rewind || !rewindinvalid)
-	// 	 = extendvalid && !(rewind && rewindinvalid)
-	// invalid = ! (extendvalid && !(rewind && rewindinvalid))
-	//         = (!extendvalid || (rewind && rewindinvalid))
-
-	vec_ushort8 v_writeptr		= spu_splats( cache->endTriangle );
-	vec_ushort8 v_readptr0		= cache->chunkTriangle[0];
-	vec_ushort8 v_readptr1		= cache->chunkTriangle[1];
-	vec_ushort8 v_testptr		= spu_add(v_writeptr,   TRIANGLE_MAX_SIZE);
-	vec_ushort8 v_nextptr		= spu_add(v_writeptr, 2*TRIANGLE_MAX_SIZE);
-	vec_ushort8 v_endptr		= spu_splats( (unsigned short)TRIANGLE_BUFFER_SIZE);
-
-	vec_ushort8 v_zero		= spu_splats( (unsigned short) 0 );
-	vec_uchar16 v_merger		= (vec_uchar16) { 1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31 };
-
-	vec_ushort8 v_max0_test		= spu_sel( v_endptr, v_readptr0, spu_cmpgt( v_readptr0, v_writeptr ) );
-	vec_ushort8 v_max1_test		= spu_sel( v_endptr, v_readptr1, spu_cmpgt( v_readptr1, v_writeptr ) );
-	vec_ushort8 v_extend0_valid	= spu_cmpgt( v_max0_test, v_testptr );
-	vec_ushort8 v_extend1_valid	= spu_cmpgt( v_max1_test, v_testptr );
-	vec_ushort8 v_rewind0_invalid	= spu_cmpeq( v_readptr0, v_zero );
-	vec_ushort8 v_rewind1_invalid	= spu_cmpeq( v_readptr1, v_zero );
-	vec_ushort8 v_rewind8		= spu_cmpgt( v_nextptr, v_endptr );
-
-	vec_uchar16 v_extend_valid	= (vec_uchar16) spu_shuffle( v_extend0_valid, v_extend1_valid, v_merger );
-	vec_uchar16 v_rewind_invalid	= (vec_uchar16) spu_shuffle( v_rewind0_invalid, v_rewind1_invalid, v_merger );
-	vec_uchar16 v_rewind		= (vec_uchar16) v_rewind8;
-
-	vec_uchar16 v_valid_rhs		= spu_and( v_rewind_invalid, v_rewind );
-	vec_uchar16 v_invalid		= spu_orc( v_valid_rhs, v_extend_valid );
-
-	// check to see if the chunk is being processed
-	vec_uint4 v_free = spu_gather(
-		spu_cmpeq( spu_splats( (unsigned char) CHUNKNEXT_FREE_BLOCK ), cache->chunkNext ) );
-	vec_uint4   v_invalid_bits	= spu_andc( spu_gather( v_invalid ), (vec_uint4) v_free );
-
-/*
-	DEBUG_VEC8( v_writeptr );
-	DEBUG_VEC8( v_readptr0 );
-	DEBUG_VEC8( v_readptr1 );
-	DEBUG_VEC8( v_testptr );
-	DEBUG_VEC8( v_nextptr );
-	DEBUG_VEC8( v_endptr );
-	DEBUG_VEC8( v_max0_test );
-	DEBUG_VEC8( v_max1_test );
-	DEBUG_VEC8( v_extend0_valid );
-	DEBUG_VEC8( v_extend1_valid );
-	DEBUG_VEC8( v_rewind0_invalid );
-	DEBUG_VEC8( v_rewind1_invalid );
-	DEBUG_VEC8( v_extend_valid );
-	DEBUG_VEC8( v_rewind_invalid );
-	DEBUG_VEC8( v_rewind );
-	DEBUG_VEC8( v_valid_rhs );
-	DEBUG_VEC8( v_invalid );
-	DEBUG_VEC8( v_free );
-	DEBUG_VEC8( v_invalid_bits );
-
-//	printf("\n");
-*/
-
-	// if any of the bits are invalid, then no can do
-	if ( spu_extract(v_invalid_bits, 0) ) {
-//		printf("BUFFER FULL!!!\n\n");
-		return 1;
-	}
-
-	// this will happen on every vertex... so obviously quite slow; will need to move out!
-	char trianglebuffer[ 256 + TRIANGLE_MAX_SIZE ];
-	unsigned int offset = cache->endTriangle;
-	unsigned int extra = offset & 127;
-	unsigned long long trianglebuffer_ea = cache_ea + TRIANGLE_OFFSET_FROM_CACHE_LINE + (offset & ~127);
-	Triangle* triangle = (Triangle*) (trianglebuffer+extra);
-	if (extra) {
-		spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), 128, 0, MFC_GET_CMD);
-	}
+	// get the output triangle buffer
+	Triangle* triangle = getTriangleBuffer(context);
 
 	vec_uchar16 inserter = shuffles[ins];
 
@@ -672,66 +583,8 @@ int imp_vertex(float4 in, Context* context)
 			// fall through here
 		case ADD_TRIANGLE:
 
-			// ensure DMA did actually complete
-			mfc_write_tag_mask(1<<0);
-			mfc_read_tag_status_all();
-
-			Triangle* endTriangle = imp_triangle(triangle, context);
-
-			if (endTriangle != triangle) {
-				int length = ( ((char*)endTriangle) - trianglebuffer + 127) & ~127;
-				unsigned short endTriangleBase = (((char*)endTriangle) - ((char*)triangle)) + offset;
-				vec_ushort8 v_new_end = spu_promote(endTriangleBase, 1);
-
-				// calculate genuine next pointer ( rewind==0 -> next, rewind!=0 -> 0 )
-				unsigned short next_pointer = spu_extract( spu_andc( v_new_end, v_rewind8 ), 1 );
-				triangle->next_triangle = next_pointer;
-/*
-				printf("len %x, endTriBase %x, next_pointer %x, ea %x:%08x len %x\n",
-					length, endTriangleBase, next_pointer,
-					mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), length );
-*/
-/*
-	printf("\ntri=%04x\n", offset);
-	DEBUG_VECf( TRIx );
-	DEBUG_VECf( TRIy );
-	DEBUG_VECf( TRIz );
-*/
-				// DMA the triangle data out
-				spu_mfcdma64(trianglebuffer, mfc_ea2h(trianglebuffer_ea), mfc_ea2l(trianglebuffer_ea), length, 0, MFC_PUT_CMD);
-
-//				for (int i=0; i<1000000; i++) __asm("nop");
-
-//				mfc_sync(0);
-				//mfc_eieio(0,0,0);
-
-				// update the information in the cache line
-				cache->endTriangle = next_pointer;
-				//static short updatedEndTriangle;
-				//updatedEndTriangle = next_pointer;
-				unsigned int eal = mfc_ea2l(cache_ea) + (((char*)&cache->endTriangle) - ((char*)cache));
-//				printf("%08x %08x\n", mfc_ea2l(cache_ea), eal);
-				spu_mfcdma64(&cache->endTriangle, mfc_ea2h(cache_ea), eal, sizeof(short), 0, MFC_PUTB_CMD);
-
-				mfc_write_tag_mask(1<<0);
-				mfc_read_tag_status_all();
-/*
-
-				// update the information in the cache line
-				for(;;) {
-					cache->endTriangle = next_pointer;
-					spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_PUTLLC_CMD);
-					unsigned int status = spu_readch(MFC_RdAtomicStat) & MFC_PUTLLC_STATUS;
-					if (!status)
-						break;
-
-					// cache is dirty and write failed, reload it and attempt the whole thing again again
-					spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
-					spu_readch(MFC_RdAtomicStat);
-				}
-*/
-			}
-//			printf("done triangle\n");
+			// write the output triangle buffer
+			writeTriangleBuffer(imp_triangle(triangle, context));
 
 			break;
 	}

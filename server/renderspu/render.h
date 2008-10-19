@@ -17,6 +17,8 @@
 #include <spu_intrinsics.h>
 #endif // SPU_REGS
 
+#include "../spucommon.h"
+
 ///////////////////////////////////////////////////////////////////////////////
 
 #define MAX_SHADER_PARAMS			32	// maximum number of parameters in a pixel shader
@@ -94,8 +96,6 @@ typedef struct {
 //
 // Format of the triangle data, used by the render SPUs
 
-typedef struct __TRIANGLE Triangle;
-
 struct __TRIANGLE {
 	// overlap next_triangle pointer with last word of area_dy as that's not used for anything
 	union {
@@ -164,6 +164,8 @@ struct TextureData {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef SPU_REGS
+
+	// subdivide.c
 	extern void initTileBuffers(unsigned int firstTile, unsigned int chunkEnd);
 
 	extern void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd);
@@ -172,6 +174,8 @@ struct TextureData {
 					  int firstTile, int chunkEnd, unsigned int chunkTriangle, int ok);
 
 	extern int findFirstTriangleTile(Triangle* triangle, int chunkStart, int chunkEnd);
+
+
 #endif // SPU_REGS
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
