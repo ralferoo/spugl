@@ -74,7 +74,7 @@ PPU_SRCS := $(patsubst %.o,%.c,$(PPU_TEST_OBJS))
 
 SOURCE_DIST_FILES= README $(PPU_SRCS) $(SPU_HNDL) $(SHARED_HEADERS) gen_spu_command_defs.h
 
-SPU_DRIVER_SOURCES := $(wildcard server/spu/*.c)
+SPU_DRIVER_SOURCES := $(wildcard server/primaryspu/*.c)
 SPU_DRIVER_TARGETS := $(patsubst %.c,%.0,$(SPU_DRIVER_SOURCES))
 SPU_DRIVER_HNDL = server/main_spu.handle.o$(USERLAND)
 SPU_DRIVER_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(SPU_DRIVER_HNDL))
@@ -190,7 +190,7 @@ $(BASE_NAME).tar.gz:	$(SOURCE_DIST_FILES) Makefile
 	tar cfz $@ -C .dist .
 
 edit:
-	gvim -p Makefile testclient.c server/renderspu/*.[ch] client/glfifo.c server/spu/*.[ch] &
+	gvim -p Makefile testclient.c server/renderspu/*.[ch] client/glfifo.c server/primaryspu/*.[ch] &
 #	gvim -p shader.c texture.c queue.h test.c struct.h glfifo.c textureprep.c decode.c primitives.c
 
 source:
@@ -204,10 +204,10 @@ shader.s: queue.h
 #ppufifo.o: Makefile .gen
 spufifo.0: Makefile $(GENPRODUCTS)
 
-NEW_GEN_SOURCES := $(wildcard server/spu/*_cmd.c)
+NEW_GEN_SOURCES := $(wildcard server/primaryspu/*_cmd.c)
 client/gen_command_defs.h: .gennew
-server/spu/gen_command_exts.inc: .gennew
-server/spu/gen_command_table.inc: .gennew
+server/primaryspu/gen_command_exts.inc: .gennew
+server/primaryspu/gen_command_table.inc: .gennew
 .gennew: server/importdefs.pl $(NEW_GEN_SOURCES)
 	perl server/importdefs.pl $(NEW_GEN_SOURCES)
 	@touch .gennew
@@ -245,9 +245,9 @@ server/%.d: server/%.c
 		| sed '\''s|\($*\)\.o[ :]*|server/\1.o $@ : \\\n  |g'\'' >$@ ; \
 		[ -s $@ ] || rm -f $@'
 
-server/spu/%.D: server/spu/%.c
+server/primaryspu/%.D: server/primaryspu/%.c
 	@$(SHELL) -ec '$(SPUCC) $(SPUCCFLAGSARCH) $(SPUCCFLAGS) -MM $< \
-		| sed '\''s|\($*\)\.o[ :]*|server/spu/\1.0 $@ : \\\n  |g'\'' >$@ ; \
+		| sed '\''s|\($*\)\.o[ :]*|server/primaryspu/\1.0 $@ : \\\n  |g'\'' >$@ ; \
 		[ -s $@ ] || rm -f $@'
 
 server/renderspu/%.D: server/renderspu/%.c
@@ -313,11 +313,11 @@ clean:
 	rm -f hilbert
 	rm -f server/*.o server/*.o32 server/*.o64
 	rm -f client/*.o client/*.o32 client/*.o64
-	rm -f server/spu/*.0 client/spu/*.0
+	rm -f server/primaryspu/*.0 client/primaryspu/*.0
 	rm -f server/renderspu/*.0 client/renderspu/*.0
 	rm -f server/renderspu/shaders/*.pic
-	rm -f *.d server/*.d server/spu/*.D server/renderspu/*.D client/*.d server/renderspu/shaders/*.dep
-	rm -f server/spu/*.spe server/renderspu/*.spe
+	rm -f *.d server/*.d server/primaryspu/*.D server/renderspu/*.D client/*.d server/renderspu/shaders/*.dep
+	rm -f server/primaryspu/*.spe server/renderspu/*.spe
 	rm -f server/*.spe server/renderspu/*.spe
 	rm -f server/*.regs server/renderspu/*.regs server/renderspu/shaders/*.regs
 

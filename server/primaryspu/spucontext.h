@@ -17,7 +17,7 @@
 
 #include "../spucommon.h"
 
-#include "../../server/spu/spuregs.h"
+#include "../../server/primaryspu/spuregs.h"
 
 extern unsigned int eah_buffer_tables;
 extern unsigned int eal_buffer_lock_table;
