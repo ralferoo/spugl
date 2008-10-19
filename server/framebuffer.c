@@ -89,6 +89,7 @@ int Screen_open(void)
 	screen.visible_frame	= (res.yoff * res.xres + res.xoff) * 4;
 	screen.draw_frame	= screen.visible_frame + res.yres * res.xres * 4;
 	screen.draw_size	= res.yres * res.xres * 4;
+	screen.clear_size	= screen.height * screen.stride - 4*res.xoff;
 	screen.mmap_size	= res.num_frames * screen.draw_size;
 	screen.mmap_base	= mmap(0, screen.mmap_size, PROT_WRITE, MAP_SHARED, screen.fd, 0);
 	screen.visible		= 0;
@@ -113,7 +114,7 @@ int Screen_open(void)
 
 	screen.hasUnblankedScreen = 0;
 	switchMode(1);
-	memset(screen.mmap_base, 0x80, screen.mmap_size);
+	memset(screen.mmap_base, 0, screen.mmap_size);
 
 	//for (int q=0; q<screen.mmap_size; q++)
 	//	* ((char*)(screen.mmap_base+q)) = q * 0x10503;
@@ -169,8 +170,10 @@ unsigned int Screen_swap(void)
 
 	//memset(screen.draw_address, 0x80, screen.draw_size);
 	
-	unsigned long size = screen.mmap_size / 2;
-	memset(screen.mmap_base + (1-screen.visible)*size, 0x80, size);
+//	unsigned long size = screen.mmap_size / 2;
+//	memset(screen.mmap_base + (1-screen.visible)*size, 0x80, size);
+
+	memset(screen.mmap_base + screen.draw_frame, 0x40, screen.clear_size);
 
 	return screen.renderable_id[showFrame];
 }
