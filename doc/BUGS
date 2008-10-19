@@ -1,7 +1,7 @@
+ACTIVE BUGS
+
 * spugld PPU-side takes 37% CPU doing almost nothing when a client is connected
   - actually it's all the memset on the framebuffer :O
-
-* with more than one render SPU, sometimes stuff glitches out of view
 
 * on gimel:
 	Render of 960 frames took 16.086914 seconds or 59.675835 FPS
@@ -19,3 +19,9 @@ Turned out to be running directly, mmap range is at end of address space
 The newer kernel only allocates a single-buffered screen and so running from
 make I was trampling over heap but it wasn't getting caught, running directly
 caused an exception as that address space wasn't mapped.
+
+* with more than one render SPU, sometimes stuff glitches out of view
+
+Seems to have been caused by the bug above
+
+
