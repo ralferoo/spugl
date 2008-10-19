@@ -86,7 +86,8 @@ typedef struct {
 // 124
 	unsigned short		endTriangle;			// triangle buffer that is waiting to be filled
 // 126
-	unsigned short		pad;
+	unsigned char		maxBlockX;
+	unsigned char		maxBlockY;
 // 128
 } RenderableCacheLine;
 

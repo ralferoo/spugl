@@ -682,6 +682,38 @@ int stillProcessingQueue(Context* context)
 
 int imp_clear_screen(float4 in, Context* context)
 {
+	// get the output triangle buffer
+	Triangle* triangle = getTriangleBuffer(context);
+	if (triangle == NULL)
+		return 1;					// render SPUs not yet caught up
+
+	TRIr = spu_splats( in.x );
+	TRIg = spu_splats( in.y );
+	TRIb = spu_splats( in.z );
+	TRIa = spu_splats( in.w );
+
+	TRIz = spu_splats( 0.0f );
+	TRIw = spu_splats( 1.0f );
+
+	float width = (float) context->width;
+	float height = (float) context->height;
+
+	// construct a simple triangle like this:
+	//
+	//                    __/|
+	//                 __/   |
+	//        (0,0) __/      |
+	//           __/_________|
+	//        __/  |         |
+	//     __/     | view    |
+	//  __/        |   port  |
+	// /___________|_________|
+
+	TRIx = (vec_float4) { width, width, -width, 0.0f };
+	TRIy = (vec_float4) { -height, height, height, 0.0f };
+
+	writeTriangleBuffer(imp_triangle(triangle, context));
+
 	return 0;
 }
 

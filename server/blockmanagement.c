@@ -78,6 +78,8 @@ int blockManagementCreateRenderable(void* buffer, int width, int height, int str
 			cacheLine->pixelTileDx = 4 * 32;
 			cacheLine->pixelTileDy = stride * 32;
 			cacheLine->pixelLineDy = stride;
+			cacheLine->maxBlockX = (width>>5)-1;
+			cacheLine->maxBlockY = (height>>5)-1;
 
 			// chain in the cache line
 			cacheLine->next = *_block_mgr_render_tasks;

@@ -82,6 +82,8 @@
 */
 	if (renderable->id == id ) {
 		context->renderableCacheLine = renderable->cacheLine;
+		context->width = renderable->width;
+		context->height = renderable->height;
 	} else {
 		context->renderableCacheLine = 0;
 	}

@@ -50,7 +50,8 @@ typedef struct {
 
 struct __CONTEXT {
 	unsigned long long	renderableCacheLine;
-	unsigned long long	pad;
+	unsigned int width;
+	unsigned int height;
 
 	vec_float4   vertex_uniform_vectors[  NUM_VERTEX_UNIFORM_VECTORS];
 	vec_float4 fragment_uniform_vectors[NUM_FRAGMENT_UNIFORM_VECTORS];
