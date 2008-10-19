@@ -553,15 +553,12 @@ int imp_vertex(float4 in, Context* context)
 	vec_uchar16 v_rewind_invalid	= (vec_uchar16) spu_shuffle( v_rewind0_invalid, v_rewind1_invalid, v_merger );
 	vec_uchar16 v_rewind		= (vec_uchar16) v_rewind8;
 
-	//vec_uchar16 v_valid_rhs		= spu_orc( v_rewind_valid, v_rewind );
-	//vec_uchar16 v_invalid		= spu_nand( v_extend_valid, v_valid_rhs );
 	vec_uchar16 v_valid_rhs		= spu_and( v_rewind_invalid, v_rewind );
 	vec_uchar16 v_invalid		= spu_orc( v_valid_rhs, v_extend_valid );
 
 	// check to see if the chunk is being processed
 	vec_uint4 v_free = spu_gather(
 		spu_cmpeq( spu_splats( (unsigned char) CHUNKNEXT_FREE_BLOCK ), cache->chunkNext ) );
-	//vec_ushort8 v_free		= spu_promote( cache->chunksFree,1 );
 	vec_uint4   v_invalid_bits	= spu_andc( spu_gather( v_invalid ), (vec_uint4) v_free );
 
 /*

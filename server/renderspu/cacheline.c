@@ -60,16 +60,16 @@ void debug_render_tasks(RenderableCacheLine* cache)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+vec_uchar16 SHUF0 = (vec_uchar16) {
+	0,16,1,17, 2,18,3,19, 4,20,5,21, 6,22, 7,23 };
+vec_uchar16 SHUF1 = (vec_uchar16) {
+	8,24,9,25, 10,26,11,27, 12,28,13,29, 14,30,15,31 };
+vec_uchar16 MERGE = (vec_uchar16) {
+	0,2,4,6, 8,10,12,14, 16,18,20,22, 24,26,28,30 };
+
 inline void merge_cache_blocks(RenderableCacheLine* cache)
 {
 	vec_uchar16 next = cache->chunkNext;
-
-	const vec_uchar16 SHUF0 = (vec_uchar16) {
-		0,16,1,17, 2,18,3,19, 4,20,5,21, 6,22, 7,23 };
-	const vec_uchar16 SHUF1 = (vec_uchar16) {
-		8,24,9,25, 10,26,11,27, 12,28,13,29, 14,30,15,31 };
-	const vec_uchar16 MERGE = (vec_uchar16) {
-		0,2,4,6, 8,10,12,14, 16,18,20,22, 24,26,28,30 };
 
 	for (;;) {
 		vec_uchar16 nextnext = spu_shuffle(next, next, next);
@@ -160,6 +160,35 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 		unsigned int endTriangle = cache->endTriangle;
 		vec_ushort8 testTriangle = spu_splats((unsigned short) endTriangle);
 
+		// first look for short chunks
+		vec_uchar16 next = cache->chunkNext;
+		vec_uchar16 nextmask = spu_and(next, spu_splats((unsigned char)CHUNKNEXT_MASK));
+
+		// change next to word offset, note we don't care what the low bit shifted in is
+		vec_uchar16 firstshuf = (vec_uchar16) spu_sl( (vec_ushort8)nextmask, 1 );
+		vec_uchar16 trishufhi = spu_or ( firstshuf, spu_splats((unsigned char) 1));
+		vec_uchar16 trishuflo = spu_and( firstshuf, spu_splats((unsigned char) 254));
+
+		vec_ushort8 start0 = cache->chunkStart[0];
+		vec_ushort8 start1 = cache->chunkStart[1];
+
+		vec_ushort8 nstart0 = spu_shuffle( start0, start1, spu_shuffle( trishuflo, trishufhi, SHUF0 ) );
+		vec_ushort8 nstart1 = spu_shuffle( start0, start1, spu_shuffle( trishuflo, trishufhi, SHUF1 ) );
+
+		vec_ushort8 starteq0 = spu_cmpeq( nstart0, spu_splats((unsigned short)0) );
+		vec_ushort8 starteq1 = spu_cmpeq( nstart1, spu_splats((unsigned short)0) );
+
+		vec_ushort8 end0 = spu_sel( nstart0, spu_splats((unsigned short)4096), starteq0);
+		vec_ushort8 end1 = spu_sel( nstart1, spu_splats((unsigned short)4096), starteq1);
+
+		vec_ushort8 len0 = spu_sub( end0, start0);
+		vec_ushort8 len1 = spu_sub( end1, start1);
+
+		vec_ushort8 small0 = spu_cmpgt( spu_splats((unsigned short)17), len0);
+		vec_ushort8 small1 = spu_cmpgt( spu_splats((unsigned short)17), len1);
+		vec_uchar16 small = (vec_uchar16) spu_shuffle( small0, small1, MERGE );
+		vec_uint4 smallChunkGather = spu_gather(small);
+
 		// check to see if chunk is already at the last triangle
 		vec_uint4 doneChunkGather = spu_gather( (vec_uchar16) spu_shuffle(
 			(vec_uchar16) spu_cmpeq(testTriangle, cache->chunkTriangle[0]),
@@ -182,7 +211,23 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 		// free=false, busy=false -> can be merged
 
 		// decide which chunk to process
-		vec_uint4 mayProcessBits = spu_sl( spu_nor( doneChunkGather, busyChunkGather ), 16);
+		vec_uint4 mayProcessGather = spu_nor( doneChunkGather, busyChunkGather );
+		vec_uint4 mayProcessShortGather = spu_and( mayProcessGather, smallChunkGather );
+
+		vec_uint4 shortSelMask = spu_cmpeq( mayProcessShortGather, spu_splats(0U) );
+		vec_uint4 mayProcessSelection = spu_sel( mayProcessShortGather, mayProcessGather, shortSelMask );
+
+/*
+		if (!spu_extract(shortSelMask, 0))
+			printf("taken short: may=%04x short=%04x mayshort=%04x mask=%04x sel=%04x\n",
+				spu_extract(mayProcessGather, 0) & 0xffff,
+				spu_extract(smallChunkGather, 0),
+				spu_extract(mayProcessShortGather, 0),
+				spu_extract(shortSelMask, 0) & 0xffff,
+				spu_extract(mayProcessSelection, 0) & 0xffff );
+*/
+
+		vec_uint4 mayProcessBits = spu_sl( mayProcessSelection, 16);
 		unsigned int chunkToProcess = spu_extract( spu_cntlz( mayProcessBits ), 0);
 		unsigned int freeChunk = spu_extract( spu_cntlz( spu_sl( freeChunkGather, 16 ) ), 0);
 
