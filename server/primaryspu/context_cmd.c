@@ -63,7 +63,7 @@
 	unsigned int eal = eal_renderables_table + sizeof(Renderable) * ( id&(MAX_RENDERABLES-1) );
 	unsigned int eah = eah_buffer_tables;
 
-	//printf("DRAW CTX %x -> %x:%08x\n", id, eah, eal);
+	// printf("DRAW CTX %x -> %x:%08x\n", id, eah, eal);
 
 	char buffer[256+128];
 	char* tbuffer = (char*) ( ( ((unsigned int)buffer)+127 ) & ~127 );
@@ -86,6 +86,7 @@
 		context->height = renderable->height;
 	} else {
 		context->renderableCacheLine = 0;
+		printf("renderable ID incorrect - %x not %x\n", id, renderable->id);
 	}
 
 	return 0;

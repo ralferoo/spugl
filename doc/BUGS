@@ -2,7 +2,7 @@ ACTIVE BUGS
 
 * clear screen function should use custom shader to avoid extra reads
 
-* DMA exception if not running in 1080p :)
+* DMA alignment exception when running with borders
 
 * with more than one render SPU, sometimes stuff glitches out of view
 

@@ -509,6 +509,10 @@ int imp_vertex(float4 in, Context* context)
 	}
 #endif
 
+	// ensure rendering context initialised, pretend success if not
+	if (context->renderableCacheLine == 0)
+		return 0;
+
 	// get the output triangle buffer
 	Triangle* triangle = getTriangleBuffer(context);
 	if (triangle == NULL)

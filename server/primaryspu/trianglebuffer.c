@@ -40,8 +40,12 @@ Triangle* getTriangleBuffer(Context* context)
 	// to make sure that extending the write pointer wouldn't clobber the data
 
 	unsigned long long cache_ea = context->renderableCacheLine;
+	if (cache_ea == 0)
+		return NULL;
 	char cachebuffer[128+127];
 	RenderableCacheLine* cache = (RenderableCacheLine*) ( ((unsigned int)cachebuffer+127) & ~127 );
+
+	// printf("GTB: reading to %x from %x:%x\n", cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea));
 
 	spu_mfcdma64(cache, mfc_ea2h(cache_ea), mfc_ea2l(cache_ea), 128, 0, MFC_GETLLAR_CMD);
 	spu_readch(MFC_RdAtomicStat);
@@ -87,30 +91,6 @@ Triangle* getTriangleBuffer(Context* context)
 	vec_uint4 v_free = spu_gather(
 		spu_cmpeq( spu_splats( (unsigned char) CHUNKNEXT_FREE_BLOCK ), cache->chunkNext ) );
 	vec_uint4   v_invalid_bits	= spu_andc( spu_gather( v_invalid ), (vec_uint4) v_free );
-
-/*
-        DEBUG_VEC8( v_writeptr );
-        DEBUG_VEC8( v_readptr0 );
-        DEBUG_VEC8( v_readptr1 );
-        DEBUG_VEC8( v_testptr );
-        DEBUG_VEC8( v_nextptr );
-        DEBUG_VEC8( v_endptr );
-        DEBUG_VEC8( v_max0_test );
-        DEBUG_VEC8( v_max1_test );
-        DEBUG_VEC8( v_extend0_valid );
-        DEBUG_VEC8( v_extend1_valid );
-        DEBUG_VEC8( v_rewind0_invalid );
-        DEBUG_VEC8( v_rewind1_invalid );
-        DEBUG_VEC8( v_extend_valid );
-        DEBUG_VEC8( v_rewind_invalid );
-        DEBUG_VEC8( v_rewind );
-        DEBUG_VEC8( v_valid_rhs );
-        DEBUG_VEC8( v_invalid );
-        DEBUG_VEC8( v_free );
-        DEBUG_VEC8( v_invalid_bits );
-
-      printf("\n");
-*/
 
 	// if any of the bits are invalid, then no can do
 	if ( spu_extract(v_invalid_bits, 0) ) {
