@@ -148,7 +148,7 @@ void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 #endif
 
 		// write the pixel data
-		spu_mfcdma64(pixelbuffer, eah, (unsigned int)blit_list, 8*32, block, MFC_PUTL_CMD);
+		spu_mfcdma64(pixelbuffer, eah, (unsigned int)blit_list, 8*32, block, MFC_PUTLB_CMD);
 		tags |= (1<<block);
 	}
 

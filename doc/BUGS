@@ -1,5 +1,9 @@
 ACTIVE BUGS
 
+* with more than one render SPU, sometimes stuff glitches out of view
+
+Still occurring
+
 * spugld PPU-side takes 37% CPU doing almost nothing when a client is connected
   - actually it's all the memset on the framebuffer :O
 
@@ -19,9 +23,4 @@ Turned out to be running directly, mmap range is at end of address space
 The newer kernel only allocates a single-buffered screen and so running from
 make I was trampling over heap but it wasn't getting caught, running directly
 caused an exception as that address space wasn't mapped.
-
-* with more than one render SPU, sometimes stuff glitches out of view
-
-Seems to have been caused by the bug above
-
 
