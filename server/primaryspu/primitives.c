@@ -511,6 +511,8 @@ int imp_vertex(float4 in, Context* context)
 
 	// get the output triangle buffer
 	Triangle* triangle = getTriangleBuffer(context);
+	if (triangle == NULL)
+		return 1;					// render SPUs not yet caught up
 
 	vec_uchar16 inserter = shuffles[ins];
 
