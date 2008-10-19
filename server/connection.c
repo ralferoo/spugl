@@ -24,7 +24,7 @@
 #include <sys/socket.h>
 
 #include "connection.h"
-#include "ppufuncs.h"
+#include "functions.h"
 #include "../client/fifodefs.h"
 #include "../client/daemon.h"
 #include "framebuffer.h"

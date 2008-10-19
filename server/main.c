@@ -31,7 +31,7 @@
 #include <sys/stat.h>
 
 #include "connection.h"
-#include "ppufuncs.h"
+#include "functions.h"
 #include "framebuffer.h"
 
 #ifndef MNT_DETACH

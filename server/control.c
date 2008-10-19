@@ -19,7 +19,7 @@
 #include <fcntl.h>
 
 #include "connection.h"
-#include "ppufuncs.h"
+#include "functions.h"
 
 #ifdef USE_LIBSPE2
 	#include <libspe2.h>

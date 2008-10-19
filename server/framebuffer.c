@@ -30,7 +30,7 @@
 
 #include "../client/daemon.h"
 #include "framebuffer.h"
-#include "ppufuncs.h"
+#include "functions.h"
 
 #define PS3FB_IOCTL_SETMODE          _IOW('r',  1, int)
 #define PS3FB_IOCTL_GETMODE          _IOR('r',  2, int)
