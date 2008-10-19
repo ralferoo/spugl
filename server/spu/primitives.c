@@ -828,3 +828,8 @@ int stillProcessingQueue(Context* context)
 	return (int) dirty;
 }
 
+int imp_clear_screen(float4 in, Context* context)
+{
+	return 0;
+}
+

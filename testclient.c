@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "client/daemon.h"
 #include "client/client.h"
@@ -77,6 +78,9 @@ int main(int argc, char* argv[]) {
 		//write(1,buffer,strlen(buffer));
 		spuglDrawContext(context);
 
+		spuglClearScreen(128,128,128,0);
+
+		glFlush();
 		glBegin(GL_TRIANGLES);
 			float ofs = i * 1.0f;
 

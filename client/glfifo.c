@@ -318,7 +318,16 @@ GLAPI void GLAPIENTRY glFlush()
 #endif
 }
 
-
+GLAPI void GLAPIENTRY spuglClearScreen(GLubyte r, GLubyte g, GLubyte b, GLubyte a)
+{
+	FIFO_PROLOGUE(10);
+	BEGIN_RING(FIFO_COMMAND_CLEAR_SCREEN,4);
+	OUT_RINGf(r/255.0);
+	OUT_RINGf(g/255.0);
+	OUT_RINGf(b/255.0);
+	OUT_RINGf(a/255.0);
+	FIFO_EPILOGUE();
+}
 
 
 

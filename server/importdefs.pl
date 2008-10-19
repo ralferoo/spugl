@@ -12,6 +12,7 @@ while (<>) {
 
 		while ($name=~s/([A-Z])/sprintf("_%c",ord($1)+32)/seg) {}
 #		$name=~s/_//g;
+		$name=~s/__/_/g;
 		$name=~tr/[a-z]/[A-Z]/;
 
 		print DEF "#define FIFO_COMMAND$name $ord\n";

@@ -157,6 +157,7 @@ extern void _init_buffers();
 
 
 extern int current_state;
+extern int imp_clear_screen(float4 in, Context* context);
 extern int imp_vertex(float4 in, Context* context);
 extern void imp_close_segment(Context* context);
 extern int imp_validate_state(int state);

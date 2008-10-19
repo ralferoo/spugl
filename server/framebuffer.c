@@ -166,14 +166,7 @@ unsigned int Screen_swap(void)
 	screen.visible_frame = f;
 	screen.draw_address = screen.mmap_base + screen.draw_frame;
 
-//	printf("switching to frame %d draw addr %x\n", showFrame, screen.draw_address);
-
-	//memset(screen.draw_address, 0x80, screen.draw_size);
-	
-//	unsigned long size = screen.mmap_size / 2;
-//	memset(screen.mmap_base + (1-screen.visible)*size, 0x80, size);
-
-	memset(screen.mmap_base + screen.draw_frame, 0x40, screen.clear_size);
+//	memset(screen.mmap_base + screen.draw_frame, 0x40, screen.clear_size);
 
 	return screen.renderable_id[showFrame];
 }

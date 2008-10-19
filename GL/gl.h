@@ -2236,6 +2236,8 @@ typedef void (APIENTRYP PFNGLBLENDEQUATIONSEPARATEATIPROC) (GLenum modeRGB, GLen
 #if defined(PRAGMA_EXPORT_SUPPORTED)
 #pragma export off
 #endif
+		
+GLAPI void GLAPIENTRY spuglClearScreen(GLubyte r, GLubyte g, GLubyte b, GLubyte a);
 
 #if defined(macintosh) && PRAGMA_IMPORT_SUPPORTED
 #pragma import off
