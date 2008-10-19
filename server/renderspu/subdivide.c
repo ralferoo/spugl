@@ -38,10 +38,18 @@ struct {
 } processTile;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// buffer for pixel blocks
 
 vec_uint4 block_blit_list[16][16] __attribute__((aligned(128)));
 vec_uint4 block_buffer[16][4*32*32/16] __attribute__((aligned(128)));
 unsigned int block_eah[16];
+
+// buffer for z-buffer
+
+vec_uint4 zbuffer_blit_list[16][16] __attribute__((aligned(128)));
+vec_uint4 zbuffer_buffer[16][4*32*32/16] __attribute__((aligned(128)));		// this might be 16-bit not 32-bit...
+unsigned int zbuffer_eah[16];
 
 void debug_blit_list(vec_uint4* blit_list)
 {
