@@ -235,7 +235,9 @@ int main(unsigned long long spe_id, unsigned long long program_data_ea, unsigned
 	eal_renderables_table = eal_buffer_memory_table + MAX_DATA_BUFFERS * sizeof(unsigned long long);
 	eal_render_tasks = eal_renderables_table + MAX_RENDERABLES * sizeof(Renderable);
 
+#ifdef INFO
 	printf("[%d] Main SPU thread started, render tasks at %x:%08x...\n", _SPUID, eah_buffer_tables, eal_render_tasks);
+#endif
 
 	int i = 0;
 	for(;;) {

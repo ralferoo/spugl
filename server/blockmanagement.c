@@ -83,8 +83,10 @@ int blockManagementCreateRenderable(void* buffer, int width, int height, int str
 			cacheLine->next = *_block_mgr_render_tasks;
 			*_block_mgr_render_tasks = (unsigned long long) ( (unsigned long)cacheLine );
 
+#ifdef INFO
 			printf("Renderable id %x is %x to %x, cache at %x\n",
 				id, buffer, buffer + stride*height, cacheLine);
+#endif
 
 			return id;
 		}

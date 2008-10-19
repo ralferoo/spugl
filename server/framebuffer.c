@@ -79,7 +79,9 @@ int Screen_open(void)
 		return 0;
 	}
 
+#ifdef INFO
 	printf("Screen - %dx%d, border %dx%d, %d frames\n", res.xres, res.yres, res.xoff, res.yoff, res.num_frames);
+#endif
 
 	screen.width		= res.xres - 2*res.xoff;
 	screen.height		= res.yres - 2*res.yoff;
@@ -105,7 +107,9 @@ int Screen_open(void)
 		return 0;
 	}
 
+#ifdef INFO
 	printf("mmaped screen from %x to %x\n", screen.mmap_base, screen.mmap_base+screen.mmap_size);
+#endif
 
 	screen.hasUnblankedScreen = 0;
 	switchMode(1);
