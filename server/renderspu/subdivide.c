@@ -39,9 +39,29 @@ struct {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-vec_uint4 block_blit_list[16][16];
-vec_uint4 block_buffer[16][4*32*32/16];
+vec_uint4 block_blit_list[16][16] __attribute__((aligned(128)));
+vec_uint4 block_buffer[16][4*32*32/16] __attribute__((aligned(128)));
 unsigned int block_eah[16];
+
+void debug_blit_list(vec_uint4* blit_list)
+{
+	DEBUG_VEC8(blit_list[0]);
+	DEBUG_VEC8(blit_list[1]);
+	DEBUG_VEC8(blit_list[2]);
+	DEBUG_VEC8(blit_list[3]);
+	DEBUG_VEC8(blit_list[4]);
+	DEBUG_VEC8(blit_list[5]);
+	DEBUG_VEC8(blit_list[6]);
+	DEBUG_VEC8(blit_list[7]);
+	DEBUG_VEC8(blit_list[8]);
+	DEBUG_VEC8(blit_list[9]);
+	DEBUG_VEC8(blit_list[10]);
+	DEBUG_VEC8(blit_list[11]);
+	DEBUG_VEC8(blit_list[12]);
+	DEBUG_VEC8(blit_list[13]);
+	DEBUG_VEC8(blit_list[14]);
+	DEBUG_VEC8(blit_list[15]);
+}
 
 inline void populate_blit_list(vec_uint4* dma_list_buffer, unsigned int eal, unsigned int lineDy)
 {
@@ -109,6 +129,7 @@ void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 		found &= ~( 0x80000000>>block );
 
 		unsigned int coord = processTile.coordArray[block];
+
 		vec_uint4* blit_list = block_blit_list[block];
 		vec_uint4* pixelbuffer = (vec_uint4*) block_buffer[block];
 		unsigned int eah = block_eah[block];
@@ -116,17 +137,20 @@ void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 		// wait for 2 slots to open up (one for pixel buffer one for Z-buffer)
 		do {} while (spu_readchcnt(MFC_Cmd)<2);
 
+#ifdef INFO
+		vec_ushort8 coord_vec = (vec_ushort8) spu_promote(coord, 0);
+		unsigned short coordx = spu_extract(coord_vec,0);
+		unsigned short coordy = spu_extract(coord_vec,1);
+
+		printf("[%d] Flushing block %x %08x (%2d,%2d) eah=%lx list=%05x, pix=%05x, sp=%d\n",
+			_SPUID, block, coord, coordx, coordy, eah, blit_list, pixelbuffer, spu_readchcnt(MFC_Cmd));
+//		debug_blit_list(blit_list);
+#endif
+
 		// write the pixel data
 		spu_mfcdma64(pixelbuffer, eah, (unsigned int)blit_list, 8*32, block, MFC_PUTL_CMD);
 		tags |= (1<<block);
-
-// command queue is 16 elements deep, so we should be fine here
-//		// DEBUG, just in case
-//		mfc_write_tag_mask(tags);
-//		mfc_read_tag_status_all();
 	}
-
-//	printf("[%d] Waiting for tags %04x\n", _SPUID, tags);
 
 	// wait for all blocks to flush
 	mfc_write_tag_mask(tags);
@@ -199,8 +223,9 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 			block_eah[block] = eah;
 
 #ifdef INFO
-//			printf("[%d] Block %x %08x (%2d,%2d) EA=%llx list=%05x, pix=%05x tri=%04x\n",
-//				_SPUID, block, coord, coordx, coordy, pixelbuffer_ea, blit_list, pixelbuffer, chunkTriangle);
+			printf("[%d] Block %x %08x (%2d,%2d) EA=%llx list=%05x, pix=%05x tri=%04x, sp=%d\n",
+				_SPUID, block, coord, coordx, coordy, pixelbuffer_ea, blit_list, pixelbuffer, chunkTriangle, spu_readchcnt(MFC_Cmd));
+//			debug_blit_list(blit_list);
 #endif
 
 			// wait for 2 slots to open up (one for pixel buffer one for Z-buffer)
@@ -227,6 +252,11 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 //		maskRenderFunc(block_buffer[block], &triangle->shader_params[0], A, hdx, hdy);
 		flatRenderFunc(block_buffer[block], &triangle->shader_params[0], A, hdx, hdy);
 	}
+
+#ifdef INFO
+	printf("[%d] Done tiles %d to %d on tri %04x\n",
+		_SPUID, firstTile, chunkEnd, chunkTriangle);
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -79,7 +79,7 @@ int Screen_open(void)
 		return 0;
 	}
 
-	printf("Screen - %dx%d, border %dx%d\n", res.xres, res.yres, res.xoff, res.yoff);
+	printf("Screen - %dx%d, border %dx%d, %d frames\n", res.xres, res.yres, res.xoff, res.yoff, res.num_frames);
 
 	screen.width		= res.xres - 2*res.xoff;
 	screen.height		= res.yres - 2*res.yoff;
@@ -92,6 +92,10 @@ int Screen_open(void)
 	screen.visible		= 0;
 	screen.draw_address	= screen.mmap_base + screen.draw_frame;
 
+	if (res.num_frames < 2) {
+		screen.draw_frame = screen.visible_frame;
+	}
+
 	screen.renderable_id[1]	= blockManagementCreateRenderable(screen.mmap_base + screen.visible_frame,	screen.width, screen.height, screen.stride);
 	screen.renderable_id[0]	= blockManagementCreateRenderable(screen.mmap_base + screen.draw_frame,	screen.width, screen.height, screen.stride);
 
@@ -100,6 +104,8 @@ int Screen_open(void)
 		screen.fd = -1;
 		return 0;
 	}
+
+	printf("mmaped screen from %x to %x\n", screen.mmap_base, screen.mmap_base+screen.mmap_size);
 
 	screen.hasUnblankedScreen = 0;
 	switchMode(1);

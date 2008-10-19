@@ -1,6 +1,3 @@
-* crashes when daemon run directly, but fine from make
-  - works fine on jap ps3, only happens on uk ps3
-
 * spugld PPU-side takes 37% CPU doing almost nothing when a client is connected
   - actually it's all the memset on the framebuffer :O
 
@@ -10,3 +7,15 @@
 	Render of 960 frames took 16.086914 seconds or 59.675835 FPS
   on ps3:
 	Render of 960 frames took 34.705139 seconds or 27.661610 FPS
+
+RESOLVED
+
+* crashes when daemon run directly, but fine from make
+  - works fine on jap ps3, only happens on uk ps3
+
+Turned out to be running directly, mmap range is at end of address space
+(f7fcd00), but running from make it's at the beginning of heap (4081b000).
+
+The newer kernel only allocates a single-buffered screen and so running from
+make I was trampling over heap but it wasn't getting caught, running directly
+caused an exception as that address space wasn't mapped.

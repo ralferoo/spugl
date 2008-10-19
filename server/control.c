@@ -16,6 +16,8 @@
 #include <unistd.h>
 
 #include <sys/mman.h>
+#include <fcntl.h>
+
 #include "connection.h"
 #include "ppufuncs.h"
 
@@ -86,6 +88,20 @@ void *main_program_thread(SPU_HANDLE context)
 {
 	int retval;
 	unsigned int entry_point = SPE_DEFAULT_ENTRY;
+
+/*
+	#define MAP_SIZE 4096
+
+	char name[256];
+	sprintf(name, "/spu/spethread-%d-%d/psmap", getpid(), context->spe_ctx);
+	int fd = open(name, O_RDONLY);
+	void* ps = NULL;
+	if (fd>=0) {
+		ps = mmap(0, MAP_SIZE, PROT_READ, MAP_SHARED, fd, 0);
+	}
+	printf("psmap='%s', fd=%d, mmap_addr=%x\n", name, fd, ps);
+*/
+
 	do {
 		spe_stop_info_t stop_info;
 		//printf("[%d] restarting at %x, LS=%x\n", context->id, entry_point, context->local_store);
@@ -139,7 +155,16 @@ void *main_program_thread(SPU_HANDLE context)
 		unsigned int* ip = (unsigned int*) p;
 		//printf("[%d] retval %d exited at %x, LS=%x, instruction %08x\n", context->id, retval, entry_point, context->local_store, *ip);
 	} while (retval > 0);
-//	printf("retval = %d\n", retval);
+
+/*
+	if (ps != MAP_FAILED) {
+		munmap(ps, MAP_SIZE);
+	}
+	if (fd>=0) {
+		close(fd);
+	}
+*/
+
 	pthread_exit(NULL);
 }
 #endif
