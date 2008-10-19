@@ -74,7 +74,7 @@ int blockManagementCreateRenderable(void* buffer, int width, int height, int str
 			memset(&cacheLine->chunkNextArray, CHUNKNEXT_FREE_BLOCK, 16);
 			cacheLine->chunkNextArray[0] = 0;
 			cacheLine->endTriangle = 0;
-			cacheLine->pixelBuffer = (unsigned long long) ( (unsigned long)buffer );
+			cacheLine->pixelBuffer = ((unsigned long long) ( (unsigned long)buffer )) + stride * (height&31)/2;
 			cacheLine->pixelTileDx = 4 * 32;
 			cacheLine->pixelTileDy = stride * 32;
 			cacheLine->pixelLineDy = stride;
