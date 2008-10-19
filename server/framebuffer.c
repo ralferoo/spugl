@@ -9,6 +9,8 @@
  *
  ****************************************************************************/
 
+// #define INFO
+
 #include <fcntl.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -86,12 +88,12 @@ int Screen_open(void)
 	screen.width		= res.xres - 2*res.xoff;
 	screen.height		= res.yres - 2*res.yoff;
 	screen.stride		= res.xres * 4;
-	screen.num_frames	= res.num_frames;
+	screen.num_frames	= res.num_frames > 1 ? 2 : 1;
 	screen.visible_frame	= (res.yoff * res.xres + res.xoff) * 4;
 	screen.draw_frame	= screen.visible_frame + res.yres * res.xres * 4;
 	screen.draw_size	= res.yres * res.xres * 4;
 	screen.clear_size	= screen.height * screen.stride - 4*res.xoff;
-	screen.mmap_size	= res.num_frames * screen.draw_size;
+	screen.mmap_size	= screen.num_frames * screen.draw_size;
 	screen.mmap_base	= mmap(0, screen.mmap_size, PROT_WRITE, MAP_SHARED, screen.fd, 0);
 	screen.visible		= 0;
 	screen.draw_address	= screen.mmap_base + screen.draw_frame;
@@ -116,9 +118,6 @@ int Screen_open(void)
 	screen.hasUnblankedScreen = 0;
 	switchMode(1);
 	memset(screen.mmap_base, 0, screen.mmap_size);
-
-	//for (int q=0; q<screen.mmap_size; q++)
-	//	* ((char*)(screen.mmap_base+q)) = q * 0x10503;
 
 	if (ioctl(screen.fd, PS3FB_IOCTL_ON, 0) < 0) {
 		close(screen.fd);
@@ -158,7 +157,7 @@ unsigned int Screen_swap(void)
 		return -1;
 
 
-	uint32_t showFrame = screen.num_frames - screen.visible;
+	uint32_t showFrame = screen.num_frames - 1 - screen.visible;
 	screen.visible = showFrame;
 	ioctl(screen.fd, PS3FB_IOCTL_FSEL, (unsigned long)&showFrame);
 
@@ -167,8 +166,9 @@ unsigned int Screen_swap(void)
 	screen.visible_frame = f;
 	screen.draw_address = screen.mmap_base + screen.draw_frame;
 
-//	memset(screen.mmap_base + screen.draw_frame, 0x40, screen.clear_size);
-
+#ifdef INFO
+	printf("showFrame = %d, renderable = %x\n", showFrame, screen.renderable_id[showFrame]);
+#endif
 	return screen.renderable_id[showFrame];
 }
 
