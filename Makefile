@@ -29,7 +29,7 @@
 
 BASE_NAME = spugl-client-0.1
 
-TARGETS = spugld test/testclient
+TARGETS = spugld test/testclient test/cube
 
 LIBDIRS = -L/usr/lib
 
@@ -94,6 +94,9 @@ DAEMON_TARGETS := $(patsubst %.c,%.o,$(DAEMON_TARGETS_C))
 CLIENT_TARGETS32 = test/testclient.o32 spugl.a32
 CLIENT_TARGETS64 = test/testclient.o64 spugl.a64
 
+CUBE_TARGETS32 = test/cube.o32 test/joystick.o32 spugl.a32
+CUBE_TARGETS64 = test/cube.o64 test/joystick.o64 spugl.a64
+
 CLIENT_LIB_TARGETS_C := $(wildcard client/*.c)
 CLIENT_LIB_TARGETS_H := $(wildcard client/*.h)
 CLIENT_LIB_TARGETS32 := $(patsubst %.c,%.o32,$(CLIENT_LIB_TARGETS_C))
@@ -110,6 +113,9 @@ rendersources:
 
 server:	spugld .FORCE
 	./spugld
+
+cube:	test/cube .FORCE
+	./test/cube
 
 client:	test/testclient .FORCE
 	./test/testclient
@@ -129,6 +135,12 @@ test/testclient:	$(CLIENT_TARGETS32)
 
 test/testclient64:	$(CLIENT_TARGETS64)
 	$(PPUCC) -m64 -o $@ $(CLIENT_TARGETS64) -lrt
+
+test/cube:	$(CUBE_TARGETS32)
+	$(PPUCC) -m32 -o $@ $(CUBE_TARGETS32) -lrt -lm
+
+test/cube64:	$(CUBE_TARGETS64)
+	$(PPUCC) -m64 -o $@ $(CUBE_TARGETS64) -lrt -lm
 
 spugl.a32:	$(CLIENT_LIB_TARGETS32)
 	$(PPUAR) -r $@ $(CLIENT_LIB_TARGETS32)
