@@ -29,7 +29,7 @@
 
 BASE_NAME = spugl-client-0.1
 
-TARGETS = spugld testclient
+TARGETS = spugld test/testclient
 
 LIBDIRS = -L/usr/lib
 
@@ -91,8 +91,8 @@ DAEMON_TARGETS_C := $(wildcard server/*.c)
 DAEMON_TARGETS_H := $(wildcard server/*.h)
 DAEMON_TARGETS := $(patsubst %.c,%.o,$(DAEMON_TARGETS_C))
 
-CLIENT_TARGETS32 = testclient.o32 spugl.a32
-CLIENT_TARGETS64 = testclient.o64 spugl.a64
+CLIENT_TARGETS32 = test/testclient.o32 spugl.a32
+CLIENT_TARGETS64 = test/testclient.o64 spugl.a64
 
 CLIENT_LIB_TARGETS_C := $(wildcard client/*.c)
 CLIENT_LIB_TARGETS_H := $(wildcard client/*.h)
@@ -111,11 +111,11 @@ rendersources:
 server:	spugld .FORCE
 	./spugld
 
-client:	testclient .FORCE
-	./testclient
+client:	test/testclient .FORCE
+	./test/testclient
 
-client64:	testclient64 .FORCE
-	./testclient64
+client64:	test/testclient64 .FORCE
+	./test/testclient64
 
 spugld:	spugld.debug
 	cp $< $@
@@ -124,10 +124,10 @@ spugld:	spugld.debug
 spugld.debug:	$(DAEMON_TARGETS) $(SPU_DRIVER_HNDL) $(RENDER_DRIVER_HNDL)
 	$(PPUCC) -m$(USERLAND) -o $@ $(DAEMON_TARGETS) $(SPU_DRIVER_HNDL) $(RENDER_DRIVER_HNDL) $(LIBS)
 
-testclient:	$(CLIENT_TARGETS32)
+test/testclient:	$(CLIENT_TARGETS32)
 	$(PPUCC) -m32 -o $@ $(CLIENT_TARGETS32) -lrt
 
-testclient64:	$(CLIENT_TARGETS64)
+test/testclient64:	$(CLIENT_TARGETS64)
 	$(PPUCC) -m64 -o $@ $(CLIENT_TARGETS64) -lrt
 
 spugl.a32:	$(CLIENT_LIB_TARGETS32)
@@ -190,7 +190,7 @@ $(BASE_NAME).tar.gz:	$(SOURCE_DIST_FILES) Makefile
 	tar cfz $@ -C .dist .
 
 edit:
-	gvim -p Makefile testclient.c server/renderspu/*.[ch] client/glfifo.c server/primaryspu/*.[ch] &
+	gvim -p Makefile test/testclient.c server/renderspu/*.[ch] client/glfifo.c server/primaryspu/*.[ch] &
 #	gvim -p shader.c texture.c queue.h test.c struct.h glfifo.c textureprep.c decode.c primitives.c
 
 source:
@@ -307,9 +307,9 @@ clean:
 	rm -f *.spe
 	rm -f *.0 *.o32 *.o64
 	rm -rf build dist
-	rm -f .gen .gennew test
+	rm -f .gen .gennew
 	rm -f textures/*.o
-	rm -f spugld spugld.debug testclient testclient64 spugl-*/*.o spugl.a spugl.a32 spugl.a64
+	rm -f spugld spugld.debug test/testclient test/testclient64 spugl-*/*.o spugl.a spugl.a32 spugl.a64
 	rm -f hilbert
 	rm -f server/*.o server/*.o32 server/*.o64
 	rm -f client/*.o client/*.o32 client/*.o64

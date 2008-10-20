@@ -36,10 +36,11 @@ int main(int argc, char* argv[]) {
 	CommandQueue* queue = spuglAllocateCommandQueue(server, 2047*1024);
 	if (queue==NULL) { printf("Out of memory\n"); exit(1); }
 
-	void* buffer = spuglAllocateBuffer(server, 204*1024*1024);
+	void* buffer = spuglAllocateBuffer(server, 24*1024*1024);
 	if (buffer==NULL) { printf("Out of memory\n"); exit(1); }
 
 	unsigned int context = spuglFlip(queue);
+	printf("context = %x\n", context);
 
 	spuglSetCurrentContext(queue);
 	unsigned int start = spuglTarget();
@@ -69,7 +70,7 @@ int main(int argc, char* argv[]) {
 	int i = -130;
 	//int i = -338;
 
-	for (int j=0; j<2; j++)
+	for (int j=0; j<9; j++)
 	for (i=-350; i<130; i++)
 	//for (int k=0; k<429; k++)
 	{
