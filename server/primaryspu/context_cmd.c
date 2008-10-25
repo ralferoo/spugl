@@ -233,6 +233,7 @@ unsigned int current_texture = 0;
 }
 
 /*28*/int imp_ClearScreen(float* from, Context* context) {
+	//printf("-----------\n");
 	float4 a = {.x=from[0],.y=from[1],.z=from[2],.w=from[3]};
 	return imp_clear_screen(a, context);
 }

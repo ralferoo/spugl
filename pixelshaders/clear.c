@@ -39,11 +39,6 @@ void clearInitFunc(vec_uint4* params, vec_uint4* scratch, vec_int4 hdx, vec_int4
 
 void clearRenderFunc(vec_uint4* params, vec_uint4* scratch, vec_int4 A, vec_int4 hdx, vec_int4 hdy, vec_uint4* pixelbuffer)
 {
-/*
-
-*/
-///////
-
 	vec_uint4 left = spu_promote(32U * 8U, 0);
 	vec_uint4* ptr = pixelbuffer;
 

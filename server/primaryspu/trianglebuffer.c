@@ -117,6 +117,8 @@ Triangle* getTriangleBuffer(Context* context)
 	_currentTriangleCacheEndTriangleEAH = mfc_ea2h(cache_ea); 
 	_currentTriangleBufferEA = trianglebuffer_ea; 
 
+	// printf("Allocated new triangle buffer: %x\n", offset);
+
 	// and return the buffer ready to go
 	return _currentTriangle;
 }
