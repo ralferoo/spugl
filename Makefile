@@ -82,7 +82,7 @@ SPU_DRIVER_HNDL = server/main_spu.handle.o$(USERLAND)
 SPU_DRIVER_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(SPU_DRIVER_HNDL))
 
 SHADER_SOURCES := $(wildcard pixelshaders/*.c)
-SHADER_OBJECTS := $(patsubst %.c,%.0,$(SHADER_SOURCES))
+SHADER_OBJECTS := $(patsubst %.c,%.pic,$(SHADER_SOURCES))
 SHADER_TARGETS := $(patsubst %.c,%.shader,$(SHADER_SOURCES))
 
 RENDER_DRIVER_SOURCES := $(wildcard server/renderspu/*.c$)
@@ -105,7 +105,9 @@ CLIENT_LIB_TARGETS_H := $(wildcard client/*.h)
 CLIENT_LIB_TARGETS32 := $(patsubst %.c,%.o32,$(CLIENT_LIB_TARGETS_C))
 CLIENT_LIB_TARGETS64 := $(patsubst %.c,%.o64,$(CLIENT_LIB_TARGETS_C))
 
-all:	$(TARGETS) $(SHADER_TARGETS)
+all:	$(TARGETS) pixelshaders
+
+pixelshaders: $(SHADER_TARGETS)
 
 rendersources:
 	ls -l $(RENDER_DRIVER_SOURCES)
