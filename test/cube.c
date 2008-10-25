@@ -145,6 +145,8 @@ int main(int argc, char* argv[]) {
 
 	unsigned int start = spuglTarget();
 
+	int qqq = 0;
+
 	while (!stick_button(3)) {
 		struct timespec startPoint;
 		clock_gettime(CLOCK_MONOTONIC,&startPoint);
@@ -192,7 +194,10 @@ int main(int argc, char* argv[]) {
 
 	if(1) {
 		spuglDrawContext(context);
-		spuglClearScreen(128,128,128,0);
+
+		qqq++;
+		spuglClearScreen( (qqq&31)*8,((qqq>>5)&31)*8,((qqq>>10)&31)*8,0);
+//		spuglClearScreen(128,128,128,0);
 
 		spuglSelectPixelShader(flatShader, (int)&_binary_pixelshaders_flat_shader_size);
 		glBegin(GL_TRIANGLES);

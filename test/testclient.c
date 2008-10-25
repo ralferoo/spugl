@@ -87,6 +87,8 @@ int main(int argc, char* argv[]) {
 
 	unsigned int start = spuglTarget();
 
+	int qqq = 0;
+
 	int i = -130;
 	//int i = -338;
 
@@ -99,7 +101,8 @@ int main(int argc, char* argv[]) {
 		//write(1,buffer,strlen(buffer));
 		spuglDrawContext(context);
 
-		spuglClearScreen(128,128,128,0);
+		qqq++;
+		spuglClearScreen( (qqq&31)*8,((qqq>>5)&31)*8,((qqq>>10)&31)*8,0);
 
 		spuglSelectPixelShader(flatShader, (int)&_binary_pixelshaders_flat_shader_size);
 		glBegin(GL_TRIANGLES);
