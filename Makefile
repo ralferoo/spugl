@@ -81,7 +81,7 @@ SPU_DRIVER_TARGETS := $(patsubst %.c,%.0,$(SPU_DRIVER_SOURCES))
 SPU_DRIVER_HNDL = server/main_spu.handle.o$(USERLAND)
 SPU_DRIVER_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(SPU_DRIVER_HNDL))
 
-SHADER_SOURCES := $(wildcard server/renderspu/shaders/*.c)
+SHADER_SOURCES := $(wildcard pixelshaders/*.c)
 SHADER_OBJECTS := $(patsubst %.c,%.0,$(SHADER_SOURCES))
 SHADER_TARGETS := $(patsubst %.c,%.shader,$(SHADER_SOURCES))
 
@@ -270,9 +270,9 @@ server/renderspu/%.D: server/renderspu/%.c
 		| sed '\''s|\($*\)\.o[ :]*|server/renderspu/\1.0 $@ : \\\n  |g'\'' >$@ ; \
 		[ -s $@ ] || rm -f $@'
 
-server/renderspu/shaders/%.dep: server/renderspu/shaders/%.c
+pixelshaders/%.dep: pixelshaders/%.c
 	@$(SHELL) -ec '$(SPUCC) $(SPUCCFLAGSARCH) $(SPUCCFLAGS) -MM $< \
-		| sed '\''s|\($*\)\.o[ :]*|server/renderspu/shaders/\1.pic $@ : \\\n  |g'\'' >$@ ; \
+		| sed '\''s|\($*\)\.o[ :]*|pixelshaders/\1.pic $@ : \\\n  |g'\'' >$@ ; \
 		[ -s $@ ] || rm -f $@'
 
 ###############################################################################
@@ -313,7 +313,7 @@ server/renderspu/shaders/%.dep: server/renderspu/shaders/%.c
 
 # rules to make a pixel shader
 
-%.hdr.s:	server/renderspu/shaders/pixelshader.template Makefile
+%.hdr.s:	pixelshaders/pixelshader.template Makefile
 	perl -pe '{s/_PREFIX_/$(notdir $*)/g;}' < $< >$@
 
 %.shader.spe: %.hdr.pic %.pic
@@ -341,13 +341,13 @@ clean:
 	rm -f server/*.o server/*.o32 server/*.o64
 	rm -f client/*.o client/*.o32 client/*.o64
 	rm -f server/primaryspu/*.0 client/primaryspu/*.0
-	rm -f server/renderspu/*.0 client/renderspu/*.0 server/renderspu/shaders/*.0
-	rm -f server/renderspu/shaders/*.hdr server/renderspu/shaders/*.hdr.s
-	rm -f server/renderspu/shaders/*.shader server/renderspu/shaders/*.pic
-	rm -f *.d server/*.d server/primaryspu/*.D server/renderspu/*.D client/*.d server/renderspu/shaders/*.D server/renderspu/shaders/*.dep
+	rm -f server/renderspu/*.0 client/renderspu/*.0 pixelshaders/*.0
+	rm -f pixelshaders/*.hdr pixelshaders/*.hdr.s
+	rm -f pixelshaders/*.shader pixelshaders/*.pic
+	rm -f *.d server/*.d server/primaryspu/*.D server/renderspu/*.D client/*.d pixelshaders/*.D pixelshaders/*.dep
 	rm -f server/primaryspu/*.spe server/renderspu/*.spe
 	rm -f server/*.spe server/renderspu/*.spe
-	rm -f server/*.regs server/renderspu/*.regs server/renderspu/shaders/*.regs
+	rm -f server/*.regs server/renderspu/*.regs pixelshaders/*.regs
 
 # gen_spu_command_defs.h gen_spu_command_exts.h gen_spu_command_table.h
 

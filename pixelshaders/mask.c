@@ -13,7 +13,7 @@
 #include <spu_intrinsics.h>
 #include <stdio.h>
 
-//#include "../render.h"
+//#include "server/renderspu/render.h"
 
 void maskRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
 

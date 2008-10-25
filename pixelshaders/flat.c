@@ -13,7 +13,7 @@
 #include <spu_intrinsics.h>
 #include <stdio.h>
 
-#include "../render.h"
+//#include "server/renderspu/render.h"
 
 /*
 register vec_float4    	TRIg            asm ("106");
