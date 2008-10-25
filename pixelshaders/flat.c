@@ -23,6 +23,24 @@ register vec_float4    	TRIr            asm ("107");
 register vec_int4	TRIri           asm ("107");
 */
 
+typedef union {
+	vec_float4    	vf;
+	vec_int4	vi;
+	vec_uint4	vu;
+	vec_ushort8	vus;
+	vec_short8	vs;
+	unsigned int	ui;
+	int		i;
+	unsigned short	us;
+	short		s;
+	float		f;
+} AllTypes;
+
+register AllTypes __test asm("108");
+
+//const int& testint = __test.i;
+//register int testint __attribute__((weak, alias("__test.i")));
+
 register union {
 	vec_float4    	f;
 	vec_int4	i;
