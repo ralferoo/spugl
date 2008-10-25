@@ -58,6 +58,8 @@ SPUCC = spu-gcc
 SPUCCFLAGSARCH = -DUSERLAND_$(USERLAND)_BITS -Wno-trigraphs -std=gnu99 -I.
 SPUCCFLAGSPIC = -fpic
 SPUCCFLAGS = -O6 -DSPU_REGS
+SPULD = spu-ld
+SPUOBJCOPY = spu-objcopy
 
 TEXTURES_C := $(wildcard textures/*.c)
 TEXTURES := $(patsubst %.c,%.o,$(TEXTURES_C))
@@ -80,7 +82,8 @@ SPU_DRIVER_HNDL = server/main_spu.handle.o$(USERLAND)
 SPU_DRIVER_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(SPU_DRIVER_HNDL))
 
 SHADER_SOURCES := $(wildcard server/renderspu/shaders/*.c)
-SHADER_TARGETS := $(patsubst %.c,%.pic,$(SHADER_SOURCES))
+SHADER_OBJECTS := $(patsubst %.c,%.0,$(SHADER_SOURCES))
+SHADER_TARGETS := $(patsubst %.c,%.shader,$(SHADER_SOURCES))
 
 RENDER_DRIVER_SOURCES := $(wildcard server/renderspu/*.c$)
 RENDER_DRIVER_TARGETS := $(patsubst %.c,%.0,$(RENDER_DRIVER_SOURCES))
@@ -102,7 +105,7 @@ CLIENT_LIB_TARGETS_H := $(wildcard client/*.h)
 CLIENT_LIB_TARGETS32 := $(patsubst %.c,%.o32,$(CLIENT_LIB_TARGETS_C))
 CLIENT_LIB_TARGETS64 := $(patsubst %.c,%.o64,$(CLIENT_LIB_TARGETS_C))
 
-all:	$(TARGETS)
+all:	$(TARGETS) $(SHADER_TARGETS)
 
 rendersources:
 	ls -l $(RENDER_DRIVER_SOURCES)
@@ -239,8 +242,8 @@ server/main_spu.handle.spe: $(SPU_DRIVER_TARGETS) Makefile
 	$(SPUCC) $(SPUCCFLAGSARCH) $(SPU_DRIVER_TARGETS) -o server/main_spu.handle.spe
 	spu-strip server/main_spu.handle.spe
 
-server/main_render.handle.spe: $(RENDER_DRIVER_TARGETS) $(SHADER_TARGETS) Makefile
-	$(SPUCC) $(SPUCCFLAGSARCH) $(RENDER_DRIVER_TARGETS) $(SHADER_TARGETS) -o server/main_render.handle.spe
+server/main_render.handle.spe: $(RENDER_DRIVER_TARGETS) $(SHADER_OBJECTS) Makefile
+	$(SPUCC) $(SPUCCFLAGSARCH) $(RENDER_DRIVER_TARGETS) $(SHADER_OBJECTS) -o server/main_render.handle.spe
 	spu-strip server/main_render.handle.spe
 
 ###############################################################################
@@ -308,6 +311,18 @@ server/renderspu/shaders/%.dep: server/renderspu/shaders/%.c
 	@echo counting register usage - $@
 	@grep -v "nop.*$$127" < $< | perl -ne '{ if (s/\$$(\d+)/---/) { print "$$1\n"; }}' |sort -n|uniq -c > $@
 
+# rules to make a pixel shader
+
+%.hdr.s:	server/renderspu/shaders/pixelshader.template Makefile
+	perl -pe '{s/_PREFIX_/$(notdir $*)/g;}' < $< >$@
+
+%.shader.spe: %.hdr.pic %.pic
+	$(SPULD) $*.hdr.pic $*.pic -o $@
+
+%.shader: %.shader.spe
+	$(SPUOBJCOPY) -S $< -O binary $@
+
+
 ### BUILD-ONLY-END ###
 
 ###############################################################################
@@ -326,9 +341,10 @@ clean:
 	rm -f server/*.o server/*.o32 server/*.o64
 	rm -f client/*.o client/*.o32 client/*.o64
 	rm -f server/primaryspu/*.0 client/primaryspu/*.0
-	rm -f server/renderspu/*.0 client/renderspu/*.0
-	rm -f server/renderspu/shaders/*.pic
-	rm -f *.d server/*.d server/primaryspu/*.D server/renderspu/*.D client/*.d server/renderspu/shaders/*.dep
+	rm -f server/renderspu/*.0 client/renderspu/*.0 server/renderspu/shaders/*.0
+	rm -f server/renderspu/shaders/*.hdr server/renderspu/shaders/*.hdr.s
+	rm -f server/renderspu/shaders/*.shader server/renderspu/shaders/*.pic
+	rm -f *.d server/*.d server/primaryspu/*.D server/renderspu/*.D client/*.d server/renderspu/shaders/*.D server/renderspu/shaders/*.dep
 	rm -f server/primaryspu/*.spe server/renderspu/*.spe
 	rm -f server/*.spe server/renderspu/*.spe
 	rm -f server/*.regs server/renderspu/*.regs server/renderspu/shaders/*.regs

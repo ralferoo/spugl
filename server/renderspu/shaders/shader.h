@@ -14,10 +14,13 @@
 #include <stdio.h>
 
 typedef struct {
-	unsigned int dataSize;
-	//unsigned int pad0[3];
-	void (*initFunction)(vec_uint4* info);
-	//unsigned int pad1[3];
-	void (*renderFunction)(vec_uint4* pixelbuffer, vec_uint4 *userData, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
-	//unsigned int pad2[3];
-} PixelShaderInfo;
+	unsigned long long	magic;			// "spugl-ps"
+	unsigned long		length;			// length in bytes of shader
+	unsigned long		defintionOffset;	// definition of shader (offset from this structure)
+	unsigned long		initFunctionOffset;	// init function (offset from this structure)
+	unsigned long		renderFunctionOffset;	// render function (offset from this structure)
+	unsigned long		reserved;		// not used currently, must be 0
+} PixelShaderHeader;
+
+const unsigned long long PixelShaderHeaderMagic = 0x737075676c2d7073;
+

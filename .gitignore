@@ -6,6 +6,7 @@
 *.o64
 *.pic
 *.regs
+*.shader
 # embeddable SPU executable
 *.spe
 .gen

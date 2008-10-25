@@ -39,24 +39,7 @@ void c(void) { TEST.u = spu_splats(1234U); }
 void flatInitFunc(vec_uint4* info);
 void flatRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
 
-/*
-PixelShader flat_pixel_shader = {
-	.data_size		= 64,
-	.init_func_offset	= ((int) &flatInitFunc)			- ((int) &flat_pixel_shader),
-	.render_func_offset	= ((int) &flatRenderFunc)		- ((int) &flat_pixel_shader),
-};
-*/
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-PixelShaderInfo flatPixelShader(vec_uint4* info)
-{
-	register PixelShaderInfo ret;
-	ret.dataSize = 64;
-	ret.initFunction = &flatInitFunc;
-	ret.renderFunction = &flatRenderFunc;
-	return ret;
-}
 
 void flatInitFunc(vec_uint4* info)
 {
@@ -212,7 +195,7 @@ void flatRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_i
 
 			vec_uint4 current = *ptr;
 
-			current = spu_and(spu_rlmaska(current,-1), spu_splats(0x7f7f7fu));
+//			current = spu_and(spu_rlmaska(current,-1), spu_splats(0x7f7f7fu));
 
 			*ptr = spu_sel(current, colour, pixel);
 		} 

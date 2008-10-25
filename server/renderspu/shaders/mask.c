@@ -17,6 +17,10 @@
 
 void maskRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
 
+void maskInitFunc(vec_uint4* info)
+{
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
