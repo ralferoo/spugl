@@ -82,7 +82,7 @@ void maskRenderFunc(vec_uint4* params, vec_uint4* scratch, vec_int4 A, vec_int4 
 //			vec_float4 tAb = spu_mul(Ab,w);
 //			vec_float4 tAc = spu_mul(Ac,w);
 
-			vec_uint4 colour = spu_splats(0xffff00U);
+			vec_uint4 colour = spu_splats(0x7fff30U);
 
 			vec_uint4 current = *ptr;
 
