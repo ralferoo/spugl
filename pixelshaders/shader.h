@@ -22,5 +22,5 @@ typedef struct {
 	unsigned long		reserved;		// not used currently, must be 0
 } PixelShaderHeader;
 
-const unsigned long long PixelShaderHeaderMagic = 0x737075676c2d7073;
+static const unsigned long long PixelShaderHeaderMagic = 0x737075676c2d7073;
 
