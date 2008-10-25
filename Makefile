@@ -48,6 +48,7 @@ PPUPREFIX = $(shell ppu-gcc -v 2>/dev/null && echo ppu- || echo )
 PPUAR = $(PPUPREFIX)ar
 PPUEMBEDSPU = $(PPUPREFIX)embedspu -m$(USERLAND)
 PPUSTRIP = $(PPUPREFIX)strip
+PPUOBJCOPY = $(PPUPREFIX)objcopy
 
 PPUCC = $(PPUPREFIX)gcc
 PPUCCFLAGS = -c -ggdb $(LIBSPE2) -I. -Wno-trigraphs -std=gnu99
@@ -82,8 +83,10 @@ SPU_DRIVER_HNDL = server/main_spu.handle.o$(USERLAND)
 SPU_DRIVER_HNDL_BASE = $(patsubst %.o$(USERLAND),%.spe,$(SPU_DRIVER_HNDL))
 
 SHADER_SOURCES := $(wildcard pixelshaders/*.c)
-SHADER_OBJECTS := $(patsubst %.c,%.pic,$(SHADER_SOURCES))
+SHADER_OBJECTS := pixelshaders/clear.pic	#$(patsubst %.c,%.pic,$(pixelshaders/clear.c)) #SHADER_SOURCES))
 SHADER_TARGETS := $(patsubst %.c,%.shader,$(SHADER_SOURCES))
+
+TEST_SHADERS = $(patsubst pixelshaders/%.shader,test/%.o$(USERLAND),$(SHADER_TARGETS))
 
 RENDER_DRIVER_SOURCES := $(wildcard server/renderspu/*.c$)
 RENDER_DRIVER_TARGETS := $(patsubst %.c,%.0,$(RENDER_DRIVER_SOURCES))
@@ -94,11 +97,11 @@ DAEMON_TARGETS_C := $(wildcard server/*.c)
 DAEMON_TARGETS_H := $(wildcard server/*.h)
 DAEMON_TARGETS := $(patsubst %.c,%.o,$(DAEMON_TARGETS_C))
 
-CLIENT_TARGETS32 = test/testclient.o32 spugl.a32
-CLIENT_TARGETS64 = test/testclient.o64 spugl.a64
+CLIENT_TARGETS32 = test/testclient.o32 spugl.a32 $(TEST_SHADERS)
+CLIENT_TARGETS64 = test/testclient.o64 spugl.a64 $(TEST_SHADERS)
 
-CUBE_TARGETS32 = test/cube.o32 test/joystick.o32 spugl.a32
-CUBE_TARGETS64 = test/cube.o64 test/joystick.o64 spugl.a64
+CUBE_TARGETS32 = test/cube.o32 test/joystick.o32 spugl.a32 $(TEST_SHADERS)
+CUBE_TARGETS64 = test/cube.o64 test/joystick.o64 spugl.a64 $(TEST_SHADERS)
 
 CLIENT_LIB_TARGETS_C := $(wildcard client/*.c)
 CLIENT_LIB_TARGETS_H := $(wildcard client/*.h)
@@ -106,6 +109,8 @@ CLIENT_LIB_TARGETS32 := $(patsubst %.c,%.o32,$(CLIENT_LIB_TARGETS_C))
 CLIENT_LIB_TARGETS64 := $(patsubst %.c,%.o64,$(CLIENT_LIB_TARGETS_C))
 
 all:	$(TARGETS) pixelshaders
+
+a: $(TEST_SHADERS)
 
 pixelshaders: $(SHADER_TARGETS)
 
@@ -315,7 +320,7 @@ pixelshaders/%.dep: pixelshaders/%.c
 
 # rules to make a pixel shader
 
-%.hdr.s:	pixelshaders/pixelshader.template Makefile
+%.hdr.s:	pixelshaders/pixelshader.template #Makefile
 	perl -pe '{s/_PREFIX_/$(notdir $*)/g;}' < $< >$@
 
 %.shader.spe: %.hdr.pic %.pic
@@ -324,6 +329,10 @@ pixelshaders/%.dep: pixelshaders/%.c
 %.shader: %.shader.spe
 	$(SPUOBJCOPY) -S $< -O binary $@
 
+# rules to copy a shader to test directory
+
+test/%.o$(USERLAND): pixelshaders/%.shader
+	$(PPUOBJCOPY) -I binary $< -B powerpc -O elf$(USERLAND)-powerpc $@
 
 ### BUILD-ONLY-END ###
 
@@ -342,6 +351,7 @@ clean:
 	rm -f hilbert
 	rm -f server/*.o server/*.o32 server/*.o64
 	rm -f client/*.o client/*.o32 client/*.o64
+	rm -f test/*.o test/*.o32 test/*.o64
 	rm -f server/primaryspu/*.0 client/primaryspu/*.0
 	rm -f server/renderspu/*.0 client/renderspu/*.0 pixelshaders/*.0
 	rm -f pixelshaders/*.hdr pixelshaders/*.hdr.s

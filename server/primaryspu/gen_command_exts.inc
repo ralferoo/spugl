@@ -20,5 +20,6 @@ extern FIFO_COMMAND imp_old_glBindTexture;
 extern FIFO_COMMAND imp_glSync;
 extern FIFO_COMMAND imp_glFlush;
 extern FIFO_COMMAND imp_ClearScreen;
+extern FIFO_COMMAND imp_SelectPixelShader;
 extern FIFO_COMMAND imp_nop;
 extern FIFO_COMMAND imp_jump;

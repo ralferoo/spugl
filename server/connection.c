@@ -337,6 +337,11 @@ int handleConnectionData(Connection* connection, char* mountname) {
 			send(connection->fd, &reply, sizeof(reply), 0);
 			break;
 
+		case SPUGLR_REGISTER_PIXEL_SHADER:
+			reply.register_shader.id = 0;				// not supported
+			send(connection->fd, &reply, sizeof(reply), 0);
+			break;
+
 		default: 
 			sprintf(buffer, "invalid request command %d", request.header.command);
 			syslog(LOG_ERR, buffer);

@@ -42,6 +42,9 @@ void spuglFreeCommandQueue(SPUGL_QUEUE buffer);
 void* spuglAllocateBuffer(int server, unsigned int size);
 void spuglFreeBuffer(void* buffer);
 
+// gets the base buffer address for some random pointer
+void* spuglBufferBaseAddress(void* buffer, int* id);
+
 // sends the server an invalid request (for testing - should cause the connection to drop)
 void spuglInvalidRequest(int server);
 
@@ -59,5 +62,8 @@ void spuglDrawContext(unsigned int target);
 void spuglJump(unsigned int target);
 void spuglNop(void);
 unsigned int spuglTarget();
+
+// loads a shader which must be copied to one of the spugl buffers
+//unsigned int spuglLoadShader(void* buffer, int length);
 
 #endif // __SPUGL_CLIENT_H

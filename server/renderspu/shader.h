@@ -24,3 +24,8 @@ typedef struct {
 
 static const unsigned long long PixelShaderHeaderMagic = 0x737075676c2d7073;
 
+typedef void (*PixelShaderInitFunc)	(vec_uint4* params, vec_uint4* scratch, vec_int4 hdx, vec_int4 hdy);
+typedef void (*PixelShaderRenderFunc)	(vec_uint4* params, vec_uint4* scratch, vec_int4 A, vec_int4 hdx, vec_int4 hdy, vec_uint4* pixelbuffer);
+
+extern PixelShaderRenderFunc load_shader(Triangle* triangle, vec_uint4* params, vec_int4 hdx, vec_int4 hdy);
+extern vec_uint4*	shader_scratch;

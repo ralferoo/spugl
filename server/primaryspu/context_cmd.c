@@ -237,4 +237,32 @@ unsigned int current_texture = 0;
 	return imp_clear_screen(a, context);
 }
 
+/*29*/int imp_SelectPixelShader(unsigned int* from, Context* context) {
+	unsigned int bufid = *from++;
+	unsigned int offset = *from++;
+	unsigned int length = *from++;
 
+	// reserve some memory
+	volatile char buffer_[16+15];
+	volatile char* buf_ptr=(volatile char*)( (((int)&buffer_)+15) & ~15 );
+
+	// DMA the buffer start address
+	unsigned id = bufid & BLOCK_ID_MASK;
+	unsigned int eal_memptr = eal_buffer_memory_table + id*sizeof(long long);
+	spu_mfcdma64(buf_ptr, eah_buffer_tables, eal_memptr & ~15, 16, 0, MFC_GET_CMD);	// tag 0
+	mfc_write_tag_mask(1<<0);							// tag 0
+	mfc_read_tag_status_all();							// wait for read
+
+	// calculate the pointer to the EA and fetch it
+	volatile long long* long_ptr = (volatile long long*) (buf_ptr + (eal_memptr&8) );
+	long long ea = *long_ptr;
+
+	// store the new data into the context
+	context->pixel_shader_ea	= ea + offset;
+	context->pixel_shader_length	= length;
+#ifdef INFO
+	printf("select shader %x [%llx] %x %x -> %llx/%d\n",
+		bufid, ea, offset, length, context->pixel_shader_ea, context->pixel_shader_length);
+#endif
+	return 0;
+}

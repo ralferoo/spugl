@@ -2238,6 +2238,7 @@ typedef void (APIENTRYP PFNGLBLENDEQUATIONSEPARATEATIPROC) (GLenum modeRGB, GLen
 #endif
 		
 GLAPI void GLAPIENTRY spuglClearScreen(GLubyte r, GLubyte g, GLubyte b, GLubyte a);
+GLAPI void GLAPIENTRY spuglSelectPixelShader(void* addr, unsigned int length);
 
 #if defined(macintosh) && PRAGMA_IMPORT_SUPPORTED
 #pragma import off

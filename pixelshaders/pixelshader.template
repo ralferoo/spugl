@@ -17,7 +17,7 @@ _start:
 	# size and definition of pixel shader
 
 	.long	_end - _start
-#	.long	_PREFIX_Definition - _start
+	.long	0	#_PREFIX_Definition - _start
 
 	# function offsets
 	

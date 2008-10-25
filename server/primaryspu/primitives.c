@@ -303,11 +303,17 @@ Triangle* imp_triangle(Triangle* triangle, Context* context)
 
 	// remove requirement to do this in the hilbert calcs
 	vec_int4 Amask = {0, 0, 0, -1};
-	triangle->area = spu_or(triA,Amask);
-	triangle->area_dx = triAdx;
-	triangle->area_dy = triAdy;
+	triA = spu_or(triA,Amask);
+
+	// store the parameters common to all triangles
+	triangle->area		= triA;
+	triangle->area_dx	= triAdx;
+	triangle->area_dy	= triAdy;
+	triangle->shader_ea	= context->pixel_shader_ea;
+	triangle->shader_length	= context->pixel_shader_length;
 
 /*
+	printf("shader %llx/%d\n", triangle->shader_ea, triangle->shader_length);
 	DEBUG_VEC4( triA );
 	DEBUG_VEC4( triAdx );
 	DEBUG_VEC4( triAdy );
@@ -716,8 +722,12 @@ int imp_clear_screen(float4 in, Context* context)
 	TRIx = (vec_float4) { width, width, -width, 0.0f };
 	TRIy = (vec_float4) { -height, height, height, 0.0f };
 
-	writeTriangleBuffer(imp_triangle(triangle, context));
+	Triangle* next_tri = imp_triangle(triangle, context);
 
+	triangle->shader_ea	= 0;
+	triangle->shader_length	= 1;
+
+	writeTriangleBuffer(next_tri);
 	return 0;
 }
 

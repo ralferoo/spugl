@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
@@ -22,7 +23,14 @@
 #include "GL/gl.h"
 //#include "GL/spugl.h"
 
+extern void _binary_pixelshaders_flat_shader_start;
+extern void _binary_pixelshaders_flat_shader_size;
+
+extern void _binary_pixelshaders_mask_shader_start;
+extern void _binary_pixelshaders_mask_shader_size;
+
 int main(int argc, char* argv[]) {
+
 	int server = spuglConnect();
 	if (server<0) {
 		printf("Cannot connect to spugl server\n");
@@ -38,6 +46,18 @@ int main(int argc, char* argv[]) {
 
 	void* buffer = spuglAllocateBuffer(server, 24*1024*1024);
 	if (buffer==NULL) { printf("Out of memory\n"); exit(1); }
+
+	void* flatShader = buffer;
+	memcpy(flatShader, &_binary_pixelshaders_flat_shader_start, (int)&_binary_pixelshaders_flat_shader_size);
+	buffer += ((int)&_binary_pixelshaders_flat_shader_size+127)&~127;
+
+	void* maskShader = buffer;
+	memcpy(maskShader, &_binary_pixelshaders_mask_shader_start, (int)&_binary_pixelshaders_mask_shader_size);
+	buffer += ((int)&_binary_pixelshaders_mask_shader_size+127)&~127;
+
+	printf("flat shader: 0x%8x + %d bytes -> %x\n", &_binary_pixelshaders_flat_shader_start, &_binary_pixelshaders_flat_shader_size, flatShader);
+	printf("mask shader: 0x%8x + %d bytes -> %x\n", &_binary_pixelshaders_mask_shader_start, &_binary_pixelshaders_mask_shader_size, maskShader);
+	printf("rest of buffer at %x\n", buffer);
 
 	unsigned int context = spuglFlip(queue);
 	printf("context = %x\n", context);
@@ -81,6 +101,8 @@ int main(int argc, char* argv[]) {
 
 		spuglClearScreen(128,128,128,0);
 
+		spuglSelectPixelShader(flatShader, (int)&_binary_pixelshaders_flat_shader_size);
+	
 		glBegin(GL_TRIANGLES);
 			float ofs = i * 1.0f;
 
@@ -108,7 +130,10 @@ int main(int argc, char* argv[]) {
 				glTexCoord2f( 256, 256 );
 				glColor3ub(255, 255, 0);
 				glVertex3f(170+ofs, 20, 100);
+		glEnd();
 /////////////////////
+		spuglSelectPixelShader(maskShader, (int)&_binary_pixelshaders_mask_shader_size);
+		glBegin(GL_TRIANGLES);
 				glTexCoord2f( 256, 0 );
 				glColor3ub(0, 55, 255);
 				glVertex3f(-230-ofs, 60, 100);

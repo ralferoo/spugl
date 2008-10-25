@@ -15,6 +15,7 @@
 #include <sched.h>
 
 #include "fifodefs.h"
+#include "client.h"
 #include <GL/gl.h>
 
 GLAPI void GLAPIENTRY spuglNop()
@@ -330,7 +331,25 @@ GLAPI void GLAPIENTRY spuglClearScreen(GLubyte r, GLubyte g, GLubyte b, GLubyte 
 }
 
 
+GLAPI void GLAPIENTRY spuglSelectPixelShader_(unsigned int bufferid, unsigned int offset, unsigned int length)
+{
+	FIFO_PROLOGUE(3);
+	BEGIN_RING(FIFO_COMMAND_SELECT_PIXEL_SHADER,3);
+	OUT_RING(bufferid);
+	OUT_RING(offset);
+	OUT_RING(length);
+	FIFO_EPILOGUE();
+}
 
+
+GLAPI void GLAPIENTRY spuglSelectPixelShader(void* buffer, unsigned int length)
+{
+	int bufid;
+	void* base = spuglBufferBaseAddress(buffer, &bufid);
+	if (!base)
+		return;
+	spuglSelectPixelShader_(bufid, buffer - base, length);
+}
 
 
 

@@ -13,8 +13,6 @@
 #include <spu_intrinsics.h>
 #include <stdio.h>
 
-//#include "server/renderspu/render.h"
-
 /*
 register vec_float4    	TRIg            asm ("106");
 register vec_int4	TRIgi           asm ("106");
@@ -34,56 +32,14 @@ void b(void) { TEST.i = spu_splats(-1234); }
 void c(void) { TEST.u = spu_splats(1234U); }
 
 
-#include "shader.h"
 
-void flatInitFunc(vec_uint4* info);
-void flatRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void flatInitFunc(vec_uint4* info)
+void flatInitFunc(vec_uint4* params, vec_uint4* scratch, vec_int4 hdx, vec_int4 hdy)
 {
 //	TRIr = spu_splats(1234.0f);
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/*
-#define DEBUG_VEC4(x) __debug_vec4(#x, (vec_uint4) x)
-#define DEBUG_VEC8(x) __debug_vec8(#x, (vec_ushort8) x)
-#define DEBUG_VECf(x) __debug_vecf(#x, (vec_float4) x)
-
-static void __debug_vec4(char* s, vec_uint4 x)
-{
-	printf("[%d] %-20s %08x   %08x   %08x   %08x\n", _SPUID, s,
-		spu_extract(x, 0),
-		spu_extract(x, 1),
-		spu_extract(x, 2),
-		spu_extract(x, 3) );
-}
-
-static void __debug_vec8(char* s, vec_ushort8 x)
-{
-	printf("[%d] %-20s %04x %04x  %04x %04x  %04x %04x  %04x %04x\n", _SPUID, s,
-		spu_extract(x, 0),
-		spu_extract(x, 1),
-		spu_extract(x, 2),
-		spu_extract(x, 3),
-		spu_extract(x, 4),
-		spu_extract(x, 5),
-		spu_extract(x, 6),
-		spu_extract(x, 7) );
-}
-
-static void __debug_vecf(char* s, vec_float4 x)
-{
-	printf("[%d] %-20s %11.3f %11.3f %11.3f %11.3f\n", _SPUID, s,
-		spu_extract(x, 0),
-		spu_extract(x, 1),
-		spu_extract(x, 2),
-		spu_extract(x, 3) );
-}
-*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -102,7 +58,7 @@ static inline vec_float4 extract(
                 spu_mul (spu_splats(spu_extract(what,2)),tAc)));
 }
         
-void flatRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy)
+void flatRenderFunc(vec_uint4* params, vec_uint4* scratch, vec_int4 A, vec_int4 hdx, vec_int4 hdy, vec_uint4* pixelbuffer)
 {
 
 	vec_int4 A_dx = spu_rlmaska(hdx, -5);
@@ -154,11 +110,11 @@ void flatRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_i
         vec_float4 bA_dx4	= extract(params[6], fAa_dx4, fAb_dx4, fAc_dx4);
         vec_float4 bA_dy	= extract(params[6], fAa_dy, fAb_dy, fAc_dy);
 
+///////
+
 	vec_int4 Aa = spu_add( Aa_dx0123, spu_splats(spu_extract(A,0)));
 	vec_int4 Ab = spu_add( Ab_dx0123, spu_splats(spu_extract(A,1)));
 	vec_int4 Ac = spu_add( Ac_dx0123, spu_splats(spu_extract(A,2)));
-
-///////
 
 	vec_float4 fAa		= spu_convtf(Aa, 5);
 	vec_float4 fAb		= spu_convtf(Ab, 5);

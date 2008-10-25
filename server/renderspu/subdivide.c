@@ -14,13 +14,9 @@
 #include <stdio.h>
 
 #include "render.h"
+#include "shader.h"
 
 // #define INFO
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-extern void maskRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
-extern void flatRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -168,8 +164,8 @@ void flushTileBuffers(unsigned int firstTile, unsigned int chunkEnd)
 void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int firstTile, int chunkEnd, unsigned int chunkTriangle, int ok)
 {
 #ifdef INFO
-	printf("[%d] Processing tiles %d to %d on tri %04x\n",
-		_SPUID, firstTile, chunkEnd, chunkTriangle);
+	printf("[%d] Processing tiles %d to %d on tri %04x shader = %llx/%d\n",
+		_SPUID, firstTile, chunkEnd, chunkTriangle, triangle->shader_ea, triangle->shader_length);
 #endif
 
 	int w = 64;
@@ -181,14 +177,16 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 	vec_int4 A   = triangle->area;
 	vec_int4 Adx = triangle->area_dx;
 	vec_int4 Ady = triangle->area_dy;
+	vec_int4 hdx = spu_rlmaska(Adx, -6);
+	vec_int4 hdy = spu_rlmaska(Ady, -6);
+	vec_uint4* params = &triangle->shader_params[0];
 	
+	PixelShaderRenderFunc shader = load_shader(triangle, params, hdx, hdy);
+
 	unsigned short limitX = cache->maxBlockX;
 	unsigned short limitY = cache->maxBlockY;
 
 	vec_short8 limit = (vec_short8) { limitX, limitY, 0,0,0,0,0,0 };
-
-	vec_int4 hdx = spu_rlmaska(Adx, -6);
-	vec_int4 hdy = spu_rlmaska(Ady, -6);
 
 	unsigned int blocksToProcess = subdivide(A, Adx, Ady,
 		ZEROS, INITIAL_i, INITIAL_BASE, INITIAL_BASE_ADD, 0, firstTile, spu_splats(chunkEnd+1), 0, limit); 
@@ -262,8 +260,7 @@ void processTriangleChunks(Triangle* triangle, RenderableCacheLine* cache, int f
 		// do the actual rendering
 		A=processTile.A[block];
 
-//		maskRenderFunc(block_buffer[block], &triangle->shader_params[0], A, hdx, hdy);
-		flatRenderFunc(block_buffer[block], &triangle->shader_params[0], A, hdx, hdy);
+		shader(params, shader_scratch, A, hdx, hdy, block_buffer[block]);
 	}
 
 #ifdef INFO

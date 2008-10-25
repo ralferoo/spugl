@@ -43,6 +43,11 @@ struct __SPUGL_request {
 			unsigned short command;
 			unsigned int id;
 		} free;
+		struct {
+			unsigned short command;
+			unsigned int buffer;
+			unsigned int offset;
+		} register_shader;
 		//struct {
 		//	unsigned char size[16];
 		//} pad;
@@ -60,6 +65,7 @@ struct __SPUGL_request {
 #define SPUGLR_SCREEN_SIZE		9
 #define SPUGLR_SYNC			10
 #define SPUGLR_FLIP			11
+#define SPUGLR_REGISTER_PIXEL_SHADER	12
 
 struct __SPUGL_reply {
 	union {
@@ -75,6 +81,9 @@ struct __SPUGL_reply {
 		struct {
 			unsigned int context;
 		} flip;
+		struct {
+			unsigned int id;
+		} register_shader;
 		//struct {
 		//	unsigned char size[16];
 		//} pad;

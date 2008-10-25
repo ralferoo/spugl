@@ -13,11 +13,9 @@
 #include <spu_intrinsics.h>
 #include <stdio.h>
 
-//#include "server/renderspu/render.h"
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void maskRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy);
-
-void maskInitFunc(vec_uint4* info)
+void maskInitFunc(vec_uint4* params, vec_uint4* scratch, vec_int4 hdx, vec_int4 hdy)
 {
 }
 
@@ -28,7 +26,7 @@ static const vec_float4 muls = {0.0f, 1.0f, 2.0f, 3.0f};
 static const vec_uchar16 shuf_0101 = { 0x80,0x80,0x80,0x80, 0,1,2,3, 0x80,0x80,0x80,0x80, 0,1,2,3 };
 static const vec_uchar16 shuf_0011 = { 0x80,0x80,0x80,0x80, 0x80,0x80,0x80,0x80, 0,1,2,3, 0,1,2,3 };
 
-void maskRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_int4 hdx, vec_int4 hdy)
+void maskRenderFunc(vec_uint4* params, vec_uint4* scratch, vec_int4 A, vec_int4 hdx, vec_int4 hdy, vec_uint4* pixelbuffer)
 {
 
 	vec_int4 A_dx = spu_rlmaska(hdx, -5);
@@ -88,7 +86,7 @@ void maskRenderFunc(vec_uint4* pixelbuffer, vec_uint4* params, vec_int4 A, vec_i
 
 			vec_uint4 current = *ptr;
 
-			current = spu_rlmask(current, -1);
+			//current = spu_rlmask(current, -1);
 
 			*ptr = spu_sel(current, colour, pixel);
 //		} 

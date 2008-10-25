@@ -52,6 +52,22 @@ void* spuglAllocateBuffer(int server, unsigned int size) {
 	return (CommandQueue*) _allocate(server, size, SPUGLR_ALLOC_BUFFER);
 }
 	
+void* spuglBufferBaseAddress(void* buffer, int* id)
+{
+	SPUGL_Buffer** ptr = &firstBuffer;
+	while (*ptr) {
+		SPUGL_Buffer* test = *ptr;
+		void* testStart = test->data;
+		void* testEnd = test->size + testStart;
+		if (buffer>=testStart && buffer<testEnd) {
+			*id = test->id;
+			return testStart;
+		}
+		ptr = &(test->next);
+	}
+	return NULL;
+}
+
 static void _freeBuffer(void* buffer, unsigned short command);
 
 void spuglFreeCommandQueue(CommandQueue* buffer) {
@@ -301,3 +317,25 @@ void spuglScreenSize(int server, unsigned int* width, unsigned int* height)
 	*width	= reply.screensize.width;
 	*height	= reply.screensize.height;
 }
+
+/*
+unsigned int spuglLoadShader(void* buffer, int length)
+{
+	// find the base of the buffer
+	int bufid;
+	void* base = spuglBufferBaseAddress(buffer, &bufid);
+	if (!base)
+		return 0;
+
+	SPUGL_request request;
+	request.header.command = SPUGLR_REGISTER_PIXEL_SHADER;
+	request.register_shader.buffer = bufid;
+	request.register_shader.offset = buffer - base;
+	send(server, &request, sizeof(request), 0);
+
+	SPUGL_reply reply;
+	recv(server, &reply, sizeof(reply), 0);
+	return reply.register_shader.id;
+}
+*/
+
