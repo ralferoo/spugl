@@ -17,6 +17,6 @@
 }
 
 /*1*/int imp_jump(unsigned int *from) {
-	printf("JUMP %x\n", *from);
+//	printf("JUMP %x\n", *from);
 	return 1;
 }

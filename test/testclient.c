@@ -41,10 +41,10 @@ int main(int argc, char* argv[]) {
 	spuglScreenSize(server, &width, &height);
 	printf("Connected to spugl, screen size is %dx%d\n", width, height);
 
-	CommandQueue* queue = spuglAllocateCommandQueue(server, 2047*1024);
+	CommandQueue* queue = spuglAllocateCommandQueue(server, 24*1024);
 	if (queue==NULL) { printf("Out of memory\n"); exit(1); }
 
-	void* buffer = spuglAllocateBuffer(server, 24*1024*1024);
+	void* buffer = spuglAllocateBuffer(server, 24*1024);
 	if (buffer==NULL) { printf("Out of memory\n"); exit(1); }
 
 	void* flatShader = buffer;
@@ -63,7 +63,6 @@ int main(int argc, char* argv[]) {
 	printf("context = %x\n", context);
 
 	spuglSetCurrentContext(queue);
-	unsigned int start = spuglTarget();
 
 	glLoadIdentity();
 	spuglNop();
@@ -86,6 +85,7 @@ int main(int argc, char* argv[]) {
 	clock_gettime(CLOCK_MONOTONIC,&a);
 
 
+	unsigned int start = spuglTarget();
 
 	int i = -130;
 	//int i = -338;
@@ -102,7 +102,6 @@ int main(int argc, char* argv[]) {
 		spuglClearScreen(128,128,128,0);
 
 		spuglSelectPixelShader(flatShader, (int)&_binary_pixelshaders_flat_shader_size);
-	
 		glBegin(GL_TRIANGLES);
 			float ofs = i * 1.0f;
 
@@ -149,7 +148,10 @@ int main(int argc, char* argv[]) {
 		glEnd();
 
 		glFlush();
-		//spuglFlush(queue);
+
+		spuglJump(start);
+		spuglSetTarget(start);
+		glFlush();
 
 
 		spuglWait(queue);

@@ -6,6 +6,11 @@ ACTIVE BUGS
 
 * with more than one render SPU, sometimes stuff glitches out of view
 
+* can get DMA exception if client quits - server must hold off trashing
+  buffers until after render stuff has had a chance to complete
+
+* doesn't check buffer extents on DMA
+
 Still occurring
 
 * on gimel:
@@ -31,3 +36,7 @@ caused an exception as that address space wasn't mapped.
 Made the screen clear function use a triangle that covers the entire screen.
 Still room to optimise this, but it's a start.
 PPU usage is about 10% - still not sure what it's doing, but not too bothered.
+
+* client's FIFO doesn't wrap around yet
+
+Added spuglSetTarget function to change the FIFO write ptr

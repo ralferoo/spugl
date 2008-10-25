@@ -62,6 +62,7 @@ void spuglDrawContext(unsigned int target);
 void spuglJump(unsigned int target);
 void spuglNop(void);
 unsigned int spuglTarget();
+void spuglSetTarget(unsigned int wp);			// forces the FIFO write pointer to new value. probably needs spuglJump first!
 
 // loads a shader which must be copied to one of the spugl buffers
 //unsigned int spuglLoadShader(void* buffer, int length);

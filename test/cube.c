@@ -69,6 +69,9 @@ static inline double getTimeSince(struct timespec startPoint) {
 
 unsigned long flag=0;
 
+extern void _binary_pixelshaders_flat_shader_start;
+extern void _binary_pixelshaders_flat_shader_size;
+
 int main(int argc, char* argv[]) {
 	int server = spuglConnect();
 	if (server<0) {
@@ -98,14 +101,17 @@ int main(int argc, char* argv[]) {
 	CommandQueue* queue = spuglAllocateCommandQueue(server, 2047*1024);
 	if (queue==NULL) { printf("Out of memory\n"); exit(1); }
 
-	void* buffer = spuglAllocateBuffer(server, 24*1024*1024);
+	void* buffer = spuglAllocateBuffer(server, 24*1024);
 	if (buffer==NULL) { printf("Out of memory\n"); exit(1); }
+
+	void* flatShader = buffer;
+	memcpy(flatShader, &_binary_pixelshaders_flat_shader_start, (int)&_binary_pixelshaders_flat_shader_size);
+	buffer += ((int)&_binary_pixelshaders_flat_shader_size+127)&~127;
 
 	unsigned int context = spuglFlip(queue);
 	printf("context = %x\n", context);
 
 	spuglSetCurrentContext(queue);
-	unsigned int start = spuglTarget();
 
 	glLoadIdentity();
 	spuglNop();
@@ -136,6 +142,8 @@ int main(int argc, char* argv[]) {
 	while (stick_button(3));
 
 	int last_button = 0;
+
+	unsigned int start = spuglTarget();
 
 	while (!stick_button(3)) {
 		struct timespec startPoint;
@@ -181,10 +189,12 @@ int main(int argc, char* argv[]) {
 
 		unsigned long _start = 0; //spuglCounter();
 		unsigned long _startBlocked = 0; //spuglBlockedCounter();
+
 	if(1) {
 		spuglDrawContext(context);
 		spuglClearScreen(128,128,128,0);
 
+		spuglSelectPixelShader(flatShader, (int)&_binary_pixelshaders_flat_shader_size);
 		glBegin(GL_TRIANGLES);
 		for (f=0; f<6; f++) {
 			// glBindTexture(0,f);
@@ -253,6 +263,11 @@ cheat:
 	}
 		glFlush();
 
+		spuglJump(start);
+		spuglSetTarget(start);
+		glFlush();
+
+		//usleep(100000);
 		write(1,".",1);
 
 		double uptoFlip = getTimeSince(startPoint);
@@ -281,6 +296,8 @@ skip:
 
 		// test the set flag functionality - this variable is updated by the SPU
 		// spuglSetFlag(&flag, flag+1);
+
+	flag++;
 
 		// bah humbug, stdio buffering, bah!
 		char buffer[256];

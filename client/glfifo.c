@@ -25,6 +25,13 @@ GLAPI void GLAPIENTRY spuglNop()
 	FIFO_EPILOGUE();
 }
 
+GLAPI void spuglSetTarget(unsigned int wp)
+{
+	__asm__("lwsync");
+	_SPUGL_fifo->write_ptr = wp;
+	__asm__("lwsync");
+}
+
 GLAPI unsigned int spuglTarget()
 {
 	return _SPUGL_fifo->write_ptr;
