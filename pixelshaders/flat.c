@@ -13,45 +13,6 @@
 #include <spu_intrinsics.h>
 #include <stdio.h>
 
-/*
-register vec_float4    	TRIg            asm ("106");
-register vec_int4	TRIgi           asm ("106");
-
-register vec_float4    	TRIr            asm ("107");
-register vec_int4	TRIri           asm ("107");
-*/
-
-typedef union {
-	vec_float4    	vf;
-	vec_int4	vi;
-	vec_uint4	vu;
-	vec_ushort8	vus;
-	vec_short8	vs;
-	unsigned int	ui;
-	int		i;
-	unsigned short	us;
-	short		s;
-	float		f;
-} AllTypes;
-
-register AllTypes __test asm("108");
-
-//const int& testint = __test.i;
-//register int testint __attribute__((weak, alias("__test.i")));
-
-register union {
-	vec_float4    	f;
-	vec_int4	i;
-	vec_uint4	u;
-} TEST asm ("107");
-
-void a(void) { TEST.f = spu_splats(123.4f); }
-void b(void) { TEST.i = spu_splats(-1234); }
-void c(void) { TEST.u = spu_splats(1234U); }
-
-
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void flatInitFunc(vec_uint4* params, vec_uint4* scratch, vec_int4 hdx, vec_int4 hdy)
@@ -189,3 +150,43 @@ void flatRenderFunc(vec_uint4* params, vec_uint4* scratch, vec_int4 A, vec_int4 
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+register vec_float4    	TRIg            asm ("106");
+register vec_int4	TRIgi           asm ("106");
+
+register vec_float4    	TRIr            asm ("107");
+register vec_int4	TRIri           asm ("107");
+
+typedef union {
+	vec_float4    	vf;
+	vec_int4	vi;
+	vec_uint4	vu;
+	vec_ushort8	vus;
+	vec_short8	vs;
+	unsigned int	ui;
+	int		i;
+	unsigned short	us;
+	short		s;
+	float		f;
+} AllTypes;
+
+register AllTypes __test asm("108");
+
+//const int& testint = __test.i;
+//register int testint __attribute__((weak, alias("__test.i")));
+
+register union {
+	vec_float4    	f;
+	vec_int4	i;
+	vec_uint4	u;
+} TEST asm ("107");
+
+void a(void) { TEST.f = spu_splats(123.4f); }
+void b(void) { TEST.i = spu_splats(-1234); }
+void c(void) { TEST.u = spu_splats(1234U); }
+
+*/
+
+
+
