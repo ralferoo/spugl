@@ -5,6 +5,8 @@ ACTIVE BUGS
 * DMA alignment exception when running with borders
 
 * with more than one render SPU, sometimes stuff glitches out of view
+  - this looks suspiciously like it's caused with the triangle buffer
+    is too small, meaning the "check for space" function is broken...
 
 * can get DMA exception if client quits - server must hold off trashing
   buffers until after render stuff has had a chance to complete

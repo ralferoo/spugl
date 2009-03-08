@@ -380,7 +380,7 @@ unsigned int subdivide(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec
 		//			printf("[%d] out of range coord %2d,%2d block=%d\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block + blockStart );
 				}
 			} else if (block>=0) {
-				printf("[%d] coord %2d,%2d (block=%d) *** really %d\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block+blockStart, block );
+				printf("[%d] coord %2d,%2d (block=%d) *** really %d blockMax=%d\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block+blockStart, block, spu_extract(blockMax,0) );
 			}
 		}
 	}
