@@ -320,8 +320,11 @@ pixelshaders/%.dep: pixelshaders/%.c
 
 # rules to make a pixel shader
 
-%.hdr.s:	pixelshaders/pixelshader.template #Makefile
-	perl -pe '{s/_PREFIX_/$(notdir $*)/g;}' < $< >$@
+#%.hdr.s:	pixelshaders/template.s #Makefile
+#	perl -pe '{s/_PREFIX_/$(notdir $*)/g;}' < $< >$@
+
+%.hdr.pic: pixelshaders/template.pic
+	$(SPUOBJCOPY) --redefine-sym _PREFIX_InitFunc=$(notdir $*)InitFunc --redefine-sym _PREFIX_RenderFunc=$(notdir $*)RenderFunc $< $@
 
 %.shader.spe: %.hdr.pic %.pic
 	$(SPULD) $*.hdr.pic $*.pic -o $@
