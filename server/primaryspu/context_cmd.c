@@ -261,6 +261,7 @@ unsigned int current_texture = 0;
 	// store the new data into the context
 	context->pixel_shader_ea	= ea + offset;
 	context->pixel_shader_length	= length;
+
 #ifdef INFO
 	printf("select shader %x [%llx] %x %x -> %llx/%d\n",
 		bufid, ea, offset, length, context->pixel_shader_ea, context->pixel_shader_length);

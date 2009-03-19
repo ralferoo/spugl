@@ -87,6 +87,8 @@ int main(int argc, char* argv[]) {
 
 	unsigned int start = spuglTarget();
 
+	int* n = (int*) buffer;
+
 	int qqq = 0;
 
 	int i = -130;
@@ -97,8 +99,8 @@ int main(int argc, char* argv[]) {
 	//for (int k=0; k<429; k++)
 	{
 		char buffer[256];
-		sprintf(buffer,"%d\r", i);
-		//write(1,buffer,strlen(buffer));
+		sprintf(buffer,"   %d\r", *n);
+		write(1,buffer,strlen(buffer));
 		spuglDrawContext(context);
 
 		qqq++;
@@ -152,10 +154,11 @@ int main(int argc, char* argv[]) {
 
 		glFlush();
 
+		spuglPoke(n, (*n)+1);
+
 		spuglJump(start);
 		spuglSetTarget(start);
 		glFlush();
-
 
 		spuglWait(queue);
 		context = spuglFlip(queue);

@@ -23,3 +23,4 @@ extern FIFO_COMMAND imp_ClearScreen;
 extern FIFO_COMMAND imp_SelectPixelShader;
 extern FIFO_COMMAND imp_nop;
 extern FIFO_COMMAND imp_jump;
+extern FIFO_COMMAND impPoke;

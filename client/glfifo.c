@@ -358,6 +358,20 @@ GLAPI void GLAPIENTRY spuglSelectPixelShader(void* buffer, unsigned int length)
 	spuglSelectPixelShader_(bufid, buffer - base, length);
 }
 
+GLAPI void GLAPIENTRY spuglPoke(void* buffer, unsigned int value)
+{
+	int bufid;
+	void* base = spuglBufferBaseAddress(buffer, &bufid);
+	if (!base)
+		return;
+
+	FIFO_PROLOGUE(3);
+	BEGIN_RING(FIFO_COMMAND_POKE,3);
+	OUT_RING(bufid);
+	OUT_RING((int)(buffer-base));
+	OUT_RING(value);
+	FIFO_EPILOGUE();
+}
 
 
 
