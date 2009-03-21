@@ -380,6 +380,29 @@ unsigned int subdivide(vec_int4 A, vec_int4 Adx, vec_int4 Ady, vec_short8 y, vec
 		//			printf("[%d] out of range coord %2d,%2d block=%d\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block + blockStart );
 				}
 			} else if (block>=0) {
+// [2] coord  2, 2 (block=8) *** really 14 blockMax=10
+// [4] coord  1, 0 (block=1) *** really 9 blockMax=8
+// [1] coord  1, 3 (block=6) *** really 13 blockMax=9
+// [2] coord  3, 3 (block=10) *** really 15 blockMax=11
+// [2] coord  2, 3 (block=9) *** really 15 blockMax=10
+// [4] coord  1, 3 (block=6) *** really 15 blockMax=7
+// [2] coord  2, 0 (block=14) *** really 15 blockMax=15
+// [1] coord  0, 2 (block=4) *** really 15 blockMax=5
+// [1] coord  0, 1 (block=3) *** really 15 blockMax=4
+// [2] coord  0, 0 (block=0) *** really 13 blockMax=3
+// [2] coord  1, 1 (block=2) *** really 15 blockMax=3
+// [3] coord  3, 2 (block=11) *** really 15 blockMax=12
+// [2] coord  3, 2 (block=11) *** really 15 blockMax=12
+// [4] coord  2, 3 (block=9) *** really 15 blockMax=10
+// [3] coord  3, 3 (block=10) *** really 15 blockMax=11
+// [3] coord  2, 3 (block=9) *** really 15 blockMax=10
+// [1] coord  1, 3 (block=6) *** really 13 blockMax=9
+// [1] coord  3, 3 (block=10) *** really 15 blockMax=11
+// [3] coord  2, 3 (block=9) *** really 15 blockMax=10
+// [3] coord  2, 3 (block=9) *** really 15 blockMax=10
+// [1] coord  1, 3 (block=6) *** really 13 blockMax=9
+// [1] coord  3, 2 (block=11) *** really 15 blockMax=12
+// [3] coord  3, 3 (block=10) *** really 15 blockMax=11
 				printf("[%d] coord %2d,%2d (block=%d) *** really %d blockMax=%d\n", _SPUID, spu_extract(y,0), spu_extract(y,1), block+blockStart, block, spu_extract(blockMax,0) );
 			}
 		}

@@ -235,7 +235,7 @@ void process_render_tasks(unsigned long eah_render_tasks, unsigned long eal_rend
 		if (!spu_extract(mayProcessBits, 0)) {
 trynextcacheline:
 			cache_ea = cache->next;
-			// __asm("stop 0x2111\n\t.word 0");
+			// sleep();
 			continue;
 		}
 		
@@ -410,7 +410,7 @@ retry:
 						debug_render_tasks(cache);
 #ifdef INFO
 #endif
-						__asm("stop 0x2111\n\t.word 0");
+						sleep();
 					}
 				}
 
@@ -443,7 +443,7 @@ retry:
 				processTriangleChunks(triangle, cache, thisBlockStart, chunkEnd, chunkTriangle, ok);
 				ok=1;
 #ifdef PAUSE
-				__asm("stop 0x2111\n\t.word 0");
+				sleep();
 #endif
 				// and advance to the next-triangle
 				chunkTriangle = triangle->next_triangle;

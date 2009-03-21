@@ -58,7 +58,7 @@ int flush_callback(void *ls_base_tmp, unsigned int data) {
 }
 
 int sleep_callback(void *ls_base_tmp, unsigned int data) {
-	usleep(2500);
+	usleep(125);
 	// sched_yield();
 	// usleep(125000);
 
