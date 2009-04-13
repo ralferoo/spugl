@@ -6,6 +6,7 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="536"
@@ -18,18 +19,37 @@
    inkscape:output_extension="org.inkscape.output.svg.inkscape">
   <defs
      id="defs3333">
-    <filter
-       inkscape:collect="always"
-       id="filter3327"
-       x="-0.036437232"
-       width="1.0728745"
-       y="-0.16981164"
-       height="1.3396233">
-      <feGaussianBlur
-         inkscape:collect="always"
-         stdDeviation="7.7769531"
-         id="feGaussianBlur3329" />
-    </filter>
+    <linearGradient
+       id="linearGradient7040">
+      <stop
+         style="stop-color:#ea0404;stop-opacity:1;"
+         offset="0"
+         id="stop7042" />
+      <stop
+         id="stop7056"
+         offset="0.125"
+         style="stop-color:#ff8e1d;stop-opacity:1;" />
+      <stop
+         id="stop7054"
+         offset="0.25"
+         style="stop-color:#ffef08;stop-opacity:1;" />
+      <stop
+         id="stop7052"
+         offset="0.5"
+         style="stop-color:#45f42d;stop-opacity:1;" />
+      <stop
+         style="stop-color:#22dbfe;stop-opacity:0.97647059;"
+         offset="0.75"
+         id="stop7058" />
+      <stop
+         id="stop7060"
+         offset="0.875"
+         style="stop-color:#6e4ef8;stop-opacity:0.96470588;" />
+      <stop
+         style="stop-color:#d613f5;stop-opacity:0.95686275;"
+         offset="1"
+         id="stop7044" />
+    </linearGradient>
     <inkscape:perspective
        sodipodi:type="inkscape:persp3d"
        inkscape:vp_x="0 : 526.18109 : 1"
@@ -2437,6 +2457,27 @@
          stdDeviation="0.37837662"
          id="feGaussianBlur6834" />
     </filter>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient7040"
+       id="linearGradient7046"
+       x1="35.87888"
+       y1="418.73383"
+       x2="548.12107"
+       y2="418.73383"
+       gradientUnits="userSpaceOnUse" />
+    <filter
+       inkscape:collect="always"
+       id="filter7070"
+       x="-0.043706799"
+       width="1.0874136"
+       y="-0.20369206"
+       height="1.4073841">
+      <feGaussianBlur
+         inkscape:collect="always"
+         stdDeviation="9.3285391"
+         id="feGaussianBlur7072" />
+    </filter>
   </defs>
   <sodipodi:namedview
      id="base"
@@ -2448,9 +2489,9 @@
      objecttolerance="10"
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.8695409"
-     inkscape:cx="68.209444"
-     inkscape:cy="31.770409"
+     inkscape:zoom="1.4981343"
+     inkscape:cx="268"
+     inkscape:cy="67"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -2479,13 +2520,14 @@
        id="text3299"
        y="471.15179"
        x="26.886692"
-       style="font-size:144px;font-style:normal;font-weight:normal;opacity:1;fill:#45f42d;fill-opacity:1;stroke:#b5ffb5;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;filter:url(#filter3327);font-family:Bitstream Vera Sans"
+       style="font-size:144px;font-style:normal;font-weight:normal;opacity:1;fill:url(#linearGradient7046);fill-opacity:1;stroke:#b5ffb5;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;filter:url(#filter7070);font-family:Bitstream Vera Sans"
        xml:space="preserve"
        transform="matrix(0.999526,0,0,1.0007877,1.7323367e-2,-0.3728077)"><tspan
          y="471.15179"
          x="26.886692"
          id="tspan3301"
-         sodipodi:role="line">SPU GL</tspan></text>
+         sodipodi:role="line"
+         style="fill-opacity:1;fill:url(#linearGradient7046)">SPU GL</tspan></text>
     <rect
        style="opacity:1;fill:#31f119;fill-opacity:1;stroke:#b5ffb5;stroke-width:0.49961331;stroke-opacity:1"
        id="rect4183"
