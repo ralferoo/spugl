@@ -17,6 +17,8 @@
 #include <spu_intrinsics.h>
 #endif // SPU_REGS
 
+#define PAUSE_STOP
+
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct __TRIANGLE Triangle;
@@ -29,6 +31,12 @@ typedef struct __CONTEXT Context;
 // trianglebuffer.c
 extern Triangle* getTriangleBuffer(Context* context);
 extern void writeTriangleBuffer(Triangle* endTriangle);
+
+#ifdef PAUSE_STOP
+inline static void sleep(void) { __asm("stop 0x2111\n\t.word 0"); }
+#else
+inline static void sleep(void) { }
+#endif
 
 #endif // SPU_REGS
 
