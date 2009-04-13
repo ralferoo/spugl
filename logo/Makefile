@@ -1,7 +1,7 @@
-all:	idea3.png
+all:	idea4.png
 
 %.png: %.svg Makefile
-	inkscape -C -d 135 -e $*.png $*.svg
+	inkscape -C -d 120 -e $*.png $*.svg
 
 
 
