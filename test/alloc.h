@@ -9,12 +9,10 @@
  *
  ****************************************************************************/
 
-#ifndef __SPUGL_VER_H
-#define __SPUGL_VER_H
+// this is just a very simple alloc-only buffer management strategy
+// TEST use only!
 
-#define VERSION_MAJOR 0
-#define VERSION_MINOR 3
-#define VERSION_REVISION 13
-#define VERSION_STRING "0.3.13"
-
-#endif // __SPUGL_VER_H
+void alloc_init(int server);
+void alloc_destroy(void);
+void* alloc_aligned(unsigned int length);
+void alloc_free(void* addr);

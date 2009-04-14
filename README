@@ -1,11 +1,14 @@
-This is still very much work in progress. Don't expect too much just
-yet, and in fact I'd probably wonder if it's useful to you at all at
-this stage.
 
-The multi-buffer DMA stuff seems a bit wacky; currently only having
-1 active buffer works correctly at the moment. That seems to cause
-about a 10% performance hit over double or more buffers...
+             _______  _______  _     __     _______   __
+            / _____/ / ____ / / /   / /    / _____/  / /
+           / /____  / /__/ / / /   / /    / /  ___  / /
+          /_____ / / _____/ / /   / /    / /  |  / / /
+         _____/ / / /      / /___/ /    / /___/ / / /_____
+        /______/ /_/      /_______/    /_______/ /_______/
 
-If you want to contact me, please e-mail spugl@ranulf.net
+SPUGL is currently work in progress.
+
+If you want to us it for any reason, please contact me by e-mail:
+	 spugl@ranulf.net
 
 Ralf.

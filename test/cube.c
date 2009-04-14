@@ -38,6 +38,8 @@
 
 #include "joystick.h"
 
+#include "alloc.h"
+
 float vertices[][6] = {
 	{ -100, -100, -100,	0,127,0},
 	{  100, -100, -100,	187,107,33},
@@ -102,12 +104,10 @@ int main(int argc, char* argv[]) {
 	CommandQueue* queue = spuglAllocateCommandQueue(server, 2047*1024);
 	if (queue==NULL) { printf("Out of memory\n"); exit(1); }
 
-	void* buffer = spuglAllocateBuffer(server, 24*1024);
-	if (buffer==NULL) { printf("Out of memory\n"); exit(1); }
+	alloc_init(server);
 
-	void* flatShader = buffer;
+	void* flatShader = alloc_aligned((int)&_binary_pixelshaders_flat_shader_size);
 	memcpy(flatShader, &_binary_pixelshaders_flat_shader_start, (int)&_binary_pixelshaders_flat_shader_size);
-	buffer += ((int)&_binary_pixelshaders_flat_shader_size+127)&~127;
 
 	unsigned int context = spuglFlip(queue);
 	printf("context = %x\n", context);
@@ -282,6 +282,7 @@ cheat:
 #ifdef SYNC_WITH_FRAME
 		spuglWait(queue);
 #ifdef DOUBLE_SYNC
+
 		double x1 = getTimeSince(startPoint);
 		if (x1<(1.0/45.0))
 			spuglWait();
@@ -321,7 +322,8 @@ skip:
 	}
 	stick_close();
 
-	spuglFreeBuffer(buffer);
+	alloc_destroy();
+
 	spuglFreeCommandQueue(queue);
 	spuglDisconnect(server);
 
