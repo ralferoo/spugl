@@ -100,8 +100,8 @@ DAEMON_TARGETS := $(patsubst %.c,%.o,$(DAEMON_TARGETS_C))
 CLIENT_TARGETS32 = test/testclient.o32 spugl.a32 $(TEST_SHADERS)
 CLIENT_TARGETS64 = test/testclient.o64 spugl.a64 $(TEST_SHADERS)
 
-CUBE_TARGETS32 = test/cube.o32 test/joystick.o32 test/alloc.o32 spugl.a32 $(TEST_SHADERS)
-CUBE_TARGETS64 = test/cube.o64 test/joystick.o64 test/alloc.o64 spugl.a64 $(TEST_SHADERS)
+CUBE_TARGETS32 = test/cube.o32 test/joystick.o32 test/alloc.o32 test/textureprep.o32 spugl.a32 $(TEST_SHADERS)
+CUBE_TARGETS64 = test/cube.o64 test/joystick.o64 test/alloc.o64 test/textureprep.o64 spugl.a64 $(TEST_SHADERS)
 
 CLIENT_LIB_TARGETS_C := $(wildcard client/*.c)
 CLIENT_LIB_TARGETS_H := $(wildcard client/*.h)
