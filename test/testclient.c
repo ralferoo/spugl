@@ -26,6 +26,9 @@
 extern void _binary_pixelshaders_flat_shader_start;
 extern void _binary_pixelshaders_flat_shader_size;
 
+extern void _binary_pixelshaders_texture_shader_start;
+extern void _binary_pixelshaders_texture_shader_size;
+
 extern void _binary_pixelshaders_mask_shader_start;
 extern void _binary_pixelshaders_mask_shader_size;
 
@@ -55,8 +58,13 @@ int main(int argc, char* argv[]) {
 	memcpy(maskShader, &_binary_pixelshaders_mask_shader_start, (int)&_binary_pixelshaders_mask_shader_size);
 	buffer += ((int)&_binary_pixelshaders_mask_shader_size+127)&~127;
 
+	void* textureShader = buffer;
+	memcpy(textureShader, &_binary_pixelshaders_texture_shader_start, (int)&_binary_pixelshaders_texture_shader_size);
+	buffer += ((int)&_binary_pixelshaders_texture_shader_size+127)&~127;
+
 	printf("flat shader: 0x%8x + %d bytes -> %x\n", &_binary_pixelshaders_flat_shader_start, &_binary_pixelshaders_flat_shader_size, flatShader);
 	printf("mask shader: 0x%8x + %d bytes -> %x\n", &_binary_pixelshaders_mask_shader_start, &_binary_pixelshaders_mask_shader_size, maskShader);
+	printf("texture shader: 0x%8x + %d bytes -> %x\n", &_binary_pixelshaders_texture_shader_start, &_binary_pixelshaders_texture_shader_size, textureShader);
 	printf("rest of buffer at %x\n", buffer);
 
 	unsigned int context = spuglFlip(queue);
@@ -136,7 +144,7 @@ int main(int argc, char* argv[]) {
 				glVertex3f(170+ofs, 20, 100);
 		glEnd();
 /////////////////////
-		spuglSelectPixelShader(maskShader, (int)&_binary_pixelshaders_mask_shader_size);
+		spuglSelectPixelShader(textureShader, (int)&_binary_pixelshaders_texture_shader_size);
 		glBegin(GL_TRIANGLES);
 				glTexCoord2f( 256, 0 );
 				glColor3ub(0, 55, 255);
